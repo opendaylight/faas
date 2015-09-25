@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.opendaylight.odlparent</groupId>
+    <artifactId>odlparent</artifactId>
+    <version>1.6.0-SNAPSHOT</version>
+    <relativePath></relativePath>
+  </parent>
+
+  <groupId>org.opendaylight.faas</groupId>
+  <artifactId>commons.faas</artifactId>
+  <version>1.6.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <properties>
+  </properties>
+
+  <dependencyManagement>
+  </dependencyManagement>
+
+  <dependencies>
+  </dependencies>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+    </plugins>
+  </build>
+
+  <reporting>
+  </reporting>
+  <scm>
+    <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
+    <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://wiki.opendaylight.org/view/faas:Main</url>
+  </scm>
+
+  <repositories>
+
+    <!-- OpenDayLight Repo Mirror -->
+    <!-- NOTE: URLs need to be hardcoded in the repository section because we have
+         parent poms that do NOT exist in this project and thus need to be pulled
+         down from the repository. To override these URLs you should use the
+         mirror section in your local settings.xml file. -->
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>opendaylight-mirror</id>
+      <name>opendaylight-mirror</name>
+      <url>http://nexus.opendaylight.org/content/groups/public/</url>
+    </repository>
+    <!-- OpenDayLight Snapshot artifact -->
+    <repository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>opendaylight-snapshot</id>
+      <name>opendaylight-snapshot</name>
+      <url>http://nexus.opendaylight.org/content/repositories/opendaylight.snapshot/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <!-- OpenDayLight Repo Mirror -->
+    <pluginRepository>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>opendaylight-mirror</id>
+      <name>opendaylight-mirror</name>
+      <url>http://nexus.opendaylight.org/content/groups/public/</url>
+    </pluginRepository>
+    <!-- OpenDayLight Snapshot artifact -->
+    <pluginRepository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>opendaylight-snapshot</id>
+      <name>opendaylight-snapshot</name>
+      <url>http://nexus.opendaylight.org/content/repositories/opendaylight.snapshot/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <!-- distribution management only runs when you run mvn deploy
+       which is if you are deploying compiled artifacts to a
+       maven repository. In that case logic dictacts that you already
+       compiled and thus already have the necessary parent pom files
+       that do not exist in this project pulled down to your local
+       .m2. That way the variables can be resolved and artifacts can
+       be uploaded when running mvn deploy. -->
+  <distributionManagement>
+  </distributionManagement>
+
+  <profiles>
+    <profile>
+      <id>IDE</id>
+      <activation>
+        <property>
+          <name>m2e.version</name>
+        </property>
+      </activation>
+      <build>
+        <!-- Put the IDE's build output in a folder other than target, so that IDE builds don't interact with Maven builds -->
+        <directory>target-ide</directory>
+      </build>
+    </profile>
+    <profile>
+    </profile>
+    <profile>
+      <id>jenkins</id>
+      <activation>
+        <property>
+          <name>BUILDSUFFIX</name>
+        </property>
+      </activation>
+      <properties>
+        <build.suffix>${BUILDSUFFIX}</build.suffix>
+      </properties>
+    </profile>
+    <profile>
+      <id>fastreassembly</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>2.4</version>
+            <executions>
+              <execution>
+                <id>copyfastreassembly</id>
+                <goals>
+                  <goal>copy</goal>
+                </goals>
+                <phase>install</phase>
+                <configuration>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>${project.groupId}</groupId>
+                      <artifactId>${project.artifactId}</artifactId>
+                      <version>${project.version}</version>
+                      <destFileName>${project.groupId}.${project.artifactId}-${project.version}.jar</destFileName>
+                    </artifactItem>
+                  </artifactItems>
+                  <outputDirectory>${fastreassembly.directory}</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.opendaylight.faas</groupId>
+    <artifactId>commons.parent</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
+    <relativePath>faas/commons/parent</relativePath>
+  </parent>
+
+  <artifactId>releasepom</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>faas</name>
+  <!-- Used by Sonar to set project name -->
+
+  <modules>
+
+    <!-- <module>faas/commons/parent</module> -->
+
+    <!-- Karaf Distribution -->
+    <!-- <module>karaf</module> -->
+    <!-- <module>features</module> -->
+
+  </modules>
+  <scm>
+    <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
+    <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://wiki.opendaylight.org/view/faas:Main</url>
+  </scm>
+</project>
