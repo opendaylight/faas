@@ -5,7 +5,7 @@
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>commons.faas</artifactId>
     <version>1.6.0-SNAPSHOT</version>
-    <relativePath>../faas/commons/faas</relativePath>
+    <relativePath>../commons/faas</relativePath>
   </parent>
   <artifactId>features-faas</artifactId>
   <packaging>pom</packaging>
