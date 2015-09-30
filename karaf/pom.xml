@@ -13,7 +13,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>commons.parent</artifactId>
     <version>1.2.0-SNAPSHOT</version>
-    <relativePath>../faas/commons/parent</relativePath>
+    <relativePath>../commons/parent</relativePath>
   </parent>
 
   <artifactId>karaf-aggregator</artifactId>
