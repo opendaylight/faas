@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved. 
+  This program and the accompanying materials are made available under the 
+  terms of the Eclipse Public License v1.0 which accompanies this distribution, 
+  and is available at http://www.eclipse.org/legal/epl-v10.html -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.opendaylight.faas</groupId>
+    <artifactId>commons.faas</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../commons/parent</relativePath>
+  </parent>
+
+  <groupId>org.opendaylight.faas</groupId>
+  <artifactId>base</artifactId>
+  <version>${faas.base.version}</version>
+  <packaging>bundle</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.servicemix.bundles</groupId>
+      <artifactId>org.apache.servicemix.bundles.jung-graph-impl</artifactId>
+      <version>2.0.1_2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.sf.jung</groupId>
+      <artifactId>jung-algorithms</artifactId>
+      <version>2.0.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>${gson.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>${netty.version}</version>
+      </dependency>
+  </dependencies>
+
+  <build>
+      <plugins>
+          <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${bundle.plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Export-Package>org.opendaylight.faas.base.*</Export-Package>
+                        <Bundle-Version>${faas.base.version}</Bundle-Version>
+                        <Import-Package>*</Import-Package>
+                    </instructions>
+                </configuration>
+           </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven.compile.plugin.version}</version>
+          <configuration>
+            <source>${java.version.source}</source>
+            <target>${java.version.target}</target>
+          </configuration>
+        </plugin>
+      </plugins>
+  </build>
+</project>

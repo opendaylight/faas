@@ -1,28 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+<!-- Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved. 
+  This program and the accompanying materials are made available under the 
+  terms of the Eclipse Public License v1.0 which accompanies this distribution, 
+  and is available at http://www.eclipse.org/legal/epl-v10.html -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>commons.parent</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <artifactId>commons.faas</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
     <relativePath>commons/parent</relativePath>
   </parent>
 
-  <artifactId>releasepom</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <artifactId>faas.project</artifactId>
   <packaging>pom</packaging>
-  <name>faas</name>
-  <!-- Used by Sonar to set project name -->
+  <name>faas</name> <!-- Used by Sonar to set project name -->
+
+  <prerequisites>
+    <maven>3.0</maven>
+  </prerequisites>
 
   <modules>
-
-    <!-- <module>commons/parent</module> -->
-
-    <!-- Karaf Distribution -->
-    <!-- <module>karaf</module> -->
-    <!-- <module>features</module> -->
-
+    <module>commons/parent</module>
+    <module>base</module>
+    <module>features</module>
+    <module>distribution-karaf</module>
   </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <!-- checkstyle is evil -->
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <scm>
     <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
     <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>

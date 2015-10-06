@@ -1,15 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved. 
+  This program and the accompanying materials are made available under the 
+  terms of the Eclipse Public License v1.0 which accompanies this distribution, 
+  and is available at http://www.eclipse.org/legal/epl-v10.html -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>commons.faas</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
-    <relativePath>../commons/faas</relativePath>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../commons/parent</relativePath>
   </parent>
-  <artifactId>features-faas</artifactId>
-  <packaging>pom</packaging>
 
-  <modules>
-  </modules>
+  <groupId>org.opendaylight.faas</groupId>
+  <artifactId>features-faas</artifactId>
+  <version>${features.faas.version}</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <features.file>features.xml</features.file>
+    <branding.version>1.0.0-SNAPSHOT</branding.version>
+    <karaf.empty.version>${odl.version}</karaf.empty.version>
+  </properties>
+
+  <dependencies>
+    <!-- configuration dependencies -->
+    <dependency>
+      <groupId>org.opendaylight.yangtools</groupId>
+      <artifactId>features-yangtools</artifactId>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>features-mdsal</artifactId>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+  
+    <!-- testing dependencies -->
+    <!--
+    <dependency>
+      <groupId>org.opendaylight.odlparent</groupId>
+      <artifactId>features-test</artifactId>
+      <version>${odl.version}</version>
+      <scope>test</scope>
+    </dependency>
+    -->
+
+    <!-- dependency for opendaylight-karaf-empty for use by testing -->
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>opendaylight-karaf-empty</artifactId>
+      <version>${karaf.empty.version}</version>
+      <type>zip</type>
+    </dependency>
+
+    <!-- FAAS feature bundles -->
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>base</artifactId>
+      <version>${faas.base.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>filter</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>resources</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-artifacts</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/classes/${features.file}</file>
+                  <type>xml</type>
+                  <classifier>features</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven.surefire.version}</version>
+        <configuration>
+          <systemPropertyVariables>
+            <karaf.distro.groupId>org.opendaylight.controller</karaf.distro.groupId>
+            <karaf.distro.artifactId>opendaylight-karaf-empty</karaf.distro.artifactId>
+            <karaf.distro.version>${karaf.empty.version}</karaf.distro.version>
+          </systemPropertyVariables>
+          <dependenciesToScan>
+            <dependency>org.opendaylight.odlparent:features-test</dependency>
+          </dependenciesToScan>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <scm>
+    <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
+    <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://wiki.opendaylight.org/view/faas:Main</url>
+  </scm>
 </project>
