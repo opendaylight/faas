@@ -1,0 +1,327 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a76adc5_d8ac3bf0",
+        "filename": "base/pom.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "please remove the space at the end of line.",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_58882b71",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/data/Capability.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "Use BRIDGING or BRIDGE instead of Bridging to keep consistent with the rest of capability?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_f87c9774",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/data/EndPoint.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove these spaces",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_1882b34f",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/data/LinkMap.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "any comments here?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_d893dba1",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/data/NetworkElementType.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove this line?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_38ea0f10",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/data/NetworkElementType.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "I suggest the product specific information, use more abstract name, such as SWITCH, ROUTER?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_b8ddbf72",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/data/PortConfig.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "could we define 31 as enum? same for 1231 and 1237.",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_b8c4df92",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/exception/CommunicateException.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove this?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_d8c19b81",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/exception/CommunicateException.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove this?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_98bb230e",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/exception/InvalidResourceNodeException.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove this?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_583d8b8e",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/exception/MethodNotSupportedException.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove this?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_f841f70b",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/exception/NotimplementedYetException.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove this?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_b84b7f2a",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/util/Utility.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "use an enum instead of 1024?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_985243dc",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/virtulization/DeviceAbstractType.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "can you keep type naming consistent? Also, hyprid is typo, should be hybrid.",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_385f6fe7",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/virtulization/Link.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "please fix \"henry-yu\" :-)",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_5864abb8",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/virtulization/NetNode.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove these spaces. same for the following lines.",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_185e33e7",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/virtulization/NetNodeType.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "what is this standing for?",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_b8729f7a",
+        "filename": "base/src/main/java/org/opendaylight/faas/base/virtulization/ResourceManagementService.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "please remove this.",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a76adc5_786c079d",
+        "filename": "distribution-karaf/pom.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-06T21:12:31Z",
+      "side": 1,
+      "message": "remove the space at the end of line.",
+      "revId": "54bf05a9388a6b0ba58e0807d1cd5817c83aa0c0",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
