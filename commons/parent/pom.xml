@@ -17,7 +17,7 @@
 
   <groupId>org.opendaylight.faas</groupId>
   <artifactId>commons.faas</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <prerequisites>
@@ -37,9 +37,9 @@
     <mdsal.version>1.2.0-SNAPSHOT</mdsal.version>
 
     <!-- FAAS features versions -->
-    <faas.project.version>0.1.0-SNAPSHOT</faas.project.version>
-    <faas.base.version>1.0.0</faas.base.version>
-    <features.faas.version>1.0.0</features.faas.version>
+    <faas.project.version>1.0.0-SNAPSHOT</faas.project.version>
+    <faas.base.version>1.0.0-SNAPSHOT</faas.base.version>
+    <features.faas.version>1.0.0-SNAPSHOT</features.faas.version>
   </properties>
 
  <dependencyManagement>
@@ -205,5 +205,4 @@
     <tag>HEAD</tag>
     <url>https://wiki.opendaylight.org/view/faas:Main</url>
   </scm>
-
 </project>
