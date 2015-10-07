@@ -28,7 +28,7 @@
     <odl.version>1.6.0-SNAPSHOT</odl.version>
     <branding.version>1.1.0-SNAPSHOT</branding.version>
     <mdsal.version>1.2.0-SNAPSHOT</mdsal.version>
-    <features.faas.version>1.0.0</features.faas.version>
+    <features.faas.version>1.0.0-SNAPSHOT</features.faas.version>
   </properties>
   
   <dependencies>

@@ -11,7 +11,7 @@
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>commons.faas</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <relativePath>../commons/parent</relativePath>
   </parent>
 
