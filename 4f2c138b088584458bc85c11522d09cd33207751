@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a76adc5_9e178bed",
+        "filename": ".gitignore",
+        "patchSetId": 2
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-07T14:55:14Z",
+      "side": 1,
+      "message": "seems like the .gitignore in sub-folder has the same ignore items. you could consider remove the forward slash to make it global effect. Then you just need one .gitignore file in root folder.\n\nhttp://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#Ignoring-Files",
+      "revId": "4f2c138b088584458bc85c11522d09cd33207751",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
