@@ -5,11 +5,14 @@
   terms of the Eclipse Public License v1.0 which accompanies this distribution,
   and is available at http://www.eclipse.org/legal/epl-v10.html -->
 
-<features name="odl-controller-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.0"
+<features name="odl-faas-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://karaf.apache.org/xmlns/features/v1.2.0 http://karaf.apache.org/xmlns/features/v1.2.0">
-  <repository>mvn:org.opendaylight.yangtools/features-yangtools/${yangtools.version}/xml/features</repository>
+  <repository>mvn:org.opendaylight.mdsal/features-mdsal/2.0.0-SNAPSHOT/xml/features</repository>
   <repository>mvn:org.opendaylight.controller/features-mdsal/${mdsal.version}/xml/features</repository>
+  <!--
+  <repository>mvn:org.opendaylight.mdsal.model/features-mdsal-model/${mdsal.model.version}/xml/features</repository>
+  -->
 
   <feature name='odl-controller-faas-base' version='${project.version}' description='OpenDaylight :: controller :: faas :: base'>
 		<bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.snmp4j/2.1.0_1</bundle>
@@ -42,4 +45,28 @@
 		<feature version='${yangtools.version}'>odl-yangtools-binding</feature>
    	<feature version='${yangtools.version}'>odl-yangtools-models</feature>
 	</feature>
+
+<!--
+  <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: controller :: faas :: vxlan fabric'>
+   	<feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
+   	<feature version="${mdsal.version}">odl-mdsal-broker</feature>
+   	<feature version='${yangtools.version}'>odl-yangtools-models</feature>
+
+    <bundle>mvn:org.opendaylight.faas/fabric-model/${project.version}</bundle>
+    <bundle>mvn:org.opendaylight.faas/vxlan-fabric-model/${project.version}</bundle>
+    <bundle>mvn:org.opendaylight.faas/fabric/${project.version}</bundle>
+    <bundle>mvn:org.opendaylight.faas/vxlan-fabric/${project.version}</bundle>
+
+    <configfile finalname="${config.configfile.directory}/vxlan-fabric.xml">mvn:org.opendaylight.faas/vxlan-fabric-config/${project.version}/xml/config</configfile>
+  </feature>
+
+  <feature name='odl-faas-vxlan-ovs-adapter' version='${project.version}' description='OpenDaylight :: controller :: faas :: vxlan fabric ovs adapter'>
+   	<feature version="${project.version}">odl-controller-faas-base</feature>
+   	<feature version="${project.version}">odl-controller-faas-vxlan-fabric</feature>
+
+   	<bundle>mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/${project.version}</bundle>
+
+    <configfile finalname="${config.configfile.directory}/vxlan-fabric-ovs-adapter.xml">mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter-config/${project.version}/xml/config</configfile>
+  </feature>
+-->
 </features>
