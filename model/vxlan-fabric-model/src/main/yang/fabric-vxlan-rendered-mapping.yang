@@ -1,0 +1,55 @@
+module fabric-vxlan-rendered-mapping {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:vxlan:rendered:mapping";
+    prefix mapping;
+
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import fabric { prefix fabric; revision-date "2015-09-30"; }
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+
+    description
+        "This module contains a collection of YANG definitions for Fabric.";
+
+    revision "2015-09-30" {
+        description
+            "Initial revision of faas.";
+    }
+
+    container fabric-rendered-mapping {
+        list fabric {
+            key "id";
+            leaf id {
+                type fabric:fabric-id;
+            }
+
+            list vni-members {
+                key vni;
+                leaf vni {
+                    type uint32;
+                }
+                leaf-list vteps {
+                    type inet:ip-address;
+                }
+                list host-route {
+                    key "mac";
+                    leaf mac {
+                        type yang:mac-address;
+                    }
+                    leaf vrf-ctx {
+                        type uint32;
+                    }
+                    leaf ip {
+                        type inet:ip-address;
+                    }
+                    leaf dest-vtep {
+                        type inet:ip-address;
+                    }
+                    leaf dest-bridge-port {
+                        type yang:uuid;
+                    }
+                }
+            }
+        }
+    }
+}

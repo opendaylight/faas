@@ -1,0 +1,158 @@
+module fabric-types {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:fabric:type";
+    prefix fabrictypes;
+
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
+
+    description
+        "This module contains a collection of YANG definitions for Fabric.";
+
+    revision "2015-09-30" {
+        description
+            "Initial revision of faas.";
+    }
+
+    identity fabric-type {
+    }
+
+    identity vxlan-fabric {
+        base fabric-type;
+    }
+
+    /*
+     * Typedefs
+     */
+    typedef device-role {
+        description "device role type";
+        type enumeration {
+            enum SPINE {
+                description "";
+            }
+            enum LEAF {
+                description "";
+            }
+        }
+    }
+
+    typedef port-role {
+        description "port role type";
+        type enumeration {
+            enum NNI {
+                description "the port used for fabric intra communiation.";
+            }
+            enum UNI {
+                description "the port used for Endpoint to access fabric.";
+            }
+        }
+    }
+
+    typedef underlayer-network-type {
+        description "";
+        type enumeration {
+            enum VXLAN {
+                description "";
+            }
+            enum TRILL {
+                description "";
+            }
+        }
+    }
+
+    typedef layer2-protocol-type-enum {
+        description "";
+        type enumeration {
+            enum VLAN;
+            enum VXLAN;
+            enum TRILL;
+            enum NvGRE;
+        }
+    }
+
+    typedef access-type {
+        description "";
+        type enumeration {
+            enum exclusive;
+            enum vlan;
+        }
+    }
+
+    grouping logic-switch {
+        leaf lsw-uuid {
+            type yang:uuid;
+        }
+        leaf name {
+            type string;
+        }
+        leaf segment-id {
+            type uint32;
+        }
+    }
+
+    grouping logic-router {
+        leaf lr-uuid {
+            type yang:uuid;
+        }
+        leaf name {
+            type string;
+        }
+        leaf vrf-ctx {
+            type uint32;
+        }
+    }
+
+    grouping logic-port {
+        leaf lport-uuid {
+            type yang:uuid;
+        }
+        leaf name {
+            type string;
+        }
+        leaf role {
+            type port-role;
+        }
+        container layer-1-info {
+            leaf location {
+                type topo:tp-ref;
+            }
+        }
+        container layer-2-info {
+            leaf access-type {
+                type access-type;
+            }
+            leaf access-segment {
+                type uint32;
+            }
+        }
+        container layer-3-info {
+            leaf ip {
+                type inet:ip-address;
+            }
+            leaf mac {
+                type yang:phys-address;
+            }
+            leaf forward-enable {
+                type boolean;
+            }
+        }
+    }
+
+    grouping logic-link {
+    }
+
+    augment "/acl:access-lists/acl:acl/acl:access-list-entries/acl:ace/acl:actions/acl:packet-handling" {
+        case redirect {
+            choice redirect-type {
+                case chain {
+                    leaf renderred-service-path {
+                        type string;
+                    }
+                }
+            }
+        }
+    }
+}
