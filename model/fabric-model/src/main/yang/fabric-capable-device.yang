@@ -1,0 +1,106 @@
+module fabric-capable-device {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:fabric:capable:device";
+    prefix fabric-device;
+
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
+    import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
+
+    description
+        "This module contains a collection of YANG definitions for Fabric.";
+
+    revision "2015-09-30" {
+        description
+            "Initial revision of faas.";
+    }
+
+    grouping fabric-capable-device-attribute {
+        leaf fabric-id {
+            type topo:node-ref;
+        }
+    }
+
+    grouping fabric-capable-device-config {
+        list bridge-domain {
+            key id;
+            leaf id {
+                type string;
+            }
+            leaf flood {
+                type boolean;
+                default false;
+            }
+            leaf arp {
+                type boolean;
+                default false;
+            }
+            list bridge-port {
+                key port-id;
+                leaf port-id {
+                    type yang:uuid;
+                }
+                leaf tp-ref {
+                    type topo:tp-ref;
+                }
+                leaf access-type {
+                    type fabrictype:access-type;
+                }
+                leaf access-tag {
+                    type int32;
+                }
+                list acl {
+                    key name;
+                    leaf name {
+                        type acl:access-control-list-ref;
+                    }
+                }
+            }
+        }
+
+        list vrf {
+            key id;
+            leaf id {
+                type string;
+            }
+            leaf bdid {
+                type string;
+            }
+            leaf vrf {
+                type int32;
+            }
+            leaf ip-address {
+                type inet:ip-address;
+            }
+            list acl {
+                key name;
+                leaf name {
+                    type acl:access-control-list-ref;
+                }
+            }
+        }
+    }
+
+    augment "/topo:network-topology/topo:topology/topo:node" {
+        ext:augment-identifier "fabric-capable-device";
+
+        leaf-list supported-fabric {
+            type identityref {
+                base fabrictype:fabric-type;
+            }
+        }
+
+        container attributes {
+            config false;
+            uses fabric-capable-device-attribute;
+        }
+
+        container config {
+            uses fabric-capable-device-config;
+        }
+    }
+}
