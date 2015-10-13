@@ -1,0 +1,125 @@
+module fabric-endpoint {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:fabric:endpoint";
+    prefix fabric-endpoints;
+
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
+
+    description
+        "This module contains a collection of YANG definitions for Fabric.";
+
+    revision "2015-09-30" {
+        description
+            "Initial revision of faas.";
+    }
+
+    grouping device-location {
+        description "the location for this endponits in the physical network.";
+
+        leaf node-ref {
+            type topo:node-ref;
+        }
+
+        leaf tp-ref {
+            type topo:tp-ref;
+        }
+
+        leaf access-type {
+            type fabrictype:access-type;
+        }
+
+        leaf access-segment {
+            type uint32;
+        }
+    }
+
+    grouping endpoint-attributes {
+
+        leaf endpoint-uuid {
+            type yang:uuid;
+        }
+
+        leaf mac-address {
+            type yang:mac-address;
+        }
+
+        leaf ip-address {
+            type inet:ip-address;
+        }
+
+        leaf gateway {
+            type inet:ip-address;
+        }
+
+        leaf public-ip {
+            type inet:ip-address;
+        }
+
+        container location {
+            uses device-location;
+        }
+
+        container logic-location {
+            description "The location for this endpoint in the logical network.";
+
+            leaf node-ref {
+                type topo:node-ref;
+            }
+
+            leaf tp-ref {
+                type topo:tp-ref;
+            }
+        }
+    }
+
+    container endpoints {
+        description "endpoints registry for faas.";
+
+        config false;
+
+        list endpoint {
+            key endpoint-uuid;
+            uses endpoint-attributes;
+        }
+    }
+
+    /********************RPC***************************************/
+    rpc register-endpoint {
+        description
+            "Register a new endpoing into the registry.";
+
+        input {
+            uses endpoint-attributes;
+        }
+        output {
+            leaf endpoint-id {
+                type yang:uuid;
+            }
+        }
+    }
+
+    rpc unregister-endpoint {
+        description "Unregister an endpoint or endpoints from the registry.";
+        input {
+            leaf-list ids {
+                type yang:uuid;
+            }
+        }
+    }
+
+    rpc locate-endpoint {
+        description "Set the physical location of the endpoing.";
+        input {
+            leaf endpoint-id {
+                type yang:uuid;
+            }
+            container location {
+                uses device-location;
+            }
+        }
+    }
+}
