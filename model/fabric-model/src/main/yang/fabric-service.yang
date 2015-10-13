@@ -1,0 +1,222 @@
+module services {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:fabric:services";
+    prefix fabric-services;
+
+    import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
+    import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
+    import fabric { prefix fabric; revision-date "2015-09-30"; }
+
+    description
+        "This module contains a collection of YANG definitions for Fabric.";
+
+    revision "2015-09-30" {
+        description
+            "Initial revision of faas.";
+    }
+
+    augment "/topo:network-topology/topo:topology/topo:node" {
+        description "Augmentation for logic switch nodes provided by faas.";
+
+        container lsw-attribute {
+            config false;
+            uses fabrictype:logic-switch;
+        }
+    }
+
+    augment "/topo:network-topology/topo:topology/topo:node" {
+        description "Augmentation for logic router nodes provided by faas.";
+
+        container lr-attribute {
+            config false;
+            uses fabrictype:logic-router;
+        }
+    }
+
+    augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
+        description "Augmentation for logic port provided by faas.";
+
+        container lport-attribute {
+            config false;
+            uses fabrictype:logic-port;
+        }
+    }
+
+    /**************servic api*******************/
+    rpc create-logic-switch {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf name {
+                type string;
+            }
+            leaf vni {
+                type int32;
+            }
+        }
+        output {
+            leaf node-ref {
+                type topo:node-ref;
+            }
+            uses fabrictype:logic-switch;
+        }
+    }
+
+    rpc rm-logic-switch {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf node-id {
+                type topo:node-ref;
+            }
+        }
+    }
+
+    rpc create-logic-router {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf name {
+                type string;
+            }
+        }
+        output {
+            leaf node-ref {
+                type topo:node-ref;
+            }
+            uses fabrictype:logic-router;
+        }
+    }
+
+    rpc rm-logic-router {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf node-id {
+                type topo:node-ref;
+            }
+        }
+    }
+
+    rpc create-logic-port {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf name {
+                type string;
+            }
+        }
+        output {
+            leaf tp-ref {
+                type topo:tp-ref;
+            }
+            uses fabrictype:logic-port;
+        }
+    }
+
+    rpc rm-logic-port {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf tp-id {
+                type topo:tp-ref;
+            }
+        }
+    }
+
+    rpc create-gateway {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf ip-address {
+                type inet:ip-address;
+            }
+            leaf logic-router {
+                type topo:node-ref;
+            }
+            leaf logic-switch {
+                type topo:node-ref;
+            }
+        }
+    }
+
+    rpc rm-gateway {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf ip-address {
+                type inet:ip-address;
+            }
+            leaf logic-router {
+                type topo:node-ref;
+            }
+        }
+    }
+
+    rpc add-node-to-fabric {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf node-id {
+                type topo:node-id;
+            }
+        }
+    }
+
+    rpc rm-node-from-fabric {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf node-id {
+                type topo:node-id;
+            }
+        }
+    }
+
+    rpc add-link-to-fabric {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf link-id {
+                type topo:link-id;
+            }
+        }
+    }
+
+    rpc rm-link-from-fabric {
+        input {
+            leaf fabric-id {
+                type instance-identifier;
+                ext:context-reference "fabric:fabric-context";
+            }
+            leaf link-id {
+                type topo:link-id;
+            }
+        }
+    }
+}
