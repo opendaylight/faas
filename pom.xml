@@ -25,6 +25,8 @@
   <modules>
     <module>commons/parent</module>
     <module>base</module>
+    <module>model</module>
+    <module>fabrics</module>
     <module>features</module>
     <module>distribution-karaf</module>
   </modules>
