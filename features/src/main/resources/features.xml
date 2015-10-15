@@ -9,10 +9,10 @@
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://karaf.apache.org/xmlns/features/v1.2.0 http://karaf.apache.org/xmlns/features/v1.2.0">
   <repository>mvn:org.opendaylight.mdsal/features-mdsal/2.0.0-SNAPSHOT/xml/features</repository>
-  <repository>mvn:org.opendaylight.controller/features-mdsal/${mdsal.version}/xml/features</repository>
+  <repository>mvn:org.opendaylight.controller/features-mdsal/${controller.mdsal.version}/xml/features</repository>
   <repository>mvn:org.opendaylight.mdsal.model/features-mdsal-model/${mdsal.model.version}/xml/features</repository>
 
-  <feature name='odl-controller-faas-base' version='${project.version}' description='OpenDaylight :: controller :: faas :: base'>
+  <feature name='odl-faas-base' version='${project.version}' description='OpenDaylight :: faas :: base'>
 		<bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.snmp4j/2.1.0_1</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-annotations/2.3.2</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-core/2.3.2</bundle>
@@ -37,14 +37,14 @@
     <bundle>mvn:org.opendaylight.faas/base/${faas.base.version}</bundle>
   </feature>
 
-  <feature name='odl-controller-faas' version='${project.version}' description='OpenDaylight :: controller :: faas'>
-   	<feature version="${project.version}">odl-controller-faas-base</feature>
-   	<feature version="${mdsal.version}">odl-mdsal-broker</feature>
+  <feature name='odl-faas' version='${project.version}' description='OpenDaylight :: faas'>
+   	<feature version="${project.version}">odl-faas-base</feature>
+   	<feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
 		<!--feature version='${yangtools.version}'>odl-yangtools-binding</feature-->
    	<feature version='${yangtools.version}'>odl-mdsal-models</feature>
 	</feature>
 
-  <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: controller :: faas :: vxlan fabric'>
+  <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
    	<feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
    	<feature version="${mdsal.version}">odl-mdsal-broker</feature>
 
@@ -56,7 +56,7 @@
     <configfile finalname="${config.configfile.directory}/vxlan-fabric.xml">mvn:org.opendaylight.faas/vxlan-fabric-config/${project.version}/xml/config</configfile>
   </feature>
 
-  <feature name='odl-faas-vxlan-ovs-adapter' version='${project.version}' description='OpenDaylight :: controller :: faas :: vxlan fabric ovs adapter'>
+  <feature name='odl-faas-vxlan-ovs-adapter' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric ovs adapter'>
    	<feature version="${project.version}">odl-controller-faas-base</feature>
    	<feature version="${project.version}">odl-controller-faas-vxlan-fabric</feature>
 

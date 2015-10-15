@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>commons.faas</artifactId>
+    <artifactId>commons.parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>commons/parent</relativePath>
   </parent>
@@ -27,8 +27,8 @@
     <module>base</module>
     <module>model</module>
     <module>fabrics</module>
-    <module>features</module>
     <module>distribution-karaf</module>
+    <module>features</module>
   </modules>
 
   <build>

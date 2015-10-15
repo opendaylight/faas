@@ -10,7 +10,7 @@
 
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>commons.faas</artifactId>
+    <artifactId>commons.parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>../commons/parent</relativePath>
   </parent>
@@ -41,7 +41,6 @@
       <type>xml</type>
     </dependency>
   
-    <!-- testing dependencies -->
     <!--
     <dependency>
       <groupId>org.opendaylight.odlparent</groupId>
@@ -49,7 +48,7 @@
       <version>${odl.version}</version>
       <scope>test</scope>
     </dependency>
-    -->
+	-->
 
     <!-- dependency for opendaylight-karaf-empty for use by testing -->
     <dependency>
@@ -152,12 +151,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${maven.surefire.version}</version>
         <configuration>
           <systemPropertyVariables>
             <karaf.distro.groupId>org.opendaylight.controller</karaf.distro.groupId>
             <karaf.distro.artifactId>opendaylight-karaf-empty</karaf.distro.artifactId>
-            <karaf.distro.version>${karaf.empty.version}</karaf.distro.version>
+            <karaf.distro.version>${commons.opendaylight.version}</karaf.distro.version>
           </systemPropertyVariables>
           <dependenciesToScan>
             <dependency>org.opendaylight.odlparent:features-test</dependency>
