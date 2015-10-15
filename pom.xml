@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>commons.faas</artifactId>
+    <artifactId>commons.parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>commons/parent</relativePath>
   </parent>

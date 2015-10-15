@@ -11,9 +11,9 @@
  
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>faas.project</artifactId>
+    <artifactId>commons.parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <relativePath>../</relativePath>
+    <relativePath>../commons/parent</relativePath>
   </parent>
 
   <artifactId>model-aggregator</artifactId>
