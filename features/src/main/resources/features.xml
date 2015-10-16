@@ -46,7 +46,7 @@
 
   <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
    	<feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
-   	<feature version="${mdsal.version}">odl-mdsal-broker</feature>
+   	<feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
 
     <bundle>mvn:org.opendaylight.faas/fabric-model/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric-model/${project.version}</bundle>
@@ -57,8 +57,8 @@
   </feature>
 
   <feature name='odl-faas-vxlan-ovs-adapter' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric ovs adapter'>
-   	<feature version="${project.version}">odl-controller-faas-base</feature>
-   	<feature version="${project.version}">odl-controller-faas-vxlan-fabric</feature>
+   	<feature version="${project.version}">odl-faas-base</feature>
+   	<feature version="${project.version}">odl-faas-vxlan-fabric</feature>
 
    	<bundle>mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/${project.version}</bundle>
 
