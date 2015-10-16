@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fad0f9df_a7c37837",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/controller/config/yang/config/vxlan_fabric/impl/VxlanFabricModuleFactory.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-10-16T13:55:43Z",
+      "side": 1,
+      "message": "why do we need to keep a generated file?",
+      "revId": "00f5b569d196bc0e0ee3ba88e2e41c7a8e273939",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
