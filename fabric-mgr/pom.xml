@@ -16,11 +16,11 @@
     <relativePath>../</relativePath>
   </parent>
 
-  <artifactId>faas-mgr-aggregator</artifactId>
+  <artifactId>fabric-mgr-aggregator</artifactId>
   <packaging>pom</packaging>
 
   <modules>
-    <module>faas-mgr-model</module>
-    <module>faas-mgr-config</module>
+    <module>fabric-mgr-model</module>
+    <module>fabric-mgr-config</module>
   </modules>
 </project>

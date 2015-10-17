@@ -118,15 +118,15 @@
       <classifier>config</classifier>
     </dependency>
 
-    <!-- faas-mgr feature -->
+    <!-- fabric-mgr feature -->
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>faas-mgr-model</artifactId>
+      <artifactId>fabric-mgr-model</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>faas-mgr-config</artifactId>
+      <artifactId>fabric-mgr-config</artifactId>
       <version>${project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>

@@ -11,12 +11,12 @@
  
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>faas-mgr-aggregator</artifactId>
+    <artifactId>fabric-mgr-aggregator</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
-  <artifactId>faas-mgr-config</artifactId>
+  <artifactId>fabric-mgr-config</artifactId>
   <packaging>jar</packaging>
 
   <build>
@@ -34,7 +34,7 @@
             <configuration>
               <artifacts>
                 <artifact>
-                  <file>${project.build.directory}/classes/initial/faas-mgr-config.xml</file>
+                  <file>${project.build.directory}/classes/initial/fabric-mgr-config.xml</file>
                   <type>xml</type>
                   <classifier>config</classifier>
                 </artifact>

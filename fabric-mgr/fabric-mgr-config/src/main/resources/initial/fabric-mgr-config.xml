@@ -11,10 +11,10 @@
         <data xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
             <modules xmlns="urn:opendaylight:params:xml:ns:yang:controller:config">
                 <module>
-                    <type xmlns:faas-mgr="urn:opendaylight:params:xml:ns:yang:controller:config:faas-mgr:impl">
-                        faas-mgr:faas-mgr-impl
+                    <type xmlns:fabric-mgr="urn:opendaylight:params:xml:ns:yang:controller:config:fabric-mgr:impl">
+                        fabric-mgr:fabric-mgr-impl
                     </type>
-                    <name>faas-mgr-impl</name>
+                    <name>fabric-mgr-impl</name>
 
                     <rpc-registry>
                         <type xmlns:binding="urn:opendaylight:params:xml:ns:yang:controller:md:sal:binding">binding:binding-rpc-registry</type>
@@ -37,7 +37,7 @@
     </configuration>
 
     <required-capabilities>
-        <capability>urn:opendaylight:params:xml:ns:yang:controller:config:faas-mgr:impl?module=faas-mgr-impl&amp;revision=2015-09-30</capability>
+        <capability>urn:opendaylight:params:xml:ns:yang:controller:config:fabric-mgr:impl?module=fabric-mgr-impl&amp;revision=2015-09-30</capability>
     </required-capabilities>
 
 </snapshot>

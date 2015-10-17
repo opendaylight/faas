@@ -11,13 +11,13 @@
  
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>faas-mgr-aggregator</artifactId>
+    <artifactId>fabric-mgr-aggregator</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
-  <artifactId>faas-mgr-model</artifactId>
+  <artifactId>fabric-mgr-model</artifactId>
   <packaging>bundle</packaging>
 
   <build>

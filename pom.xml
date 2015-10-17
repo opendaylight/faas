@@ -28,7 +28,7 @@
     <module>model</module>
     <module>fabrics</module>
     <module>uln-mapper</module>
-    <module>faas-mgr</module>
+    <module>fabric-mgr</module>
     <module>distribution-karaf</module>
     <module>features</module>
   </modules>
