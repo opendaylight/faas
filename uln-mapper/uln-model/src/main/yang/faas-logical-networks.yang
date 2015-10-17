@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-logical-networks {
+    namespace "urn:opendaylight:faas:logical:faas-logical-networks";
+    prefix "faas-logical-networks";
+
+    import faas-common { prefix faas-common; }
+    import faas-ports { prefix faas-ports; }
+    import faas-subnets { prefix faas-subnets; }
+    import faas-logical-switches { prefix faas-logical-switches; }
+    import faas-logical-routers { prefix faas-logical-routers; }
+    import faas-security-rules { prefix faas-security-rules; }
+
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    container tenant-logical-networks {
+        config false;
+        list tenant-logical-network {
+            description "Tenants logical networks";
+            key "tenant-id";
+            leaf tenant-id {
+                description "The tenant Id";
+                type faas-common:uuid;
+            }
+            uses faas-ports:ports-container;
+            uses faas-subnets:subnets-container;
+            uses faas-logical-switches:logical-switches-container;
+            uses faas-logical-routers:logical-routers-container;
+            uses faas-security-rules:security-groups-container;
+        }
+    }
+}

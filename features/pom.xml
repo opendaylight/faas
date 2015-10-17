@@ -103,6 +103,35 @@
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
+
+    <!-- uln-mapper feature -->
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>uln-mapper-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>uln-mapper-config</artifactId>
+      <version>${project.version}</version>
+      <type>xml</type>
+      <classifier>config</classifier>
+    </dependency>
+
+    <!-- faas-mgr feature -->
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>faas-mgr-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>faas-mgr-config</artifactId>
+      <version>${project.version}</version>
+      <type>xml</type>
+      <classifier>config</classifier>
+    </dependency>
+
   </dependencies>
 
   <build>

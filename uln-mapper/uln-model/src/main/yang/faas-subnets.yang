@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-subnets {
+    namespace "urn:opendaylight:faas:logical:faas-subnets";
+    prefix "faas-subnets";
+
+    import faas-common { prefix faas-common; }
+    import ietf-inet-types { prefix inet; }
+    import opendaylight-inventory { prefix inv; revision-date "2013-08-19"; }
+
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    grouping endpoint-location {
+        description "The endpoint location on the inventory";
+
+        leaf node-id {
+            description "The node for this attached endpoint";
+            type inv:node-id;
+        }
+        leaf node-connector-id {
+            description "The node connector that this endpoint is attached to";
+            type inv:node-connector-id;
+        }
+    }
+
+    grouping subnets-container {
+        container subnets {
+            list subnet {
+                key "uuid";
+                uses faas-common:base-attributes;
+                leaf ip-prefix {
+                    description "The IP prefix that defines the subnet";
+                    type inet:ip-prefix;
+                }
+                leaf virtual-router-ip {
+                    description "IP address to use for a virtual gateway router for the subnet,
+                                        if desired.";
+                    type inet:ip-address;
+                }
+                list input-port {
+                    description "The input ports to this subnet that connect endpoints";
+                    key "port-id";
+                    leaf port-id {
+                    	description "The local port that is connected to an endpoint";
+                        type faas-common:uuid;
+                    }
+                    uses endpoint-location;
+                }
+                uses faas-common:port-connection-attributes;
+            }
+        }
+    }
+}

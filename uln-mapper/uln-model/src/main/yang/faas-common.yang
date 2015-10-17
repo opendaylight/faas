@@ -1,0 +1,109 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-common {
+    namespace "urn:opendaylight:faas:logical:faas-common";
+    prefix "faas-common";
+    
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    typedef description {
+        description "A human-readable description for a object.";
+        type string {
+            length "1..4096";
+        }
+    }
+
+    typedef name {
+        description
+                "A generic string name type. Must start with a letter";
+        type string {
+            pattern '[a-zA-Z]([a-zA-Z0-9\-_.])*';
+            length "1..256";
+        }
+    }
+
+    typedef uuid {
+        type string {
+            pattern '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+            + '[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+        }
+        description
+                "A Universally Unique IDentifier in the string representation
+                defined in RFC 4122. The canonical representation uses lowercase
+                characters. The following is an example of a UUID in string representation:
+                f81d4fae-7dec-11d0-a765-00a0c91e6bf6";
+        reference
+                "RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace";
+    }
+    
+    grouping logical-node-type-attributes {
+        description "The logical node type";
+        leaf logical-node-type {
+            type enumeration {
+                enum subnet {
+                    description "Subnet.";
+                }
+                enum switch {
+                    description "Layer 2 switch.";
+                }
+                enum router {
+                    description "Layer 3 Router.";
+                }
+            }
+        }
+    }
+    
+    grouping base-attributes {
+
+        leaf uuid {
+            type uuid;
+            description "Unique Id.";
+        }
+
+        leaf name {
+            type description;
+            description "Human-readable name.";
+        }
+
+        leaf tenant-id {
+            type uuid;
+            description "Tenant Unique Id";
+        }
+    }
+
+    grouping admin-attributes {
+        leaf admin-state-up {
+            type boolean;
+            description "The administrative state of the network, which is up (true) or
+                        down (false).";
+        }
+        leaf status {
+            type string;
+            description "The network status.";
+        }
+    }
+    
+    grouping port-connection-attributes {
+        description "The local output port connection info";
+        leaf port-id {
+        	description "The local port that is connected to a remote port";
+            type uuid;
+        }
+        leaf remote-node-id {
+        	description "The remote node (if any) that is connected to the local port";
+            type uuid;
+        }
+        leaf remote-node-port-id {
+        	description "The remote node port (if any) that is connected to the local port";
+            type uuid;
+        }
+    }
+
+}

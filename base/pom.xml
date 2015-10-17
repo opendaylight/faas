@@ -10,9 +10,9 @@
 
   <parent>
     <groupId>org.opendaylight.faas</groupId>
-    <artifactId>commons.parent</artifactId>
+    <artifactId>faas.project</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <relativePath>../commons/parent</relativePath>
+    <relativePath>../</relativePath>
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>

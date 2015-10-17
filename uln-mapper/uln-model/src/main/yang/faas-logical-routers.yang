@@ -1,0 +1,38 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-logical-routers {
+    namespace "urn:opendaylight:faas:logical:faas-logical-routers";
+    prefix "faas-logical-routers";
+
+    import faas-common { prefix faas-common; }
+
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    grouping logical-routers-container {
+        container logical-routers {
+            list logical-router {
+                key "uuid";
+                uses faas-common:base-attributes;
+                uses faas-common:admin-attributes;
+                list input-port {
+                	description "The input ports to this logical router that connect other switches and/or routers";
+                    key "port-id";
+                    uses faas-common:port-connection-attributes;
+                    uses faas-common:logical-node-type-attributes;
+                }
+                list output-port {
+                	description "The output ports to this logical router that connect other routers";
+                    key "port-id";
+                    uses faas-common:port-connection-attributes;
+                }
+            }
+        }
+    }
+}

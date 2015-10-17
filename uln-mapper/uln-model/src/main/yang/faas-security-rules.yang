@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-security-rules {
+    namespace "urn:opendaylight:faas:logical:faas-security-rules";
+    prefix "faas-security-rules";
+
+    import faas-common { prefix faas-common; }
+
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    grouping parameter-values-grouping {
+        list parameter-value {
+            key "name";
+            leaf name {
+                type faas-common:name;
+                mandatory true;
+            }
+            leaf string-value {
+                type string;
+            }
+            leaf int-value {
+                type int64;
+            }
+            container range-value {
+                leaf min {
+                    type int64;
+                    mandatory true;
+                }
+                leaf max {
+                    type int64;
+                    mandatory true;
+                }
+            }
+        }
+    }
+
+    grouping security-groups-container {
+        container security-groups {
+            description "Container for security groups.";
+            list security-group {
+                key "uuid";
+                uses faas-common:base-attributes;
+                leaf-list security-rules {
+                    type faas-common:uuid;
+                }
+
+                list security-rule {
+                    key "name";
+                    leaf name {
+                        description "A name for the rule";
+                        type faas-common:name;
+                        mandatory true;
+                    }
+                    leaf order {
+                        description "Rule order";
+                        type int32 {
+                            range "0..max";
+                        }
+                    }
+                    list rule-classifier {
+                        key "name";
+                        leaf name {
+                            description "A unique name for this classifier reference";
+                            type faas-common:name;
+                            mandatory true;
+                        }
+                        leaf direction {
+                            default bidirectional;
+                            type enumeration {
+                                enum in {
+                                    description "Applies to traffic into provider endpoint group";
+                                }
+                                enum out {
+                                    description "Applies to traffic out of provider endpoint group";
+                                }
+                                enum bidirectional {
+                                    description "Applies to traffic in both directions";
+                                }
+                            }
+                        }
+                        uses parameter-values-grouping;
+                    }
+
+                    list rule-action {
+                        key "name";
+                        leaf name {
+                            description "A user-visible name for the action";
+                            type faas-common:name;
+                            mandatory true;
+                        }
+                        uses parameter-values-grouping;
+                    }
+                }
+            }
+        }
+    }
+}

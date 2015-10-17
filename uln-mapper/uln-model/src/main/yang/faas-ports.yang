@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-ports {
+    namespace "urn:opendaylight:faas:logical:faas-ports";
+    prefix "faas-ports";
+
+    import faas-common { prefix faas-common; }
+    import ietf-yang-types { prefix "yang"; }
+    import ietf-inet-types { prefix inet; }
+
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    grouping port-logical-node {
+        description "The logical device that this port is attached to it.";
+        leaf node-id {
+            type faas-common:uuid;
+        }
+        uses faas-common:logical-node-type-attributes;
+    }
+
+    grouping ports-container {
+        container ports {
+            list port {
+                key "uuid";
+                uses faas-common:base-attributes;
+                uses faas-common:admin-attributes;
+                uses port-logical-node;
+                leaf-list security-rules-groups {
+                	description "The rule groups that need to be applied to this port";
+                    type faas-common:uuid;
+                }
+                leaf device-owner {
+                    description "The ID of the entity that uses this port (e.g. DHCP)";
+                    type string;
+                }
+                leaf mac-address {
+                    type yang:mac-address;
+                }
+
+                list fixed-ips {
+                    key subnet-id;
+                    leaf subnet-id {
+                        type faas-common:uuid;
+                    }
+                    leaf ip-address {
+                        type inet:ip-address;
+                    }
+                }
+            }
+        }
+    }
+}
