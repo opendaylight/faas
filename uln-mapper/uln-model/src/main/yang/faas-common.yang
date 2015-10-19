@@ -43,23 +43,6 @@ module faas-common {
                 "RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace";
     }
     
-    grouping logical-node-type-attributes {
-        description "The logical node type";
-        leaf logical-node-type {
-            type enumeration {
-                enum subnet {
-                    description "Subnet.";
-                }
-                enum switch {
-                    description "Layer 2 switch.";
-                }
-                enum router {
-                    description "Layer 3 Router.";
-                }
-            }
-        }
-    }
-    
     grouping base-attributes {
 
         leaf uuid {
@@ -90,20 +73,13 @@ module faas-common {
         }
     }
     
-    grouping port-connection-attributes {
-        description "The local output port connection info";
-        leaf port-id {
-        	description "The local port that is connected to a remote port";
-            type uuid;
-        }
-        leaf remote-node-id {
-        	description "The remote node (if any) that is connected to the local port";
-            type uuid;
-        }
-        leaf remote-node-port-id {
-        	description "The remote node port (if any) that is connected to the local port";
-            type uuid;
-        }
-    }
-
+ 	grouping logical-entity-attributes {
+   		description "The logical entity common attributes";
+   		key "uuid";
+       	uses base-attributes;
+      	leaf-list port {
+      		description "The ports connected to this logical entity";
+           	type uuid;
+     	}
+   	}
 }
