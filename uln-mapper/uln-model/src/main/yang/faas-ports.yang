@@ -17,12 +17,28 @@ module faas-ports {
         description "Initial revision";
     }
 
-    grouping port-logical-node {
-        description "The logical device that this port is attached to it.";
-        leaf node-id {
+    grouping port-location-attributes {
+        description "The location of the port";
+        leaf location-id {
+            description "The entity id that this port is attached to";
             type faas-common:uuid;
         }
-        uses faas-common:logical-node-type-attributes;
+        leaf location-type {
+               type enumeration {
+                   enum endpoint-type {
+                    description "Endpoint.";
+                }
+                  enum subnet-type {
+                    description "Subnet.";
+                }
+                enum switch-type {
+                       description "Layer 2 switch.";
+                }
+                enum router-type {
+                    description "Layer 3 Router.";
+                }
+            }
+        }
     }
 
     grouping ports-container {
@@ -31,20 +47,22 @@ module faas-ports {
                 key "uuid";
                 uses faas-common:base-attributes;
                 uses faas-common:admin-attributes;
-                uses port-logical-node;
-                leaf-list security-rules-groups {
-                	description "The rule groups that need to be applied to this port";
+                uses port-location-attributes;
+                leaf edge-id {
                     type faas-common:uuid;
                 }
-                leaf device-owner {
-                    description "The ID of the entity that uses this port (e.g. DHCP)";
-                    type string;
+                leaf-list security-rules-groups {
+                    description "The rule groups that need to be applied to this port";
+                    type faas-common:uuid;
+                }
+                leaf-list public-ips {
+                    description "The public IP addresses, if any";
+                    type inet:ip-address;
                 }
                 leaf mac-address {
                     type yang:mac-address;
                 }
-
-                list fixed-ips {
+                list private-ips {
                     key subnet-id;
                     leaf subnet-id {
                         type faas-common:uuid;

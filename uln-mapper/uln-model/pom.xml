@@ -28,7 +28,8 @@
         <extensions>true</extensions>
         <configuration>
             <instructions>
-                <Export-Package>org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.*
+                <Export-Package>
+                   org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.*
                 </Export-Package>
                 <Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
             </instructions>

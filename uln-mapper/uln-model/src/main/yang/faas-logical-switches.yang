@@ -18,15 +18,8 @@ module faas-logical-switches {
     grouping logical-switches-container {
         container logical-switches {
             list logical-switch {
-                key "uuid";
-                uses faas-common:base-attributes;
                 uses faas-common:admin-attributes;
-                list input-port {
-                	description "The input ports to this logical switch that connect subnets";
-                    key "port-id";
-                    uses faas-common:port-connection-attributes;
-                }
-                uses faas-common:port-connection-attributes;
+                  uses faas-common:logical-entity-attributes;
             }
         }
     }
