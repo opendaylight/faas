@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) 2015 Huawei Technologies and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+module faas-edges {
+    namespace "urn:opendaylight:faas:logical:faas-edges";
+    prefix "faas-edges";
+
+    import faas-common { prefix faas-common; }
+
+    revision 2015-10-13 {
+        description "Initial revision";
+    }
+
+    grouping edges-container {
+        container edges {
+            list edge {
+                key "uuid";
+                uses faas-common:base-attributes;
+                uses faas-common:admin-attributes;
+                list qos-attributes {
+                    description "Quality of service attributes";
+                    key "qname";
+                    leaf qname {
+                        description "Attribute name (e.g. delay)";
+                        type faas-common:name;
+                    }
+                    leaf qvalue {
+                        description "Attribute value (e.g. delay)";
+                        type faas-common:name;
+                    }
+                }
+                leaf left-port-id {
+                    description "A port connected to the edge";
+                    type faas-common:uuid;
+                }
+                leaf right-port-id {
+                    description "A port connected to the edge";
+                    type faas-common:uuid;
+                }
+            }
+        }
+    }
+}

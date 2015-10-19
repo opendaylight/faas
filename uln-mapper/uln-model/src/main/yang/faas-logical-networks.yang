@@ -15,6 +15,8 @@ module faas-logical-networks {
     import faas-logical-switches { prefix faas-logical-switches; }
     import faas-logical-routers { prefix faas-logical-routers; }
     import faas-security-rules { prefix faas-security-rules; }
+    import faas-edges {prefix faas-edges; }
+    import faas-endpoints-locations {prefix faas-endpoints-locations; }
 
     revision 2015-10-13 {
         description "Initial revision";
@@ -34,6 +36,8 @@ module faas-logical-networks {
             uses faas-logical-switches:logical-switches-container;
             uses faas-logical-routers:logical-routers-container;
             uses faas-security-rules:security-groups-container;
+            uses faas-edges:edges-container;
+            uses faas-endpoints-locations:endpoints-locations-container;
         }
     }
 }
