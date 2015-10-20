@@ -228,7 +228,7 @@
                   <!--
                 <feature>standard</feature>
                 -->
-                <feature>odl-faas</feature>			
+                <feature>odl-faas-all</feature>			
               </features>
               <repository>target/assembly/system</repository>
             </configuration>

@@ -23,6 +23,7 @@
   </prerequisites>
 
   <modules>
+    <module>artifacts</module>
     <module>commons/parent</module>
     <module>base</module>
     <module>model</module>

@@ -9,25 +9,103 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
+    <groupId>org.opendaylight.odlparent</groupId>
+    <artifactId>features-parent</artifactId>
+    <version>1.6.0-SNAPSHOT</version>
+    <relativePath />
+  </parent>
+
+<!--
+  <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>commons.parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>../commons/parent</relativePath>
   </parent>
+-->
 
   <groupId>org.opendaylight.faas</groupId>
   <artifactId>features-faas</artifactId>
+<!--
   <version>${features.faas.version}</version>
+-->
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <properties>
+    <odl.version>1.6.0-SNAPSHOT</odl.version>
+    <faas.project.version>1.0.0-SNAPSHOT</faas.project.version>
+    <faas.base.version>1.0.0-SNAPSHOT</faas.base.version>
+    <mdsal.version>2.0.0-SNAPSHOT</mdsal.version>
+    <mdsal.model.version>0.8.0-SNAPSHOT</mdsal.model.version>
+    <controller.mdsal.version>1.3.0-SNAPSHOT</controller.mdsal.version>
     <features.file>features.xml</features.file>
     <branding.version>1.0.0-SNAPSHOT</branding.version>
     <karaf.empty.version>${odl.version}</karaf.empty.version>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+     <!-- GBP -->
+      <dependency>
+        <groupId>org.opendaylight.faas</groupId>
+        <artifactId>faas-artifacts</artifactId>
+        <version>${faas.project.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Controller infrastructure -->
+      <dependency>
+        <groupId>org.opendaylight.mdsal</groupId>
+        <artifactId>mdsal-artifacts</artifactId>
+        <version>${mdsal.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+     <dependency>
+        <groupId>org.opendaylight.mdsal.model</groupId>
+        <artifactId>mdsal-model-artifacts</artifactId>
+        <version>${mdsal.model.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.opendaylight.controller</groupId>
+        <artifactId>mdsal-artifacts</artifactId>
+        <version>${controller.mdsal.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
+    <!-- Controller infrastructure -->
+    <dependency>
+      <groupId>org.opendaylight.mdsal</groupId>
+      <artifactId>features-mdsal</artifactId>
+      <classifier>features</classifier>
+      <type>xml</type>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>features-mdsal</artifactId>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.mdsal.model</groupId>
+      <artifactId>features-mdsal-model</artifactId>
+      <version>${mdsal.model.version}</version>
+      <classifier>features</classifier>
+      <type>xml</type>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- configuration dependencies -->
+<!--
     <dependency>
       <groupId>org.opendaylight.yangtools</groupId>
       <artifactId>features-yangtools</artifactId>
@@ -40,15 +118,16 @@
       <classifier>features</classifier>
       <type>xml</type>
     </dependency>
+-->
   
-    <!--
+<!--
     <dependency>
       <groupId>org.opendaylight.odlparent</groupId>
       <artifactId>features-test</artifactId>
       <version>${odl.version}</version>
       <scope>test</scope>
     </dependency>
-	-->
+-->
 
     <!-- dependency for opendaylight-karaf-empty for use by testing -->
     <dependency>
@@ -67,39 +146,39 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-model</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-model</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-ovs-adapter</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-config</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-ovs-adapter-config</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
@@ -108,12 +187,12 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>uln-mapper-model</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>uln-mapper-config</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
@@ -122,82 +201,14 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-mgr-model</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-mgr-config</artifactId>
-      <version>${project.version}</version>
+      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
-
   </dependencies>
-
-  <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>filter</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>resources</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-artifacts</id>
-            <phase>package</phase>
-            <goals>
-              <goal>attach-artifact</goal>
-            </goals>
-            <configuration>
-              <artifacts>
-                <artifact>
-                  <file>${project.build.directory}/classes/${features.file}</file>
-                  <type>xml</type>
-                  <classifier>features</classifier>
-                </artifact>
-              </artifacts>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <karaf.distro.groupId>org.opendaylight.controller</karaf.distro.groupId>
-            <karaf.distro.artifactId>opendaylight-karaf-empty</karaf.distro.artifactId>
-            <karaf.distro.version>${commons.opendaylight.version}</karaf.distro.version>
-          </systemPropertyVariables>
-          <dependenciesToScan>
-            <dependency>org.opendaylight.odlparent:features-test</dependency>
-          </dependenciesToScan>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
-  <scm>
-    <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
-    <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>
-    <tag>HEAD</tag>
-    <url>https://wiki.opendaylight.org/view/faas:Main</url>
-  </scm>
 </project>
