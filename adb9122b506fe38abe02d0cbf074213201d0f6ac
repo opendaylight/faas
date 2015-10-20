@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fad0f9df_28c75447",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-common.yang",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-10-20T01:51:34Z",
+      "side": 1,
+      "message": "please remove the tab, replace with spaces.",
+      "revId": "adb9122b506fe38abe02d0cbf074213201d0f6ac",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
