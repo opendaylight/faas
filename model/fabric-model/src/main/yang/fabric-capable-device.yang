@@ -19,9 +19,15 @@ module fabric-capable-device {
             "Initial revision of faas.";
     }
 
+    identity fabric-capable-device-context {
+    }
+
     grouping fabric-capable-device-attribute {
         leaf fabric-id {
-            type topo:node-ref;
+            type topo:node-id;
+        }
+        leaf fabric-ref {
+            type fabrictype:node-ref;
         }
     }
 
@@ -51,7 +57,7 @@ module fabric-capable-device {
                     type fabrictype:access-type;
                 }
                 leaf access-tag {
-                    type int32;
+                    type uint32;
                 }
                 list acl {
                     key name;
@@ -87,6 +93,7 @@ module fabric-capable-device {
 
     augment "/topo:network-topology/topo:topology/topo:node" {
         ext:augment-identifier "fabric-capable-device";
+        ext:context-instance "fabric-context";
 
         leaf-list supported-fabric {
             type identityref {
@@ -103,4 +110,16 @@ module fabric-capable-device {
             uses fabric-capable-device-config;
         }
     }
+
+	rpc addToFabric {
+		input {
+            leaf node-id {
+                type instance-identifier;
+                ext:context-reference "fabric-capable-device-context";
+            }
+            leaf fabric-id {
+                type topo:node-id;
+            }
+        }
+	}
 }
