@@ -1,4 +1,4 @@
-module services {
+module fabric-service {
 
     yang-version 1;
     namespace "urn:opendaylight:faas:fabric:services";
@@ -49,8 +49,7 @@ module services {
     rpc create-logic-switch {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf name {
                 type string;
@@ -70,11 +69,10 @@ module services {
     rpc rm-logic-switch {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf node-id {
-                type topo:node-ref;
+                type topo:node-id;
             }
         }
     }
@@ -82,16 +80,15 @@ module services {
     rpc create-logic-router {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf name {
                 type string;
             }
         }
         output {
-            leaf node-ref {
-                type topo:node-ref;
+            leaf node-id {
+                type topo:node-id;
             }
             uses fabrictype:logic-router;
         }
@@ -100,11 +97,10 @@ module services {
     rpc rm-logic-router {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf node-id {
-                type topo:node-ref;
+                type topo:node-id;
             }
         }
     }
@@ -112,16 +108,18 @@ module services {
     rpc create-logic-port {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf name {
                 type string;
             }
+            leaf logic-device {
+                type topo:node-id;
+            }
         }
         output {
-            leaf tp-ref {
-                type topo:tp-ref;
+            leaf tp-id {
+                type topo:tp-id;
             }
             uses fabrictype:logic-port;
         }
@@ -130,11 +128,10 @@ module services {
     rpc rm-logic-port {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf tp-id {
-                type topo:tp-ref;
+                type topo:tp-id;
             }
         }
     }
@@ -142,17 +139,16 @@ module services {
     rpc create-gateway {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf ip-address {
                 type inet:ip-address;
             }
             leaf logic-router {
-                type topo:node-ref;
+                type topo:node-id;
             }
             leaf logic-switch {
-                type topo:node-ref;
+                type topo:node-id;
             }
         }
     }
@@ -160,62 +156,13 @@ module services {
     rpc rm-gateway {
         input {
             leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
+                type fabric:fabric-id;
             }
             leaf ip-address {
                 type inet:ip-address;
             }
             leaf logic-router {
-                type topo:node-ref;
-            }
-        }
-    }
-
-    rpc add-node-to-fabric {
-        input {
-            leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
-            }
-            leaf node-id {
                 type topo:node-id;
-            }
-        }
-    }
-
-    rpc rm-node-from-fabric {
-        input {
-            leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
-            }
-            leaf node-id {
-                type topo:node-id;
-            }
-        }
-    }
-
-    rpc add-link-to-fabric {
-        input {
-            leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
-            }
-            leaf link-id {
-                type topo:link-id;
-            }
-        }
-    }
-
-    rpc rm-link-from-fabric {
-        input {
-            leaf fabric-id {
-                type instance-identifier;
-                ext:context-reference "fabric:fabric-context";
-            }
-            leaf link-id {
-                type topo:link-id;
             }
         }
     }

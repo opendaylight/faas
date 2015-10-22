@@ -41,12 +41,15 @@
     <controller.mdsal.version>1.3.0-SNAPSHOT</controller.mdsal.version>
     <features.file>features.xml</features.file>
     <branding.version>1.0.0-SNAPSHOT</branding.version>
+    <restconf.version>1.3.0-SNAPSHOT</restconf.version>
+    <openflowplugin.version>0.2.0-SNAPSHOT</openflowplugin.version>
+    <ovsdb.southbound.version>1.2.1-SNAPSHOT</ovsdb.southbound.version>
     <karaf.empty.version>${odl.version}</karaf.empty.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
-     <!-- GBP -->
+     <!-- FAAS -->
       <dependency>
         <groupId>org.opendaylight.faas</groupId>
         <artifactId>faas-artifacts</artifactId>
@@ -129,6 +132,40 @@
     </dependency>
 -->
 
+    <!-- Netconf -->
+    <dependency>
+      <groupId>org.opendaylight.netconf</groupId>
+      <artifactId>features-restconf</artifactId>
+      <version>${restconf.version}</version>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+
+    <!-- Openflow plugin -->
+    <dependency>
+      <groupId>org.opendaylight.openflowplugin</groupId>
+      <artifactId>features-openflowplugin</artifactId>
+      <version>${openflowplugin.version}</version>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.openflowplugin</groupId>
+      <artifactId>features-openflowplugin-extension</artifactId>
+      <version>${openflowplugin.version}</version>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+
+    <!-- OVSDB -->
+    <dependency>
+      <groupId>org.opendaylight.ovsdb</groupId>
+      <artifactId>southbound-features</artifactId>
+      <version>${ovsdb.southbound.version}</version>
+      <classifier>features</classifier>
+      <type>xml</type>
+    </dependency>
+
     <!-- dependency for opendaylight-karaf-empty for use by testing -->
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
@@ -141,44 +178,42 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>base</artifactId>
-      <version>${faas.base.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-model</artifactId>
-      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-model</artifactId>
-      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
-      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric</artifactId>
-      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-ovs-adapter</artifactId>
-      <version>${faas.project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>fabric-config</artifactId>
+      <type>xml</type>
+      <classifier>config</classifier>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-config</artifactId>
-      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-ovs-adapter-config</artifactId>
-      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
@@ -187,12 +222,10 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>uln-mapper-model</artifactId>
-      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>uln-mapper-config</artifactId>
-      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
@@ -201,12 +234,10 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-mgr-model</artifactId>
-      <version>${faas.project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-mgr-config</artifactId>
-      <version>${faas.project.version}</version>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
