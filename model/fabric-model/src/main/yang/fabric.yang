@@ -110,10 +110,8 @@ module fabric {
     /*******************************RPC*********************************************/
     rpc get-all-fabric {
         output {
-            list fabrics {
-                leaf fabric-id {
-                    type fabric-id;
-                }
+            leaf-list fabric-id {
+               type fabric-id;
             }
         }
     }
@@ -133,6 +131,50 @@ module fabric {
         input {
             leaf fabric-id {
                 type fabric-id;
+            }
+        }
+    }
+
+    rpc add-node-to-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf node-ref {
+                type topo:node-ref
+            }
+        }
+    }
+
+    rpc rm-node-from-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf node-id {
+                type topo:node-id;
+            }
+        }
+    }
+
+    rpc add-link-to-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf link-ref {
+                type topo:link-ref;
+            }
+        }
+    }
+
+    rpc rm-link-from-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf link-id {
+                type topo:link-id;
             }
         }
     }
