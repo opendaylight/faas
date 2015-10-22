@@ -1,0 +1,112 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fad0f9df_fa54ab22",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-edges.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 5030
+      },
+      "writtenOn": "2015-10-22T17:03:30Z",
+      "side": 1,
+      "message": "should be one value, not be string \"delay\"",
+      "range": {
+        "startLine": 32,
+        "startChar": 59,
+        "endLine": 32,
+        "endChar": 64
+      },
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_ba4f0392",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-networks.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5030
+      },
+      "writtenOn": "2015-10-22T17:03:30Z",
+      "side": 1,
+      "message": "Is there one more routers in one logical network?  if yes , how to know the relation between subnets and routers?",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_fa7d8bb2",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-switches.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5030
+      },
+      "writtenOn": "2015-10-22T17:03:30Z",
+      "side": 1,
+      "message": "how to find  the relation between subnet and logical switch?",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_7a72fbe6",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 5030
+      },
+      "writtenOn": "2015-10-22T17:03:30Z",
+      "side": 1,
+      "message": "what is location-type ? how to use? can you give me an example, thx.",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_1a772fd6",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 5030
+      },
+      "writtenOn": "2015-10-22T17:03:30Z",
+      "side": 1,
+      "message": "what is device ? is a logical switch or logical router ?",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_3a7473ce",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-subnets.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 5030
+      },
+      "writtenOn": "2015-10-22T17:03:30Z",
+      "side": 1,
+      "message": "what is the difference between virtual-router-ip and gateway ip?",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
