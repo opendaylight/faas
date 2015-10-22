@@ -21,6 +21,9 @@ module fabric-capable-device {
 
     grouping fabric-capable-device-attribute {
         leaf fabric-id {
+            type topo:node-id;
+        }
+        leaf fabric-ref {
             type topo:node-ref;
         }
     }
@@ -51,7 +54,7 @@ module fabric-capable-device {
                     type fabrictype:access-type;
                 }
                 leaf access-tag {
-                    type int32;
+                    type uint32;
                 }
                 list acl {
                     key name;
