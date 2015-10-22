@@ -23,12 +23,15 @@
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>config-api</artifactId>
-      <version>${config.version}</version>
-  	</dependency>
+    </dependency>
+    <dependency>
+     <groupId>org.opendaylight.faas</groupId>
+     <artifactId>fabric-model</artifactId>
+     <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>sal-binding-config</artifactId>
-      <version>${controller.mdsal.version}</version>
     </dependency>
   </dependencies>
 
@@ -37,11 +40,10 @@
           <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>${bundle.plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.opendaylight.faas.base.*</Export-Package>
+                        <Export-Package>org.opendaylight.faas.fabric.vxlan.*</Export-Package>
                         <Bundle-Version>${faas.base.version}</Bundle-Version>
                         <Import-Package>*</Import-Package>
                     </instructions>
@@ -50,7 +52,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>${maven.compile.plugin.version}</version>
           <configuration>
             <source>${java.version.source}</source>
             <target>${java.version.target}</target>
