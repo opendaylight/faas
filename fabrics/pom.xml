@@ -21,6 +21,7 @@
 
   <modules>
     <module>fabric</module>
+    <module>fabric-config</module>
     <module>vxlan-fabric</module>
   </modules>
 
