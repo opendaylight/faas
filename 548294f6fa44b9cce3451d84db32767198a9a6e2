@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fad0f9df_23a3f29f",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-common.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-10-22T01:41:11Z",
+      "side": 1,
+      "message": "faas-coommon or just \"common\"?",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_e3ac0a8f",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-common.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-10-22T01:41:11Z",
+      "side": 1,
+      "message": "grouping port-attributes {\n   acl \n   IP (private or public)\n   mac\n}",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_a3b602db",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-edges.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-10-22T01:41:11Z",
+      "side": 1,
+      "message": "please add the following QoS attributes\nbandwidth\njitter\ndelay\nreliability rate {3 9s, 5 9s ...}\nuser-defined",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_c3bb06c3",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-networks.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-10-22T01:41:11Z",
+      "side": 1,
+      "message": "it may be true in the future",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}

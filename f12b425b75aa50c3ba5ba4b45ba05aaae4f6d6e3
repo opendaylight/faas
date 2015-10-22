@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fad0f9df_63e7bae5",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-10-22T01:41:11Z",
+      "side": 0,
+      "message": "where are ACL definition ? \nhow it is related to ports.t \nwhat abut service function chaining?",
+      "revId": "f12b425b75aa50c3ba5ba4b45ba05aaae4f6d6e3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_83ec1ec9",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-10-22T01:41:11Z",
+      "side": 0,
+      "message": "what about external network? should it be part of logical switch attributes or subnets?",
+      "revId": "f12b425b75aa50c3ba5ba4b45ba05aaae4f6d6e3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
