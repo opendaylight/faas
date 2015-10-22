@@ -40,14 +40,14 @@ module fabric {
     }
 
     grouping device-attributes {
-        leaf device-id {
-            type topo:node-id;
+        leaf device-ref {
+            type fabrictype:node-ref;
         }
     }
 
     grouping link-attributes {
-        leaf link-id {
-            type topo:link-id;
+        leaf link-ref {
+            type fabrictype:link-ref;
         }
 
         leaf link-role {
@@ -75,12 +75,12 @@ module fabric {
         }
 
         list device-nodes {
-            key device-id;
+            key device-ref;
             uses device-attributes;
         }
 
         list device-links {
-            key link-id;
+            key link-ref;
             uses link-attributes;
         }
 
@@ -110,10 +110,8 @@ module fabric {
     /*******************************RPC*********************************************/
     rpc get-all-fabric {
         output {
-            list fabrics {
-                leaf fabric-id {
-                    type fabric-id;
-                }
+            leaf-list fabric-id {
+               type fabric-id;
             }
         }
     }
@@ -133,6 +131,50 @@ module fabric {
         input {
             leaf fabric-id {
                 type fabric-id;
+            }
+        }
+    }
+
+    rpc add-node-to-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf node-ref {
+                type fabrictype:node-ref
+            }
+        }
+    }
+
+    rpc rm-node-from-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf node-ref {
+                type fabrictype:node-ref;
+            }
+        }
+    }
+
+    rpc add-link-to-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf link-ref {
+                type fabrictype:link-ref;
+            }
+        }
+    }
+
+    rpc rm-link-from-fabric {
+        input {
+            leaf fabric-id {
+                type fabric-id;
+            }
+            leaf link-ref {
+                type fabrictype:link-ref;
             }
         }
     }

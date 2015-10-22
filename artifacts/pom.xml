@@ -15,7 +15,7 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- GBP modules -->
+      <!-- FAAS modules -->
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>base</artifactId>
@@ -58,6 +58,13 @@
       </dependency>
 
       <!-- FAAS configuration -->
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>fabric-config</artifactId>
+        <version>${project.version}</version>
+        <type>xml</type>
+        <classifier>config</classifier>
+      </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>vxlan-fabric-config</artifactId>

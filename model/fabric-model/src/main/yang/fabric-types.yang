@@ -27,6 +27,21 @@ module fabric-types {
     /*
      * Typedefs
      */
+    typedef node-ref {
+        description "A reference to a node in topology";
+        type instance-identifier;
+    }
+
+    typedef tp-ref {
+        description "A reference to a termination point in topology";
+        type instance-identifier;
+    }
+
+    typedef link-ref {
+        description "A reference to a link in topology";
+        type instance-identifier;
+    }
+
     typedef device-role {
         description "device role type";
         type enumeration {
