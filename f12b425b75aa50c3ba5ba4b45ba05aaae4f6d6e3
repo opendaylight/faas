@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_ba52a311",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-22T14:26:14Z",
+      "side": 0,
+      "message": "ACL are just rules, which are referenced in \"port\". Please see security-rules-groups in port. In this case, a port can include multiple sets of rules (e.g ACL).\nAlso, as we discussed ODL SFC comes as a uuid, hence part of the rules, which I think it can then be retrieved from SFC datastore.",
+      "parentUuid": "fad0f9df_63e7bae5",
+      "revId": "f12b425b75aa50c3ba5ba4b45ba05aaae4f6d6e3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_83ec1ec9",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
         "patchSetId": 2

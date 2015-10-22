@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_9a747f9d",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-common.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-22T14:26:14Z",
+      "side": 1,
+      "message": "Just to be consistent with the other files in the same folder and with the ODL way of naming YANG files since I need these files to be exported and visible in GBP. Also to generate code to same folders.",
+      "parentUuid": "fad0f9df_23a3f29f",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_e3ac0a8f",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-common.yang",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2015-10-22T01:41:11Z",
       "side": 1,
       "message": "grouping port-attributes {\n   acl \n   IP (private or public)\n   mac\n}",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_1a964f95",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-common.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-22T14:26:14Z",
+      "side": 1,
+      "message": "Please don\u0027t get confused with I removed from the old file. Please see \"faas-port.yang\". The port contains security rules (e.g. acl, sfc id, etc.), MAC address, and IPs. However, I don\u0027t have public/private IP because I need to about this more since it is part of \"floating IP\" concept. The model still don\u0027t have floating IPs. This week I may have something.",
+      "parentUuid": "fad0f9df_e3ac0a8f",
       "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_5aca97a2",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-edges.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-22T14:26:14Z",
+      "side": 1,
+      "message": "Agree and will do in next set. However, I will make as pairs of names and values for flexibility.",
+      "parentUuid": "fad0f9df_a3b602db",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_c3bb06c3",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-networks.yang",
         "patchSetId": 2
@@ -64,6 +118,24 @@
       "writtenOn": "2015-10-22T01:41:11Z",
       "side": 1,
       "message": "it may be true in the future",
+      "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_faba6b09",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-networks.yang",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-22T14:26:14Z",
+      "side": 1,
+      "message": "Agree. for now we just want users to read-only. However, we may also drop resetconf because it doesn\u0027t enough power to prevent users on changing the model in some cases, but this to discuss...",
+      "parentUuid": "fad0f9df_c3bb06c3",
       "revId": "548294f6fa44b9cce3451d84db32767198a9a6e2",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
