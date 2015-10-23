@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_75b52ccc",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-edges.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-23T15:04:11Z",
+      "side": 1,
+      "message": "Yes, it should be the value of the attribute. will fix.",
+      "parentUuid": "fad0f9df_fa54ab22",
+      "range": {
+        "startLine": 32,
+        "startChar": 59,
+        "endLine": 32,
+        "endChar": 64
+      },
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_ba4f0392",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-networks.yang",
         "patchSetId": 5
@@ -76,6 +100,24 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_4725dbc0",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-23T15:04:11Z",
+      "side": 1,
+      "message": "A port is attached to an entity such as router, switch, subnet or endpoint. Therefore,\"Location-type\" shows the type of entity this port is attached to. For example, a logical switch has port-A attached to it, and a logical router has port-B. Now, port-A location-type is switch while port-B location-type is router. Say, this switch and router are connected with each other. Then the edge between them two ports are port-A and port-B. In this case, from a port, one can know the edge and type of entity that port is attached to. Also, from an edge, one can know the other port, and so on. \nFinally, location-type is mainly needed for the topology.",
+      "parentUuid": "fad0f9df_7a72fbe6",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_1a772fd6",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
         "patchSetId": 5
@@ -93,6 +135,24 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_072fd3a2",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-ports.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-23T15:04:11Z",
+      "side": 1,
+      "message": "It is not needed anymore, so I will remove it. Thanks.",
+      "parentUuid": "fad0f9df_1a772fd6",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_3a7473ce",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-subnets.yang",
         "patchSetId": 5
@@ -104,6 +164,24 @@
       "writtenOn": "2015-10-22T17:03:30Z",
       "side": 1,
       "message": "what is the difference between virtual-router-ip and gateway ip?",
+      "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_4a13a25c",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-subnets.yang",
+        "patchSetId": 5
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-23T15:04:11Z",
+      "side": 1,
+      "message": "gateways is for external networks subnets that we serve. Renamed \"external-gateways\". The virtual-router-ip is for this subnet.",
+      "parentUuid": "fad0f9df_3a7473ce",
       "revId": "a52721dc78051d23b537e011b08653eee0639ecb",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
