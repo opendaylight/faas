@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fad0f9df_717c5973",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-endpoints-locations.yang",
+        "patchSetId": 6
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-10-26T13:41:07Z",
+      "side": 1,
+      "message": "How does inv node-id assocate with topology node id? The fabric manager retrieve node location info from topology rather than inventory.",
+      "revId": "09aa956765a78474fdf7d8540a3bfb5370faf92e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_118dcd7b",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-endpoints-locations.yang",
+        "patchSetId": 6
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-10-26T13:41:07Z",
+      "side": 1,
+      "message": "similiar to my previous comment, how does inv:node-connector-id associate to topology\u0027s termination-point id?",
+      "revId": "09aa956765a78474fdf7d8540a3bfb5370faf92e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
