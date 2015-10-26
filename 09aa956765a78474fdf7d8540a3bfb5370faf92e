@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fad0f9df_51927558",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-endpoints-locations.yang",
+        "patchSetId": 6
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-26T14:20:22Z",
+      "side": 1,
+      "message": "node-id is the odl inventory id so ODL topology should use the same id. However, if FAAS uses its own topology, the one that puts the id in the topology should ensure consistency or at least provide a way to corelate both ids.",
+      "parentUuid": "fad0f9df_717c5973",
+      "revId": "09aa956765a78474fdf7d8540a3bfb5370faf92e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fad0f9df_118dcd7b",
         "filename": "uln-mapper/uln-model/src/main/yang/faas-endpoints-locations.yang",
         "patchSetId": 6
@@ -30,6 +48,24 @@
       "writtenOn": "2015-10-26T13:41:07Z",
       "side": 1,
       "message": "similiar to my previous comment, how does inv:node-connector-id associate to topology\u0027s termination-point id?",
+      "revId": "09aa956765a78474fdf7d8540a3bfb5370faf92e",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fad0f9df_f19e0963",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-endpoints-locations.yang",
+        "patchSetId": 6
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-10-26T14:20:22Z",
+      "side": 1,
+      "message": "please see my response on previous comment.",
+      "parentUuid": "fad0f9df_118dcd7b",
       "revId": "09aa956765a78474fdf7d8540a3bfb5370faf92e",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
