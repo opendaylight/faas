@@ -45,11 +45,8 @@ module faas-subnets {
                     leaf external-gateway {
                         type inet:ip-address;
                     }
-                    list prefixes {
-                        key "prefix";
-                        leaf prefix {
-                            type inet:ip-prefix;
-                        }
+                    leaf-list prefixes {
+                        type inet:ip-prefix;
                     }
                 }
             }
