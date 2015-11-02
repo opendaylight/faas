@@ -2,6 +2,74 @@
   "comments": [
     {
       "key": {
+        "uuid": "bada0100_938f9e75",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 4
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "Modify \"Change\" to \"Changes\"",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_53e93619",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 4
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "why is that?",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_73eeba24",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 4
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "Be more specific what does this parameter do?",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_13f3ae0b",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "Be more specific about what exactly for fabric management",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bada0100_539b76c9",
         "filename": "fabrics/fabric-config/pom.xml",
         "patchSetId": 4
@@ -53,6 +121,125 @@
     },
     {
       "key": {
+        "uuid": "bada0100_f3d94a84",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/controller/config/yang/config/fabric/impl/FabricFactoryModule.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "Please add \"Copyright disclaimer\"",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_73d55a42",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/controller/config/yang/config/fabric/impl/FabricFactoryModule.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "No exception handling?",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_33cfd2b2",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/controller/config/yang/config/fabric/impl/FabricFactoryModuleFactory.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "This is generated code?  then do not submit it",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_d3c3e688",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/EndPointRegister.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "Copyright  disclaimer ?",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_f3c06a7e",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricFactory.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "those private members not visible?",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_93bd5e05",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricManagementApi.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "reorder those imports in alphabet order",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_b3bae208",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricManagementApi.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "this is one of the implementation of the API, not API. Could you change the name, to xxxServiceImp?",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bada0100_33aa72d5",
         "filename": "fabrics/vxlan-fabric/vxlan-fabric/pom.xml",
         "patchSetId": 4
@@ -64,6 +251,57 @@
       "writtenOn": "2015-11-02T02:35:15Z",
       "side": 1,
       "message": "tab removal",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_5337f6b0",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/controller/config/yang/config/vxlan_fabric/impl/PredefineFabricModule.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "Copyright disclaimer? is this generated code, then do not submit",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_733c7a94",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/controller/config/yang/config/vxlan_fabric/impl/PredefineFabricModuleFactory.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "do not commit generated code",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_13416e0b",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/controller/config/yang/config/vxlan_fabric/impl/VxlanFabricModule.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T03:50:16Z",
+      "side": 1,
+      "message": "do you need exception handling?",
       "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
