@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bada0100_539b76c9",
+        "filename": "fabrics/fabric-config/pom.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-11-02T02:35:15Z",
+      "side": 1,
+      "message": "please remove this space",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_73a0faf4",
+        "filename": "fabrics/fabric-config/src/main/resources/initial/fabric-factory-config.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-11-02T02:35:15Z",
+      "side": 1,
+      "message": "space removal",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_13a5ee03",
+        "filename": "fabrics/fabric/pom.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-11-02T02:35:15Z",
+      "side": 1,
+      "message": "tab removal",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_33aa72d5",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/pom.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 106
+      },
+      "writtenOn": "2015-11-02T02:35:15Z",
+      "side": 1,
+      "message": "tab removal",
+      "revId": "a4cf22b4208183506a9d4daac87477cfc97b34b9",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
