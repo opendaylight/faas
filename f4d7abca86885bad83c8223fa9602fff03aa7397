@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bada0100_f9f4cb88",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2015-11-02T16:16:24Z",
+      "side": 1,
+      "message": "Please create a bug to track this.\nAlso be a bit specific about the bug nature :)",
+      "revId": "f4d7abca86885bad83c8223fa9602fff03aa7397",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
