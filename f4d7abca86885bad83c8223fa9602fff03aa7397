@@ -16,6 +16,24 @@
       "revId": "f4d7abca86885bad83c8223fa9602fff03aa7397",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bada0100_6474b29c",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-11-02T18:42:44Z",
+      "side": 1,
+      "message": "Missing \"}\" at end of file.\nHow to create bug report?",
+      "parentUuid": "bada0100_f9f4cb88",
+      "revId": "f4d7abca86885bad83c8223fa9602fff03aa7397",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
     }
   ]
 }
