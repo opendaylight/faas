@@ -9,8 +9,12 @@
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://karaf.apache.org/xmlns/features/v1.2.0 http://karaf.apache.org/xmlns/features/v1.2.0">
   <repository>mvn:org.opendaylight.mdsal/features-mdsal/2.0.0-SNAPSHOT/xml/features</repository>
+  <repository>mvn:org.opendaylight.openflowplugin/features-openflowplugin/${openflowplugin.version}/xml/features</repository>
+  <repository>mvn:org.opendaylight.openflowplugin/features-openflowplugin-extension/${openflowplugin.version}/xml/features</repository>
+  <repository>mvn:org.opendaylight.ovsdb/southbound-features/${ovsdb.southbound.version}/xml/features</repository>
   <repository>mvn:org.opendaylight.controller/features-mdsal/${controller.mdsal.version}/xml/features</repository>
   <repository>mvn:org.opendaylight.mdsal.model/features-mdsal-model/${mdsal.model.version}/xml/features</repository>
+  <repository>mvn:org.opendaylight.netconf/features-restconf/${restconf.version}/xml/features</repository>
 
   <feature name='odl-faas-base' version='${project.version}' description='OpenDaylight :: faas :: base'>
 		<bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.snmp4j/2.1.0_1</bundle>
@@ -54,6 +58,7 @@
     <bundle>mvn:org.opendaylight.faas/fabric/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric/${project.version}</bundle>
 
+    <configfile finalname="${config.configfile.directory}/fabric-factory.xml">mvn:org.opendaylight.faas/fabric-config/${project.version}/xml/config</configfile>
     <configfile finalname="${config.configfile.directory}/vxlan-fabric.xml">mvn:org.opendaylight.faas/vxlan-fabric-config/${project.version}/xml/config</configfile>
   </feature>
 

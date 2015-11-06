@@ -5,19 +5,19 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.controller.config.yang.config.vxlan_fabric.impl;
+package org.opendaylight.controller.config.yang.config.fabric.impl;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.sal.binding.api.NotificationProviderService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
-import org.opendaylight.faas.fabric.vxlan.VXLANFabricProvider;
+import org.opendaylight.faas.fabric.general.FabricFactory;
 
-public class VxlanFabricModule extends org.opendaylight.controller.config.yang.config.vxlan_fabric.impl.AbstractVxlanFabricModule {
-    public VxlanFabricModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver) {
+public class FabricFactoryModule extends org.opendaylight.controller.config.yang.config.fabric.impl.AbstractFabricFactoryModule {
+    public FabricFactoryModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver) {
         super(identifier, dependencyResolver);
     }
 
-    public VxlanFabricModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver, org.opendaylight.controller.config.yang.config.vxlan_fabric.impl.VxlanFabricModule oldModule, java.lang.AutoCloseable oldInstance) {
+    public FabricFactoryModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver, org.opendaylight.controller.config.yang.config.fabric.impl.FabricFactoryModule oldModule, java.lang.AutoCloseable oldInstance) {
         super(identifier, dependencyResolver, oldModule, oldInstance);
     }
 
@@ -28,11 +28,12 @@ public class VxlanFabricModule extends org.opendaylight.controller.config.yang.c
 
     @Override
     public java.lang.AutoCloseable createInstance() {
+
         DataBroker databroker = this.getDataBrokerDependency();
         NotificationProviderService notificationService = this.getNotificationServiceDependency();
         RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
 
-        return new VXLANFabricProvider(databroker, rpcRegistry, notificationService);
+        return new FabricFactory(databroker, rpcRegistry, notificationService);
     }
 
 }
