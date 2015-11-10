@@ -16,7 +16,6 @@
     <relativePath>../</relativePath>
   </parent>
 
-  <groupId>org.opendaylight.faas</groupId>
   <artifactId>uln-mapper-model</artifactId>
   <packaging>bundle</packaging>
 
@@ -29,7 +28,8 @@
         <configuration>
             <instructions>
                 <Export-Package>
-                   org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.*
+                   org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.*,
+                   org.opendaylight.faas.uln.datastore.api.*
                 </Export-Package>
                 <Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
             </instructions>
@@ -43,6 +43,14 @@
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>config-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>sal-binding-config</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.opendaylight.mdsal.model</groupId>
       <artifactId>ietf-inet-types</artifactId>
