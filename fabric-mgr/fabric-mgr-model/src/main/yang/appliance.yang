@@ -1,0 +1,71 @@
+module appliance {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:appliance";
+    prefix appliance;
+
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+    import yang-ext { prefix ext; revision-date "2013-07-09"; }
+    import vcontainer-types { prefix vctype; revision-date "2015-10-10"; }
+    import vcontainer-topology { prefix vct; revision-date "2015-10-10"; }
+
+    description
+        "This module contains a collection of YANG definitions for DC
+        Fabric configuration.";
+
+    revision "2015-10-10" {
+        description
+                "Initial revision.";
+    }
+
+    typedef appliance-type {
+        description "";
+        type enumeration {
+            enum FIREWALL;
+            enum NAT;
+            enum LB;
+        }
+    }
+
+    grouping appliance-port-attributes {
+        leaf appliance-port-ref {
+            type vctype:appliance-port-ref;
+            description "Maps to the port on physical appliance.";
+        }
+        uses vctype:logical-port-attributes;
+    }
+
+    grouping appliance-attributes {
+        description
+                "The data objects needed to define a appliance. Note that this
+                model refers to logical appliance. Multiple logical appliances
+                may be mapped to a single physical device.";
+        leaf appliance-type {
+            type appliance-type;
+        }
+        leaf host-appliance-ref {
+            type vctype:appliance-ref;
+            description "Reference to the physical appliance on which this vfabric is
+                        built.";
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for appliance nodes created by faas";
+        container appliance-attributes {
+            config false;
+            uses appliance-attributes;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/nt:termination-point/vct:vc-termination-point-attributes" {
+        when "../../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for port on appliance";
+        container appliance-lport {
+            config false;
+            uses appliance-port-attributes;
+        }
+    }
+}

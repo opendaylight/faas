@@ -33,9 +33,7 @@ module vcontainer-types {
     }
 
     typedef vcontainer-ref {
-        type leafref {
-            path "/dc-container/vcontainer/vcontainer-id";
-        }
+        type instance-identifier;
     }
     
     typedef vfabric-id {
@@ -46,8 +44,8 @@ module vcontainer-types {
     }
     
     typedef vfabric-ref {
-        type topo:node-ref;
         description "Reference to a vfabric node";
+        type instance-identifier;
     }
     
     typedef vfabric-port-id {
@@ -56,8 +54,8 @@ module vcontainer-types {
     }
     
     typedef vfabric-port-ref {
-        type topo:tp-ref;
         description "Reference to a port on a vfabric node";
+        type instance-identifier;
     }
 
     typedef appliance-id {
@@ -67,8 +65,8 @@ module vcontainer-types {
     }
     
     typedef appliance-ref {
-        type topo:node-ref;
         description "Reference to an appliance node";
+        type instance-identifier;
     }
     
     typedef appliance-port-id {
@@ -77,8 +75,8 @@ module vcontainer-types {
     }
 
     typedef appliance-port-ref {
-        type topo:tp-ref;
         description "Reference to a port on an appliance node";
+        type instance-identifier;
     }
     
     typedef vf-lsw-id {
@@ -87,8 +85,8 @@ module vcontainer-types {
     }
     
     typedef vf-lsw-ref {
-        type topo:node-ref;
         description "Reference to a logical switch on a vfabric node";
+        type instance-identifier;
     }
     
     typedef vf-lr-id {
@@ -97,8 +95,8 @@ module vcontainer-types {
     }
     
     typedef vf-lr-ref {
-        type topo:node-ref;
         description "Reference to a logical router on a vfabric node";
+        type instance-identifier;
     }
     
     typedef device-role {
@@ -138,7 +136,7 @@ module vcontainer-types {
     }
     
     typedef logical-connection-ref {
-        type topo:link-ref;
+        type instance-identifier;
     }
     
     typedef logical-connection-type {
@@ -162,18 +160,82 @@ module vcontainer-types {
         }
     }
     
-    typedef vc-ld-id {
+    typedef vc-ld-node-port-type {
+        type enumeration {
+            enum CPU_CONNECTOR {
+                description "uni port connecting to an application server";
+            }
+            enum STORAGE_CONNECTOR {
+                description "uni port connecting to a storage server";
+            }
+            enum NET_NODE_CONNECTOR {
+                description "nni port connecting to a NET node";
+            }
+        }
+    }
+    
+    typedef vc-ld-node-id {
         type topo:node-id;
         description "Vcontainer Logical Device (LD) ID";
     }
     
-    typedef vc-ld-ref {
-        type topo:node-ref;
+    typedef vc-ld-node-ref {
         description "Reference to a LD node";
+        type instance-identifier;
+    }
+    
+    typedef vc-net-node-port-type {
+        type enumeration {
+            enum IO_CONNECTOR {
+                description "nni port connecting to the outside";
+            }
+            enum LD_NODE_CONNECTOR {
+                description "nni port connecting to a LD node";
+            }
+            enum CPU_CONNECTOR {
+                description "uni port connecting to an application server";
+            }
+            enum STORAGE_CONNECTOR {
+                description "uni port connecting to a storage server";
+            }
+        }
+    }
+    
+    typedef vc-net-node-id {
+        type topo:node-id;
+        description "Vcontainer NET node ID";
+    }
+    
+    typedef vc-net-node-ref {
+        description "Reference to a NET node";
+        type instance-identifier;
+    }
+    
+    typedef vc-logical-ne-type {
+        type enumeration {
+            enum LNE_LAYER_ONE {
+                description "Layer 1 logical device";
+            }
+            enum LNE_LAYER_TWO {
+                description "Layer 2 logical device";
+            }
+            enum LNE_LAYER_THREE {
+                description "Layer 3 logical device";
+            }
+        }
+    }
+
+    typedef vc-lne-id {
+        type topo:node-id;
+        description "logical NE ID";
+    }
+    
+    typedef vc-lne-ref {
+        description "Reference to a logical NE";
+        type instance-identifier;
     }
     
     /******************* Grouping **********************/
-    /*
     grouping vc-port-attributes {
         leaf vfabric {
             mandatory true;
@@ -184,18 +246,12 @@ module vcontainer-types {
         }
     }
 
-    grouping vc-io-port-attributes {
+    grouping vc-ld-node-cpu-port-attributes {
     	uses vc-port-attributes;
     }
 
-    grouping vc-ld-attributes {
-    	leaf vc-ref {
-    		type vcontainer-ref; 
-    		description "reference to the corresponding vcontainer";
-    	}
-    	list io-ports {
-    		uses vc-io-port-attributes;
-    	}
+    grouping vc-ld-node-storage-port-attributes {
+    	uses vc-port-attributes;
     }
 
     grouping l2-resource-range {
@@ -299,5 +355,4 @@ module vcontainer-types {
             }
         }
     }
-    */
  }

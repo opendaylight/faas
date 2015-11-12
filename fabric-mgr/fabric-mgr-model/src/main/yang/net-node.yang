@@ -1,0 +1,383 @@
+module vc-net-node {
+    yang-version 1;
+    namespace "urn:opendaylight:faas:vcontainer:netnode";
+    prefix "net-node";
+
+    import yang-ext { prefix ext; revision-date "2013-07-09"; }
+    import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import vfabric { prefix vfabric; revision-date "2015-10-10"; }
+    import appliance { prefix appliance; revision-date "2015-10-10"; }
+    import vcontainer-types { prefix vctype; revision-date "2015-10-10"; }
+    import vcontainer-topology { prefix vct; revision-date "2015-10-10"; }
+
+    description
+        "This module defines the LD node in the Virtual Container.";
+
+    revision 2015-10-10 {
+        description
+                "Initial revision.";
+    }
+
+    grouping vc-net-node-link-attributes {
+        choice source-choice {
+            case vfabric {
+                leaf source-vfabric {
+                    mandatory true;
+                    type vctype:vfabric-ref;
+                }
+                leaf source-tp {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+            case appliance {
+                leaf source-appliance {
+                    mandatory true;
+                    type vctype:appliance-ref;
+                }
+                leaf source-tp {
+                    type vctype:appliance-port-ref;
+                }
+            }
+        }
+        choice destination-choice {
+            case vfabric {
+                leaf dest-vfabric {
+                    mandatory true;
+                    type vctype:vfabric-ref;
+                }
+                leaf dest-tp {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+            case appliance {
+                leaf dest-appliance {
+                    mandatory true;
+                    type vctype:appliance-ref;
+                }
+                leaf dest-tp {
+                    type vctype:appliance-port-ref;
+                }
+            }
+        }
+    }
+
+    grouping net-node-attributes {
+        leaf is-net-node-empty {
+            description "A NET node is empty is no service is provisioned. However, note
+                        that a LD node is always present in the vcontainer-topology even
+                        if it is empty.";
+            type boolean;
+        }
+        list vfabric {
+            key "vfabric-ref";
+            leaf vfabric-ref {
+                type vctype:vfabric-ref;
+                description "Reference to a child vfabric ownded by this NET node.";
+            }
+        }
+        list appliance {
+            description "The list of logical appliances owned by this NET node.";
+            key "appliance-ref";
+            leaf appliance-ref {
+                type vctype:appliance-ref;
+                description "Reference to an appliance which belongs to this NET node.";
+            }
+        }
+    }
+
+    grouping logical-ne-attributes {
+    	leaf logical-ne-type {
+    		type vctype:vc-logical-ne-type;
+    	}
+    }
+
+    /******************************* AUGMENT ***********************************/
+
+    augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for NET node";
+        container net-node-attributes {
+            uses net-node-attributes;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for Logical Net Element inside NET node";
+        container logical-ne-attributes {
+            uses logical-ne-attributes;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/nt:termination-point/vct:vc-termination-point-attributes" {
+        when "../../../nt:topology-types/vct:vcontainer-topology";
+        leaf net-node-port-type {
+            type vctype:vc-net-node-port-type;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:link/vct:vc-link-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        container vc-net-node-link-attributes {
+            uses vc-net-node-link-attributes;
+        }
+    }
+
+    /******************************* RPC ***********************************/
+
+    rpc create-child-net-node {
+        input {
+            leaf parent-net-node-id {
+                type vctype:vc-net-node-id;
+            }
+            container child-vcontainer-config {
+                uses net-node-attributes;
+            }
+        }
+        output {
+            leaf child-net-node-id {
+                type vctype:vc-net-node-id;
+            }
+        }
+    }
+
+    rpc removed-child-net-node {
+        input {
+            leaf child-net-node-ref {
+                type vctype:vc-net-node-ref;
+            }
+        }
+    }
+
+    rpc add-vfabric-to-net-node {
+        input {
+            leaf net-node-ref {
+                type vctype:vc-net-node-ref;
+            }
+            leaf vfabric-ref {
+                type vctype:vfabric-ref;
+            }
+        }
+    }
+
+    rpc rm-vfabric-from-net-node {
+        input {
+            leaf net-node-ref {
+                type vctype:vc-net-node-ref;
+            }
+            leaf vfabric-ref {
+                type vctype:vfabric-ref;
+            }
+        }
+    }
+
+    rpc add-appliance-to-vcontainer {
+        input {
+            leaf net-node-ref {
+                type vctype:vc-net-node-ref;
+            }
+            leaf appliance-ref {
+                type vctype:appliance-ref;
+            }
+        }
+    }
+
+    rpc rm-appliance-from-vcontainer {
+        input {
+            leaf net-node-ref {
+                type vctype:vc-net-node-ref;
+            }
+            leaf appliance-ref {
+                type vctype:appliance-ref;
+            }
+        }
+    }
+
+    rpc create-lne-layer2 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            uses vctype:vf-lsw-attributes;
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+        output {
+            leaf lne-ref {
+                type vctype:vc-lne-ref;
+            }
+        }
+    }
+
+    rpc add-ports-to-lne-layer2 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lne-ref {
+                type vctype:vc-lne-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc rm-ports-from-lne-layer2 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lne-ref {
+                type vctype:vc-lne-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc rm-lne-layer2 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lne-ref {
+                type vctype:vc-lne-ref;
+            }
+        }
+    }
+
+    rpc create-lne-layer3 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            uses vctype:vf-lr-attributes;
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+        output {
+            leaf lr-ref {
+                type vctype:vc-lne-ref;
+            }
+        }
+    }
+
+    rpc rm-lne-layer3 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vc-lne-ref;
+            }
+        }
+    }
+
+    rpc update-lne-layer3-routingtable {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vc-lne-ref;
+            }
+            list routingtable {
+                uses vctype:routing-table-entry;
+            }
+        }
+    }
+
+    rpc add-ports-to-lne-layer3 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vc-lne-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc rm-ports-from-lne-layer3 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vc-lne-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc update-net-node-logical-port {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf tp-ref {
+                type nt:tp-ref;
+            }
+            uses vctype:logical-port-attributes;
+        }
+    }
+
+    rpc rm-net-node-logical-port {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf tp-id {
+                type nt:tp-ref;
+            }
+        }
+    }
+
+    rpc create-lne-layer1 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            uses nt:link-attributes;
+            uses vctype:logical-connection-attributes;
+        }
+        output {
+            leaf connection-ref {
+                type vctype:logical-connection-ref;
+            }
+        }
+    }
+
+    rpc rm-lne-layer1 {
+        input {
+            leaf vfabric-id {
+                type nt:node-id;
+            }
+            leaf connection-id {
+                type vctype:logical-connection-id;
+            }
+        }
+    }
+}

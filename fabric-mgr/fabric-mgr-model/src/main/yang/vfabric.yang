@@ -1,0 +1,164 @@
+module vfabric {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:vfabric";
+    prefix vfabric;
+
+    import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import yang-ext {prefix ext; revision-date "2013-07-09"; }
+    import vcontainer-types {prefix vctype; revision-date "2015-10-10";}
+    import vcontainer-topology { prefix vct; revision-date "2015-10-10"; }
+    
+    description
+        "This module contains a collection of YANG definitions for
+        Virtual Fabric configurations.";
+
+    revision "2015-10-10" {
+        description
+            "Initial revision.";
+    }
+
+   	grouping vfabric-port-attributes {
+    	leaf host-fabric-port-ref {
+    		type nt:tp-ref;
+    		description "Maps to the port on physical fabric.";
+    	}
+    	uses vctype:logical-port-attributes;
+   	}
+
+    grouping vfabric-attributes {
+        description "The data objects needed to define a vfabric.
+                     The objects are provided in a grouping so that in addition to
+                     the datastore, the data can also be included in notifications
+                     as needed.";
+        leaf host-fabric-ref {
+        	type nt:node-ref;
+            description 
+            	"Reference to the physical fabric on which this vfabric is built.
+            	This reference is used to locate the physical fabric to make RPC calls.";
+        }
+        list l2-resource-pool {
+        	uses vctype:l2-resource-range;	
+        }
+        list l3-resource-pool {
+        	uses vctype:l3-resource-range;	
+        }
+    }
+
+    /******************************* AUGMENT ***********************************/
+    augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for vfabric nodes created by faas";
+        ext:augment-identifier "vfabric-node";
+        ext:context-instance "vfabric-context";
+        container vfabric-attributes {
+            uses vfabric-attributes;
+            list child-vfabric {
+                description
+                    "A vfabric can be further sliced into smaller vfabrics.
+                    There can be zero, one, or more elements in the list.
+                    ";
+                key "vfabric-ref";
+                leaf vfabric-ref {
+                    type vctype:vfabric-ref;
+                }
+            }
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/nt:termination-point/vct:vc-termination-point-attributes" {
+        when "../../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for port on vfabric";
+        container vfabric-port-attributes {
+            uses vfabric-port-attributes;
+        }
+    }
+
+    /******************************* RPC ***********************************/
+    rpc get-child-vfabric-list {
+        input {
+            leaf parent-vfabric-id {
+                type vctype:vfabric-id;
+            }
+        }
+        output  {
+            list vfabrics  {
+                leaf vfabric-id {
+                    type vctype:vfabric-id;
+                }
+            }
+        }
+    }
+
+    rpc get-all-ports {
+        input {
+            leaf parent-vfabric-id {
+                type vctype:vfabric-id;
+            }
+        }
+        output  {
+            list vfabric-ports  {
+                leaf port-rf {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc create-child-vfabric {
+        input {
+            leaf parent-vfabric-id {
+                type vctype:vfabric-id;
+            }
+            container child-vfabric-config {
+            	uses vfabric-attributes;
+            }
+        }
+        output {
+            leaf child-vfabric-ref {
+                type vctype:vfabric-ref;
+            }
+        }
+    }
+
+    rpc removed-child-vfabric {
+        input {
+            leaf parent-vfabric-id {
+                type vctype:vfabric-id;
+            }
+            leaf child-vfabric-id {
+                type vctype:vfabric-id;
+            }
+        }
+    }
+
+    rpc add-port-to-vfabric {
+        input {
+            leaf vfabric-id {
+                type vctype:vfabric-id;
+            }
+            container vfabric-port {
+                uses vfabric-port-attributes;
+            }
+        }
+        output {
+            leaf vfabric-port-ref {
+                type vctype:vfabric-port-ref;
+            }
+        }
+    }
+  
+    rpc rm-port-from-vfabric {
+        input {
+            leaf vfabric-id {
+                type vctype:vfabric-id;
+                //type instance-identifier;
+                //ext:context-reference "vfabric:vfabric-context";
+            }
+            leaf port-id {
+                type vctype:vfabric-port-id;
+            }
+        }
+    }
+}

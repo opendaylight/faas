@@ -1,0 +1,250 @@
+module vfabric-service {
+    yang-version 1;
+    namespace "urn:opendaylight:faas:vcontainer:service";
+    prefix vfabric-service;
+
+    import yang-ext { prefix ext; revision-date "2013-07-09"; }
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+    import vcontainer-types { prefix "vctype"; revision-date "2015-10-10"; }
+    import vcontainer-topology { prefix vct; revision-date "2015-10-10"; }
+
+    organization
+        "Huawei Technologies Co., Ltd";
+
+    contact
+        "Corporation Web:   <http://www.huawei.com>";
+
+    description
+        "This module contains a collection of RPCs that provides vcontainer
+        services.";
+
+    revision "2015-10-10" {
+        description "Initial revision.";
+    }
+
+    identity vfabric-context {
+    }
+
+    /******************************* AUGMENT ***********************************/
+    augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for logic switch nodes provided by vfabric";
+        container lsw-attributes {
+            config false;
+            uses vctype:vf-lsw-attributes;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for logic router nodes provided by vfabric";
+        container lr-attributes {
+            uses vctype:vf-lr-attributes;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node/nt:termination-point/vct:vc-termination-point-attributes" {
+        when "../../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for logic port provided by vfabric";
+        container lport-attributes {
+            uses vctype:logical-port-attributes;
+        }
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:link/vct:vc-link-attributes" {
+        when "../../nt:topology-types/vct:vcontainer-topology";
+        description "Augmentation for logical connections";
+        container logical-connection-attributes {
+            uses vctype:logical-connection-attributes;
+        }
+    }
+
+    /******************************* RPC ***********************************/
+    rpc create-vf-lsw {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            uses vctype:vf-lsw-attributes;
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+        output {
+            leaf lsw-ref {
+                type vctype:vf-lsw-ref;
+            }
+        }
+    }
+
+    rpc add-ports-to-vf-lsw {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lsw-ref {
+                type vctype:vf-lsw-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc rm-ports-from-vf-lsw {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lsw-ref {
+                type vctype:vf-lsw-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc rm-vf-lsw {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lsw-ref {
+                type vctype:vf-lsw-ref;
+            }
+        }
+    }
+
+    rpc create-vf-lr {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            uses vctype:vf-lr-attributes;
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+        output {
+            leaf lr-ref {
+                type vctype:vf-lr-ref;
+            }
+        }
+    }
+
+    rpc rm-vf-lr {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vf-lr-ref;
+            }
+        }
+    }
+
+    rpc update-vf-lr-routingtable {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vf-lr-ref;
+            }
+            list routingtable {
+                uses vctype:routing-table-entry;
+            }
+        }
+    }
+
+    rpc add-ports-to-vf-lr {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vf-lr-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc rm-ports-from-vf-lr {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf lr-ref {
+                type vctype:vf-lr-ref;
+            }
+            list ports {
+                leaf port-ref {
+                    type vctype:vfabric-port-ref;
+                }
+            }
+        }
+    }
+
+    rpc update-logical-port {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf tp-ref {
+                type nt:tp-ref;
+            }
+            uses vctype:logical-port-attributes;
+        }
+    }
+
+    rpc rm-logical-port {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf tp-id {
+                type nt:tp-ref;
+            }
+        }
+    }
+
+    rpc create-vf-logical-connection {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            uses nt:link-attributes;
+            uses vctype:logical-connection-attributes;
+        }
+        output {
+            leaf connection-ref {
+                type vctype:logical-connection-ref;
+            }
+        }
+    }
+
+    rpc rm-vf-logical-connection {
+        input {
+            leaf fabric-id {
+                type nt:node-id;
+            }
+            leaf connection-id {
+                type vctype:logical-connection-id;
+            }
+        }
+    }
+}

@@ -1,0 +1,177 @@
+module vcontainer-topology {
+    yang-version 1;
+    namespace "urn:opendaylight:faas:vcontainer:topology";
+    prefix "vct";
+
+    import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+
+    description
+        "A VContainer topology contains a NET node and a LD node. The
+        NET node encapulates the service model of a vcontainer. Thereafter,
+        the underlay topology that supports a NET node may be a logical
+        network. Also, the NET node is recursive, so that it may contain
+        the childern vcontainers' NET nodes. The LD node is a placeholder
+        for unprovisioned resources of a VContainer. A LD node can be
+        sliced to create resource for the NET node of the same vcontainer.
+        The LD node is also recurrsive. It can be partitioned into more
+        LD nodes in order to create child vcontainers. Both the NET node
+        and the LD node are allowed to be empty. For example, when a vcontainer
+        is first created, its NET node may be empty given that no service
+        is created at that time. On the other hand, a vcontainer's LD
+        node becomes empty when the vcontainer uses up all its resources
+        service creation. However, for any vcontainer, the amount of the
+        the resource used in its NET node plus the amount in its LD node
+        always equals to the total amount of the resource owned by that
+        vcontainer. This yang model augments the IETF topology model.
+        The design is inspired by that of the l3-unicast-igp-topology
+        model. ";
+
+    revision "2015-10-10" {
+        description
+                "Initial revision.";
+    }
+
+    identity vcontainer-topology {
+    }
+
+    identity flag-identity {
+        description "Base type for flags";
+    }
+    identity undefined-flag {
+        base "flag-identity";
+    }
+
+    typedef flag-type {
+        type identityref {
+            base "flag-identity";
+        }
+    }
+
+    grouping vc-prefix-attributes {
+        leaf prefix {
+            type inet:ip-prefix;
+        }
+        leaf metric {
+            type uint32;
+        }
+        leaf-list flag {
+            type flag-type;
+        }
+    }
+
+    grouping vcontainer-topology-type {
+        container vcontainer-topology {
+            presence "indicates VContainer Topology";
+        }
+    }
+
+    grouping vc-topology-attributes {
+        container vc-topology-attributes {
+            leaf name {
+                description "Name of the vcontainer";
+                type string;
+            }
+            leaf tenant-id {
+                description "Owner of this vcontainer";
+                type yang:uuid;
+            }
+            leaf-list flag {
+                description "Topology flags";
+                type flag-type;
+            }
+            leaf-list child-vc-topology {
+                description "List of child VC references, which should not be confused with
+                                the underlay-toplogy list in network-topology. The underlay-topology
+                                is to support NET node recursion, whereas child-vc-topology is
+                                for fast retrieval of the child VCs of the current VC.";
+                type nt:topology-ref;
+            }
+        }
+    }
+
+    grouping vc-node-attributes {
+        container vc-node-attributes {
+            leaf name {
+                description "Node name";
+                type string;
+            }
+            leaf-list flag {
+                description "Node operational flags";
+                type flag-type;
+            }
+        }
+    }
+
+    grouping vc-link-attributes {
+        container vc-link-attributes {
+            leaf name {
+                description "Link Name";
+                type string;
+            }
+            leaf-list flag {
+                description "Link flags";
+                type flag-type;
+            }
+        }
+    } // grouping vc-link-attributes
+
+    grouping vc-termination-point-attributes {
+        container vc-termination-point-attributes {
+            choice termination-point-type {
+                case io-port {
+                    leaf name {
+                    	description "This port connects to outside of the current VC.";
+                        type string;
+                    }
+                }
+                case net-2-ld-port {
+                    leaf name {
+                    	description "This port is on the link connecting NET and LD";
+                        type string;
+                    }
+                }
+                case ip {
+                    description "IP addresses assigned to this port";
+                    leaf-list ip-address {
+                        description "IPv4 or IPv6 address";
+                        type inet:ip-address;
+                    }
+                }
+                case unnumbered {
+                    leaf unnumbered-id {
+                        description "Unnumbered interface identifier";
+                        type uint32;
+                    }
+                }
+            }
+        }
+    } // grouping vc-termination-point-attributes
+
+    /******************************* AUGMENT ***********************************/
+
+    augment "/nt:network-topology/nt:topology/nt:topology-types" {
+        uses vcontainer-topology-type;
+    }
+
+    augment "/nt:network-topology/nt:topology" {
+        when "nt:topology-types/vcontainer-topology";
+        uses vc-topology-attributes;
+    }
+
+    augment "/nt:network-topology/nt:topology/nt:node" {
+        when "../nt:topology-types/vcontainer-topology";
+        uses vc-node-attributes;
+    }
+    augment "/nt:network-topology/nt:topology/nt:link" {
+        when "../nt:topology-types/vcontainer-topology";
+        uses vc-link-attributes;
+    }
+    augment "/nt:network-topology/nt:topology/nt:node/nt:termination-point" {
+        when "../../nt:topology-types/vcontainer-topology";
+        uses vc-termination-point-attributes;
+    }
+
+    
+}

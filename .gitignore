@@ -20,4 +20,5 @@ classes
 out/
 .DS_STORE
 .metadata
+*.swp
 C\:\\nppdf32Log\\debuglog.txt
