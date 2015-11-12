@@ -15,20 +15,8 @@
     <relativePath />
   </parent>
 
-<!--
-  <parent>
-    <groupId>org.opendaylight.faas</groupId>
-    <artifactId>commons.parent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <relativePath>../commons/parent</relativePath>
-  </parent>
--->
-
   <groupId>org.opendaylight.faas</groupId>
   <artifactId>features-faas</artifactId>
-<!--
-  <version>${features.faas.version}</version>
--->
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
@@ -109,29 +97,6 @@
     </dependency>
 
     <!-- configuration dependencies -->
-<!--
-    <dependency>
-      <groupId>org.opendaylight.yangtools</groupId>
-      <artifactId>features-yangtools</artifactId>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>features-mdsal</artifactId>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
--->
-  
-<!--
-    <dependency>
-      <groupId>org.opendaylight.odlparent</groupId>
-      <artifactId>features-test</artifactId>
-      <version>${odl.version}</version>
-      <scope>test</scope>
-    </dependency>
--->
 
     <!-- Netconf -->
     <dependency>

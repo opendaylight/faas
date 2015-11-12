@@ -1,7 +1,13 @@
+/**
+ * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
 module vfabric {
-
     yang-version 1;
-    namespace "urn:opendaylight:faas:vfabric";
+    namespace "urn:opendaylight:faas:vcontainer:vfabric";
     prefix vfabric;
 
     import network-topology { prefix "nt"; revision-date "2013-10-21"; }
@@ -9,7 +15,7 @@ module vfabric {
     import yang-ext {prefix ext; revision-date "2013-07-09"; }
     import vcontainer-types {prefix vctype; revision-date "2015-10-10";}
     import vcontainer-topology { prefix vct; revision-date "2015-10-10"; }
-    
+
     description
         "This module contains a collection of YANG definitions for
         Virtual Fabric configurations.";
@@ -34,15 +40,15 @@ module vfabric {
                      as needed.";
         leaf host-fabric-ref {
         	type nt:node-ref;
-            description 
+            description
             	"Reference to the physical fabric on which this vfabric is built.
             	This reference is used to locate the physical fabric to make RPC calls.";
         }
         list l2-resource-pool {
-        	uses vctype:l2-resource-range;	
+            uses vctype:l2-resource-range;
         }
         list l3-resource-pool {
-        	uses vctype:l3-resource-range;	
+            uses vctype:l3-resource-range;
         }
     }
 
@@ -148,7 +154,7 @@ module vfabric {
             }
         }
     }
-  
+
     rpc rm-port-from-vfabric {
         input {
             leaf vfabric-id {

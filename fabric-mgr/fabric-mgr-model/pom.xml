@@ -16,7 +16,6 @@
     <relativePath>../</relativePath>
   </parent>
 
-  <groupId>org.opendaylight.faas</groupId>
   <artifactId>fabric-mgr-model</artifactId>
   <packaging>bundle</packaging>
 
@@ -29,7 +28,7 @@
         <configuration>
             <instructions>
                 <Export-Package>
-                        org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.type.rev151010.*
+                  org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.*
                 </Export-Package>
                 <Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
             </instructions>
