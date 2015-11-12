@@ -37,7 +37,7 @@
     </configuration>
 
     <required-capabilities>
-        <capability>urn:opendaylight:params:xml:ns:yang:controller:config:uln-mapper:impl?module=uln-mapper-impl&amp;revision=2015-09-30</capability>
+        <capability>urn:opendaylight:params:xml:ns:yang:controller:config:uln-mapper:impl?module=uln-mapper-impl&amp;revision=2015-11-09</capability>
     </required-capabilities>
 
 </snapshot>

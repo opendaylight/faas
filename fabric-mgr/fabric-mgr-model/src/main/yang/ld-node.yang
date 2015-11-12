@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
 module vc-ld-node {
     yang-version 1;
     namespace "urn:opendaylight:faas:vcontainer:ldnode";
@@ -20,12 +27,12 @@ module vc-ld-node {
     }
 
     grouping ld-node-attributes {
-    	leaf is-ld-node-empty {
+        leaf is-ld-node-empty {
             description "A LD node is empty when all the resources in this VC
-            	are used to create services. However, note that a LD node is always
+              are used to create services. However, note that a LD node is always
             	present in the vcontainer-topology even if it is empty.";
-    		type boolean;
-    	}
+              type boolean;
+        }
         list vfabric {
             key "vfabric-ref";
             leaf vfabric-ref {
@@ -44,7 +51,7 @@ module vc-ld-node {
     }
 
     /******************************* AUGMENT ***********************************/
-    
+
     augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
         when "../../nt:topology-types/vct:vcontainer-topology";
         description "Augmentation for LD nodes";
@@ -59,7 +66,7 @@ module vc-ld-node {
             type vctype:vc-ld-node-port-type;
         }
     }
-    
+
     /******************************* RPC ***********************************/
 
     rpc create-child-ld-node {
