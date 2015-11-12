@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7aade967_4f2665bc",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/FabricMgrProvider.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-11-12T22:03:25Z",
+      "side": 1,
+      "message": "I believe NotificationProviderService is deprecated. This would be fixed if you address my comment in the impl yang file.",
+      "revId": "39f692e4e1cbda78676fa5fc7ee8cfdf652bbf71",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7aade967_2f0e8935",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/yang/fabric-mgr-impl.yang",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-11-12T22:03:25Z",
+      "side": 1,
+      "message": "I believe this would generate deprecated java class. Please how notification-service is done in feature uln-mapper-impl.yang",
+      "revId": "39f692e4e1cbda78676fa5fc7ee8cfdf652bbf71",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
