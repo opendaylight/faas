@@ -207,5 +207,9 @@
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>fabric-mgr-impl</artifactId>
+    </dependency>
   </dependencies>
 </project>

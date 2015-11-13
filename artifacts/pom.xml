@@ -56,6 +56,11 @@
         <artifactId>fabric-mgr-model</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>fabric-mgr-impl</artifactId>
+        <version>${project.version}</version>
+      </dependency>
 
       <!-- FAAS configuration -->
       <dependency>
