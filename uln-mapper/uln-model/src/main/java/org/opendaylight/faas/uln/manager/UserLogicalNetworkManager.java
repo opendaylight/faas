@@ -11,10 +11,6 @@ package org.opendaylight.faas.uln.manager;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.NotificationService;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
-import org.opendaylight.faas.uln.datastore.api.UlnDatastoreApi;
 import org.opendaylight.faas.uln.listeners.EdgeListener;
 import org.opendaylight.faas.uln.listeners.EndpointLocationListener;
 import org.opendaylight.faas.uln.listeners.PortListener;
@@ -39,6 +35,7 @@ public class UserLogicalNetworkManager implements AutoCloseable {
     private final SwitchListener switchListener;
 
     public UserLogicalNetworkManager() {
+        LOG.debug("Starting Uln-mapper...");
         int numCPU = Runtime.getRuntime().availableProcessors();
         executor = Executors.newScheduledThreadPool(numCPU * 2);
         routerListener = new RouterListener(executor);
@@ -48,7 +45,7 @@ public class UserLogicalNetworkManager implements AutoCloseable {
         securityGroupListener = new SecurityGroupListener(executor);
         subnetListener = new SubnetListener(executor);
         switchListener = new SwitchListener(executor);
-        LOG.info("FAAS Renderer has Started");
+        LOG.info("Uln-mapper has Started");
     }
 
     @Override
