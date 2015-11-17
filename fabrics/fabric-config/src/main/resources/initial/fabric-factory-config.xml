@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
+<!-- 
   Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
   This program and the accompanying materials are made available under the
   terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -32,11 +32,23 @@
                     </notification-service>
                 </module>
             </modules>
+
+
+            <services xmlns="urn:opendaylight:params:xml:ns:yang:controller:config">
+               <service>
+                    <type xmlns:fabric-impl="urn:opendaylight:params:xml:ns:yang:controller:config:fabric:impl">fabric-impl:fabric-renderer-registry</type>
+                    <instance>
+                        <name>fabric-renderer-registry</name>
+                        <provider>/modules/module[type='fabric-factory'][name='fabric-factory']</provider>
+                    </instance>
+               </service>
+            </services>
         </data>
 
     </configuration>
 
     <required-capabilities>
+        <capability>urn:opendaylight:params:xml:ns:yang:controller:md:sal:binding?module=opendaylight-md-sal-binding&amp;revision=2013-10-28</capability>
         <capability>urn:opendaylight:params:xml:ns:yang:controller:config:fabric:impl?module=fabric-impl&amp;revision=2015-09-30</capability>
     </required-capabilities>
 

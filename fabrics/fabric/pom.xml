@@ -20,15 +20,15 @@
   <packaging>bundle</packaging>
 
   <dependencies>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-model</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+  	<dependency>
+  	  <groupId>org.opendaylight.faas</groupId>
+  	  <artifactId>fabric-model</artifactId>
+  	  <version>${project.version}</version>
+  	</dependency>
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>config-api</artifactId>
-      </dependency>
+  	</dependency>
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>sal-binding-config</artifactId>
@@ -64,7 +64,10 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.opendaylight.faas.fabric.general.*</Export-Package>
+                        <Export-Package>org.opendaylight.faas.fabric.general.*,
+                        org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930,
+                        org.opendaylight.controller.config.yang.config.fabric.impl
+                        </Export-Package>
                         <Bundle-Version>${faas.base.version}</Bundle-Version>
                         <Import-Package>*</Import-Package>
                     </instructions>

@@ -18,17 +18,82 @@
 
   <artifactId>vxlan-fabric-ovs-adapter</artifactId>
   <packaging>bundle</packaging>
+  
+  <properties>
+    <openflowjava-nicira.version>0.2.0-SNAPSHOT</openflowjava-nicira.version>
+    <openflowplugin.version>0.2.0-SNAPSHOT</openflowplugin.version>
+    <ovsdb.utils.mdsal.openflow.version>1.2.1-SNAPSHOT</ovsdb.utils.mdsal.openflow.version>
+  </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>config-api</artifactId>
-      <version>${config.version}</version>
   	</dependency>
     <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>sal-binding-config</artifactId>
-      <version>${controller.mdsal.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.opendaylight.controller.model</groupId>
+      <artifactId>model-inventory</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.openflowplugin.model</groupId>
+      <artifactId>model-flow-base</artifactId>
+      <version>${openflowplugin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.openflowplugin.model</groupId>
+      <artifactId>model-flow-service</artifactId>
+      <version>${openflowplugin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.openflowplugin</groupId>
+      <artifactId>openflowjava-extension-nicira</artifactId>
+      <version>${openflowjava-nicira.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.openflowplugin</groupId>
+      <artifactId>openflowplugin-extension-nicira</artifactId>
+      <version>${openflowplugin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.ovsdb</groupId>
+      <artifactId>utils.mdsal-openflow</artifactId>
+      <version>${ovsdb.utils.mdsal.openflow.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.opendaylight.mdsal.model</groupId>
+      <artifactId>ietf-topology</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.ovsdb</groupId>
+      <artifactId>southbound-api</artifactId>
+      <version>1.2.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-net</groupId>
+      <artifactId>commons-net</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>fabric</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>fabric-model</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>vxlan-fabric-model</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
@@ -37,10 +102,10 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>${bundle.plugin.version}</version>
         <extensions>true</extensions>
         <configuration>
             <instructions>
+            	<Embed-Dependency>utils.mdsal-openflow;type=!pom;inline=false</Embed-Dependency>
                 <Export-Package></Export-Package>
                 <Bundle-Version>${project.version}</Bundle-Version>
                 <Import-Package>*</Import-Package>
@@ -50,7 +115,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${maven.compile.plugin.version}</version>
         <configuration>
           <source>${java.version.source}</source>
           <target>${java.version.target}</target>

@@ -31,7 +31,8 @@
             <instructions>
                 <Export-Package>
                 	org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.*,
-                	org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.*
+                	org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.*,
+                	org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.vxlan.rev150930.*
                 </Export-Package>
                 <Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
             </instructions>

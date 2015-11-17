@@ -21,6 +21,8 @@ module fabric-service {
     augment "/topo:network-topology/topo:topology/topo:node" {
         description "Augmentation for logic switch nodes provided by faas.";
 
+        ext:augment-identifier "logic-switch-context";
+
         container lsw-attribute {
             config false;
             uses fabrictype:logic-switch;
@@ -30,6 +32,8 @@ module fabric-service {
     augment "/topo:network-topology/topo:topology/topo:node" {
         description "Augmentation for logic router nodes provided by faas.";
 
+        ext:augment-identifier "logic-router-context";
+
         container lr-attribute {
             config false;
             uses fabrictype:logic-router;
@@ -38,6 +42,8 @@ module fabric-service {
 
     augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
         description "Augmentation for logic port provided by faas.";
+
+        ext:augment-identifier "logic-port-context";
 
         container lport-attribute {
             config false;
@@ -129,6 +135,9 @@ module fabric-service {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
+            }
+            leaf logic-device {
+                type topo:node-id;
             }
             leaf tp-id {
                 type topo:tp-id;
