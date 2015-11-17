@@ -7,6 +7,7 @@ module fabric-vxlan-device-adapter {
     import network-topology { prefix "topo"; revision-date "2013-10-21"; }
     import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
     import fabric-capable-device { prefix "device"; revision-date "2015-09-30"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
 
     description
         "This module contains the config model for vxlan capable fabric devices.";
@@ -17,7 +18,7 @@ module fabric-vxlan-device-adapter {
     }
 
     augment "/topo:network-topology/topo:topology/topo:node/device:attributes" {
-
+        ext:augment-identifier "vtep-attribute";
         container vtep {
             leaf tp-id {
                 type topo:tp-ref;
@@ -35,4 +36,27 @@ module fabric-vxlan-device-adapter {
         }
     }
 
+	rpc addToVxlanFabric {
+		input {
+            leaf node-id {
+                type instance-identifier;
+                ext:context-reference "device:fabric-capable-device-context";
+            }
+            leaf fabric-id {
+                type topo:node-id;
+            }
+        }
+	}
+
+	rpc rmFromVxlanFabric {
+		input {
+            leaf node-id {
+                type instance-identifier;
+                ext:context-reference "device:fabric-capable-device-context";
+            }
+            leaf fabric-id {
+                type topo:node-id;
+            }
+        }
+	}
 }

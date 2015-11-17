@@ -1,0 +1,33 @@
+module vxlan-fabric {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:fabric:vxlan";
+    prefix vxlan-fabric;
+
+    import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import fabric { prefix "fabric"; revision-date "2015-09-30"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
+
+    description
+        "This module contains the config model for vxlan capable fabric devices.";
+
+    revision "2015-09-30" {
+        description
+            "Initial revision of faas.";
+    }
+
+    augment "/fabric:add-node-to-fabric/fabric:input" {
+        ext:augment-identifier "vxlan-device-add-input";
+        leaf vtep-ip {
+        	type inet:ip-address;
+        }
+    }
+
+    augment "/fabric:compose-fabric/fabric:input/fabric:device-nodes" {
+        ext:augment-identifier "vxlan-device-compose-input";
+        leaf vtep-ip {
+        	type inet:ip-address;
+        }
+    }
+}

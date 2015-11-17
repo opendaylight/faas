@@ -8,16 +8,16 @@
 <features name="odl-faas-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://karaf.apache.org/xmlns/features/v1.2.0 http://karaf.apache.org/xmlns/features/v1.2.0">
-  <repository>mvn:org.opendaylight.mdsal/features-mdsal/2.0.0-SNAPSHOT/xml/features</repository>
-  <repository>mvn:org.opendaylight.openflowplugin/features-openflowplugin/${openflowplugin.version}/xml/features</repository>
-  <repository>mvn:org.opendaylight.openflowplugin/features-openflowplugin-extension/${openflowplugin.version}/xml/features</repository>
-  <repository>mvn:org.opendaylight.ovsdb/southbound-features/${ovsdb.southbound.version}/xml/features</repository>
-  <repository>mvn:org.opendaylight.controller/features-mdsal/${controller.mdsal.version}/xml/features</repository>
-  <repository>mvn:org.opendaylight.mdsal.model/features-mdsal-model/${mdsal.model.version}/xml/features</repository>
-  <repository>mvn:org.opendaylight.netconf/features-restconf/${restconf.version}/xml/features</repository>
+  <repository>mvn:org.opendaylight.mdsal/features-mdsal/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.openflowplugin/features-openflowplugin/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.openflowplugin/features-openflowplugin-extension/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.ovsdb/southbound-features/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.controller/features-mdsal/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.mdsal.model/features-mdsal-model/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.netconf/features-restconf/{{VERSION}}/xml/features</repository>
 
   <feature name='odl-faas-base' version='${project.version}' description='OpenDaylight :: faas :: base'>
-		<bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.snmp4j/2.1.0_1</bundle>
+    <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.snmp4j/2.1.0_1</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-annotations/2.3.2</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-core/2.3.2</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-databind/2.3.2</bundle>
@@ -27,8 +27,8 @@
     <bundle>wrap:mvn:colt/colt/1.2.0</bundle>
     <bundle>wrap:mvn:concurrent/concurrent/1.3.4</bundle>
 <!--
-        	<bundle>wrap:mvn:net.sf.jung/jung-api/2.0.1</bundle>
-        	<bundle>wrap:mvn:net.sf.jung/jung-graph-impl/2.0.1</bundle>
+        <bundle>wrap:mvn:net.sf.jung/jung-api/2.0.1</bundle>
+        <bundle>wrap:mvn:net.sf.jung/jung-graph-impl/2.0.1</bundle>
 -->
 <!-- Do NOT include jung-api, because it causes ClassDefNotFound Error
           <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jung-api/2.0.1_2</bundle>
@@ -37,7 +37,7 @@
     <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jung-graph-impl/2.0.1_2</bundle>
     <bundle>wrap:mvn:net.sf.jung/jung-algorithms/2.0.1</bundle>
     <bundle>mvn:com.google.guava/guava/${guava.version}</bundle>
-   	<bundle>mvn:commons-collections/commons-collections/3.2.1</bundle>
+       <bundle>mvn:commons-collections/commons-collections/3.2.1</bundle>
     <bundle>mvn:org.opendaylight.faas/base/${faas.base.version}</bundle>
   </feature>
 
@@ -50,8 +50,9 @@
   </feature>
 
   <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
-   	<feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
-   	<feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+       <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
+       <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+       <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
 
     <bundle>mvn:org.opendaylight.faas/fabric-model/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric-model/${project.version}</bundle>
@@ -63,17 +64,23 @@
   </feature>
 
   <feature name='odl-faas-vxlan-ovs-adapter' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric ovs adapter'>
-   	<feature version="${project.version}">odl-faas-base</feature>
-   	<feature version="${project.version}">odl-faas-vxlan-fabric</feature>
 
-   	<bundle>mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/${project.version}</bundle>
+    <feature version="${openflowplugin.version}">odl-openflowplugin-flow-services</feature>
+    <feature version="${openflowplugin.version}">odl-openflowplugin-nxm-extensions</feature>
+    <feature version='${ovsdb.southbound.version}'>odl-ovsdb-southbound-impl</feature>
+    <feature version="${project.version}">odl-faas-base</feature>
+    <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
+
+    <bundle>mvn:commons-net/commons-net/3.3</bundle>
+    <bundle>mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/${project.version}</bundle>
 
     <configfile finalname="${config.configfile.directory}/vxlan-fabric-ovs-adapter.xml">mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter-config/${project.version}/xml/config</configfile>
   </feature>
 
   <feature name='odl-faas-uln-mapper' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
-   	<feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
-   	<feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+    <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
+    <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+    <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
     <!--
     <bundle>mvn:org.opendaylight.controller.model/model-inventory/${inventory.model.version}</bundle>
     -->
@@ -88,8 +95,9 @@
   </feature>
 
   <feature name='odl-faas-fabricmgr' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
-   	<feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
-   	<feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+    <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
+    <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+    <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
 
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-model/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-impl/${project.version}</bundle>

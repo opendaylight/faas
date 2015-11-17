@@ -43,6 +43,9 @@ module fabric {
         leaf device-ref {
             type fabrictype:node-ref;
         }
+        leaf role {
+            type fabrictype:device-role;
+        }
     }
 
     grouping link-attributes {
@@ -142,6 +145,9 @@ module fabric {
             }
             leaf node-ref {
                 type fabrictype:node-ref;
+            }
+            leaf role {
+                type fabrictype:device-role;
             }
         }
     }
