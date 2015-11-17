@@ -11,12 +11,20 @@ module fabric-impl {
         description "initial revision.";
     }
 
+    identity fabric-renderer-registry {
+        base config:service-type;
+
+        config:java-class "org.opendaylight.faas.fabric.general.FabricRendererRegistry";
+    }
+
     // This is the definition of the service implementation as a module identity.
     identity fabric-factory {
         base config:module-type;
 
         // Specifies the prefix for generated java classes.
         config:java-name-prefix FabricFactory;
+
+        config:provided-service fabric-renderer-registry;
     }
 
     // Augment the 'configuration' choice node under modules/module.
@@ -51,5 +59,14 @@ module fabric-impl {
                 }
             }
         }
+    }
+
+    container fabrics-setting {
+        config false;
+        leaf next-fabric-num {
+            type uint32;
+            default 1;
+        }
+
     }
 }

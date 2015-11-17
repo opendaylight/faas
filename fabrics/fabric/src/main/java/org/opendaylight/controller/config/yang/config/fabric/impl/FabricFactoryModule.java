@@ -27,7 +27,7 @@ public class FabricFactoryModule extends org.opendaylight.controller.config.yang
     }
 
     @Override
-    public java.lang.AutoCloseable createInstance() {
+    public FabricFactory createInstance() {
 
         DataBroker databroker = this.getDataBrokerDependency();
         NotificationProviderService notificationService = this.getNotificationServiceDependency();

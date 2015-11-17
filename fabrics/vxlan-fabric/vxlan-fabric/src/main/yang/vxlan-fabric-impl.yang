@@ -2,10 +2,11 @@ module vxlan-fabric-impl {
 
     yang-version 1;
     namespace "urn:opendaylight:params:xml:ns:yang:controller:config:vxlan-fabric:impl";
-    prefix "ovs-adapter-impl";
+    prefix "vxlan-fabric-impl";
 
     import config { prefix config; revision-date 2013-04-05; }
     import opendaylight-md-sal-binding { prefix mdsal; revision-date 2013-10-28; }
+    import fabric-impl { prefix fabric-impl; revision-date 2015-09-30; }
 
     revision "2015-09-30" {
         description "initial revision.";
@@ -47,6 +48,15 @@ module vxlan-fabric-impl {
                     refine type {
                         mandatory true;
                         config:required-identity mdsal:binding-notification-service;
+                    }
+                }
+            }
+
+            container renderer-registry {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity fabric-impl:fabric-renderer-registry;
                     }
                 }
             }
