@@ -10,6 +10,8 @@ package org.opendaylight.controller.config.yang.config.vxlan_fabric.impl;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.sal.binding.api.NotificationProviderService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.general.FabricRendererRegistry;
+
 import org.opendaylight.faas.fabric.vxlan.VXLANFabricProvider;
 
 public class VxlanFabricModule extends org.opendaylight.controller.config.yang.config.vxlan_fabric.impl.AbstractVxlanFabricModule {
@@ -19,6 +21,12 @@ public class VxlanFabricModule extends org.opendaylight.controller.config.yang.c
 
     public VxlanFabricModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver, org.opendaylight.controller.config.yang.config.vxlan_fabric.impl.VxlanFabricModule oldModule, java.lang.AutoCloseable oldInstance) {
         super(identifier, dependencyResolver, oldModule, oldInstance);
+    }
+
+    @Override
+    public void validate() {
+
+        super.validate();
     }
 
     @Override
@@ -32,7 +40,9 @@ public class VxlanFabricModule extends org.opendaylight.controller.config.yang.c
         NotificationProviderService notificationService = this.getNotificationServiceDependency();
         RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
 
-        return new VXLANFabricProvider(databroker, rpcRegistry, notificationService);
+        FabricRendererRegistry rendererRegistry = this.getRendererRegistryDependency();
+
+        return new VXLANFabricProvider(databroker, rpcRegistry, notificationService, rendererRegistry);
     }
 
 }

@@ -7,6 +7,7 @@ module fabric-endpoint {
     import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
     import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import fabric { prefix fabric; revision-date "2015-09-30"; }
     import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
 
     description
@@ -21,11 +22,11 @@ module fabric-endpoint {
         description "the location for this endponits in the physical network.";
 
         leaf node-ref {
-            type topo:node-ref;
+            type fabrictype:node-ref;
         }
 
         leaf tp-ref {
-            type topo:tp-ref;
+            type fabrictype:tp-ref;
         }
 
         leaf access-type {
@@ -67,11 +68,11 @@ module fabric-endpoint {
             description "The location for this endpoint in the logical network.";
 
             leaf node-ref {
-                type topo:node-ref;
+                type fabrictype:node-ref;
             }
 
             leaf tp-ref {
-                type topo:tp-ref;
+                type fabrictype:tp-ref;
             }
         }
     }
@@ -93,6 +94,10 @@ module fabric-endpoint {
             "Register a new endpoing into the registry.";
 
         input {
+           leaf fabric-id {
+                type fabric:fabric-id;
+            }
+
             uses endpoint-attributes;
         }
         output {
@@ -105,6 +110,10 @@ module fabric-endpoint {
     rpc unregister-endpoint {
         description "Unregister an endpoint or endpoints from the registry.";
         input {
+           leaf fabric-id {
+                type fabric:fabric-id;
+            }
+
             leaf-list ids {
                 type yang:uuid;
             }
@@ -114,6 +123,10 @@ module fabric-endpoint {
     rpc locate-endpoint {
         description "Set the physical location of the endpoing.";
         input {
+           leaf fabric-id {
+                type fabric:fabric-id;
+            }
+
             leaf endpoint-id {
                 type yang:uuid;
             }

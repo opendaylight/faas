@@ -45,30 +45,47 @@ module fabric-capable-device {
                 type boolean;
                 default false;
             }
-            list bridge-port {
-                key port-id;
-                leaf port-id {
-                    type yang:uuid;
-                }
-                leaf tp-ref {
-                    type topo:tp-ref;
-                }
-                leaf access-type {
-                    type fabrictype:access-type;
-                }
-                leaf access-tag {
-                    type uint32;
-                }
-                list acl {
-                    key name;
-                    leaf name {
-                        type acl:access-control-list-ref;
-                    }
+        }
+
+        list bridge-port {
+            key port-id;
+            leaf port-id {
+                type yang:uuid;
+            }
+            leaf bd-id {
+                type string;
+            }
+            leaf tp-ref {
+                type topo:tp-ref;
+            }
+            leaf access-type {
+                type fabrictype:access-type;
+            }
+            leaf access-tag {
+                type uint32;
+            }
+            list acl {
+                key name;
+                leaf name {
+                    type acl:access-control-list-ref;
                 }
             }
         }
 
         list vrf {
+            key id;
+            leaf id {
+                type string;
+            }
+            leaf name {
+                type string;
+            }
+            leaf vrf-ctx {
+                type int32;
+            }
+        }
+
+        list bdif {
             key id;
             leaf id {
                 type string;
@@ -81,6 +98,12 @@ module fabric-capable-device {
             }
             leaf ip-address {
                 type inet:ip-address;
+            }
+            leaf mask {
+                type int32;
+            }
+            leaf mac-address {
+                type yang:mac-address;
             }
             list acl {
                 key name;
@@ -110,16 +133,4 @@ module fabric-capable-device {
             uses fabric-capable-device-config;
         }
     }
-
-	rpc addToFabric {
-		input {
-            leaf node-id {
-                type instance-identifier;
-                ext:context-reference "fabric-capable-device-context";
-            }
-            leaf fabric-id {
-                type topo:node-id;
-            }
-        }
-	}
 }
