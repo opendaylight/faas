@@ -41,61 +41,72 @@ module faas-security-rules {
         }
     }
 
-    grouping security-groups-container {
-        container security-groups {
-            description "Container for security groups.";
-            list security-group {
+    grouping security-rule-groups-attributes {
+        container security-rule-groups-container {
+            description "Container for all tenant security groups.";
+            list security-rule-groups {
+                description "A set of security rule groups";
                 key "uuid";
                 uses faas-common:base-attributes;
-                leaf-list security-rules {
+                leaf-list ports {
+                    description "The logical ports that apply this set security rule groups";
                     type faas-common:uuid;
                 }
-
-                list security-rule {
+                list security-rule-group {
+                    description "A security rule group";
                     key "name";
                     leaf name {
-                        description "A name for the rule";
+                        description "A name for the rule group";
                         type faas-common:name;
                         mandatory true;
                     }
-                    leaf order {
-                        description "Rule order";
-                        type int32 {
-                            range "0..max";
-                        }
-                    }
-                    list rule-classifier {
+
+                    list security-rule {
                         key "name";
                         leaf name {
-                            description "A unique name for this classifier reference";
+                            description "A name for the rule";
                             type faas-common:name;
                             mandatory true;
                         }
-                        leaf direction {
-                            default bidirectional;
-                            type enumeration {
-                                enum in {
-                                    description "Applies to traffic into provider endpoint group";
-                                }
-                                enum out {
-                                    description "Applies to traffic out of provider endpoint group";
-                                }
-                                enum bidirectional {
-                                    description "Applies to traffic in both directions";
-                                }
+                        leaf order {
+                            description "Rule order";
+                            type int32 {
+                                range "0..max";
                             }
                         }
-                        uses parameter-values-grouping;
-                    }
-
-                    list rule-action {
-                        key "name";
-                        leaf name {
-                            description "A user-visible name for the action";
-                            type faas-common:name;
-                            mandatory true;
+                        list rule-classifier {
+                            key "name";
+                            leaf name {
+                                description "A unique name for this classifier reference";
+                                type faas-common:name;
+                                mandatory true;
+                            }
+                            leaf direction {
+                                default bidirectional;
+                                type enumeration {
+                                    enum in {
+                                        description "Applies to traffic into provider endpoint group";
+                                    }
+                                    enum out {
+                                        description "Applies to traffic out of provider endpoint group";
+                                    }
+                                    enum bidirectional {
+                                        description "Applies to traffic in both directions";
+                                    }
+                                }
+                            }
+                            uses parameter-values-grouping;
                         }
-                        uses parameter-values-grouping;
+
+                        list rule-action {
+                            key "name";
+                            leaf name {
+                                description "A user-visible name for the action";
+                                type faas-common:name;
+                                mandatory true;
+                            }
+                            uses parameter-values-grouping;
+                        }
                     }
                 }
             }

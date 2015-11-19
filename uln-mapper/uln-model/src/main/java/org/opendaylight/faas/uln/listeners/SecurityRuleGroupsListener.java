@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- *
+ * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
@@ -17,30 +17,32 @@ import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.groups.container.security.groups.SecurityGroup;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SecurityGroupListener implements DataChangeListener, AutoCloseable {
+public class SecurityRuleGroupsListener implements DataChangeListener, AutoCloseable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SecurityGroupListener.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SecurityRuleGroupsListener.class);
 
     private final ListenerRegistration<DataChangeListener> registerListener;
 
     private final ScheduledExecutorService executor;
 
-    public SecurityGroupListener(ScheduledExecutorService executor) {
+    public SecurityRuleGroupsListener(ScheduledExecutorService executor) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, UlnIidFactory.edgeIid(), this,
+        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.securityGroupsIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
         executor.execute(new Runnable() {
+
             public void run() {
                 executeEvent(change);
             }
@@ -50,15 +52,15 @@ public class SecurityGroupListener implements DataChangeListener, AutoCloseable 
     public void executeEvent(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
-            if (dao instanceof SecurityGroup) {
-                LOG.debug("Created SecurityGroup {}", (SecurityGroup) dao);
+            if (dao instanceof SecurityRuleGroups) {
+                LOG.debug("Created SecurityRuleGroups {}", (SecurityRuleGroups) dao);
             }
         }
         // Update
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
-            if (entry.getValue() instanceof SecurityGroup) {
-                LOG.debug("Updated SecurityGroup {}", (SecurityGroup) dao);
+            if (entry.getValue() instanceof SecurityRuleGroups) {
+                LOG.debug("Updated SecurityRuleGroups {}", (SecurityRuleGroups) dao);
             }
         }
         // Remove
@@ -67,8 +69,8 @@ public class SecurityGroupListener implements DataChangeListener, AutoCloseable 
             if (old == null) {
                 continue;
             }
-            if (old instanceof SecurityGroup) {
-                LOG.debug("Removed SecurityGroup {}", (SecurityGroup) old);
+            if (old instanceof SecurityRuleGroups) {
+                LOG.debug("Removed SecurityRuleGroups {}", (SecurityRuleGroups) old);
             }
         }
     }

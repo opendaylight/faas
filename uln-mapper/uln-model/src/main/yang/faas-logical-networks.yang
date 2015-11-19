@@ -35,7 +35,7 @@ module faas-logical-networks {
             uses faas-subnets:subnets-container;
             uses faas-logical-switches:logical-switches-container;
             uses faas-logical-routers:logical-routers-container;
-            uses faas-security-rules:security-groups-container;
+            uses faas-security-rules:security-rule-groups-attributes;
             uses faas-edges:edges-container;
             uses faas-endpoints-locations:endpoints-locations-container;
         }

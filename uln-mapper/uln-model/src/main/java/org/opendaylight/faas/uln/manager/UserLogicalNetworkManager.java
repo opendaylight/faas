@@ -15,7 +15,7 @@ import org.opendaylight.faas.uln.listeners.EdgeListener;
 import org.opendaylight.faas.uln.listeners.EndpointLocationListener;
 import org.opendaylight.faas.uln.listeners.PortListener;
 import org.opendaylight.faas.uln.listeners.RouterListener;
-import org.opendaylight.faas.uln.listeners.SecurityGroupListener;
+import org.opendaylight.faas.uln.listeners.SecurityRuleGroupsListener;
 import org.opendaylight.faas.uln.listeners.SubnetListener;
 import org.opendaylight.faas.uln.listeners.SwitchListener;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ public class UserLogicalNetworkManager implements AutoCloseable {
     private final EdgeListener edgeListener;
     private final EndpointLocationListener endpointLocationListener;
     private final PortListener portListener;
-    private final SecurityGroupListener securityGroupListener;
+    private final SecurityRuleGroupsListener securityGroupListener;
     private final SubnetListener subnetListener;
     private final SwitchListener switchListener;
 
@@ -42,7 +42,7 @@ public class UserLogicalNetworkManager implements AutoCloseable {
         edgeListener = new EdgeListener(executor);
         endpointLocationListener = new EndpointLocationListener(executor);
         portListener = new PortListener(executor);
-        securityGroupListener = new SecurityGroupListener(executor);
+        securityGroupListener = new SecurityRuleGroupsListener(executor);
         subnetListener = new SubnetListener(executor);
         switchListener = new SwitchListener(executor);
         LOG.info("Uln-mapper has Started");
