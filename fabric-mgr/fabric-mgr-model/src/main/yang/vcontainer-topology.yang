@@ -13,6 +13,7 @@ module vcontainer-topology {
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
     import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
     import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+    import vcontainer-types { prefix "vctype"; revision-date "2015-10-10"; }
 
     description
         "A VContainer topology contains a NET node and a LD node. The
@@ -82,7 +83,7 @@ module vcontainer-topology {
             }
             leaf tenant-id {
                 description "Owner of this vcontainer";
-                type yang:uuid;
+                type vctype:tenant-id;
             }
             leaf-list flag {
                 description "Topology flags";
@@ -178,5 +179,23 @@ module vcontainer-topology {
     augment "/nt:network-topology/nt:topology/nt:node/nt:termination-point" {
         when "../../nt:topology-types/vcontainer-topology";
         uses vc-termination-point-attributes;
+    }
+    
+    /******************************* RPC ***********************************/
+    
+    rpc create-vcontainer {
+        input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
+            container vcontainer-config {
+                uses vctype:vc-ld-node-attributes;
+            }
+        }
+        output {
+            leaf vc-topology-ref {
+                type nt:topology-ref;
+            }
+        }
     }
 }

@@ -243,6 +243,31 @@ module vcontainer-types {
     }
 
     /******************* Grouping **********************/
+    
+    grouping vc-ld-node-attributes {
+        leaf is-ld-node-empty {
+            description "A LD node is empty when all the resources in this VC
+              are used to create services. However, note that a LD node is always
+            	present in the vcontainer-topology even if it is empty.";
+              type boolean;
+        }
+        list vfabric {
+            key "vfabric-ref";
+            leaf vfabric-ref {
+                type vfabric-ref;
+                description "Reference to a child vfabric in the vcontainer.";
+            }
+        }
+        list appliance {
+            description "The list of logical appliances owned by this vcontainer.";
+            key "appliance-ref";
+            leaf appliance-ref {
+                type appliance-ref;
+                description "Reference to an appliance which belongs to this vcontainer.";
+            }
+        }
+    }
+
     grouping vc-port-attributes {
         leaf vfabric {
             mandatory true;

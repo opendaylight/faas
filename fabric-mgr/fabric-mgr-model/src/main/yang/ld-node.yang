@@ -26,37 +26,13 @@ module vc-ld-node {
                 "Initial revision.";
     }
 
-    grouping ld-node-attributes {
-        leaf is-ld-node-empty {
-            description "A LD node is empty when all the resources in this VC
-              are used to create services. However, note that a LD node is always
-            	present in the vcontainer-topology even if it is empty.";
-              type boolean;
-        }
-        list vfabric {
-            key "vfabric-ref";
-            leaf vfabric-ref {
-                type vctype:vfabric-ref;
-                description "Reference to a child vfabric in the vcontainer.";
-            }
-        }
-        list appliance {
-            description "The list of logical appliances owned by this vcontainer.";
-            key "appliance-ref";
-            leaf appliance-ref {
-                type vctype:appliance-ref;
-                description "Reference to an appliance which belongs to this vcontainer.";
-            }
-        }
-    }
-
     /******************************* AUGMENT ***********************************/
 
     augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
         when "../../nt:topology-types/vct:vcontainer-topology";
         description "Augmentation for LD nodes";
         container ld-node-attributes {
-            uses ld-node-attributes;
+            uses vctype:vc-ld-node-attributes;
         }
     }
 
@@ -75,7 +51,7 @@ module vc-ld-node {
                 type vctype:vc-ld-node-id;
             }
             container child-vcontainer-config {
-                uses ld-node-attributes;
+                uses vctype:vc-ld-node-attributes;
             }
         }
         output {
