@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- *
+ * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
@@ -20,7 +20,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.groups.container.security.groups.SecurityGroup;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -31,6 +31,7 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.CheckedFuture;
 
 public class UlnDatastoreApi {
+
     private static final Logger LOG = LoggerFactory.getLogger(UlnDatastoreApi.class);
     private static final LogicalDatastoreType logicalDatastoreType = LogicalDatastoreType.OPERATIONAL;
 
@@ -44,8 +45,8 @@ public class UlnDatastoreApi {
             submitLogicalRouterToDs((LogicalRouter) dao);
         } else if (dao instanceof LogicalSwitch) {
             submitLogicalSwitchToDs((LogicalSwitch) dao);
-        } else if (dao instanceof SecurityGroup) {
-            submitSecurityGroupToDs((SecurityGroup) dao);
+        } else if (dao instanceof SecurityRuleGroups) {
+            submitSecurityGroupsToDs((SecurityRuleGroups) dao);
         } else if (dao instanceof Port) {
             submitPortToDs((Port) dao);
         } else if (dao instanceof Edge) {
@@ -90,7 +91,8 @@ public class UlnDatastoreApi {
      */
     private static void submitLogicalRouterToDs(LogicalRouter router) {
         WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
-        t.put(logicalDatastoreType, UlnIidFactory.logicalRouterIid(router.getTenantId(), router.getUuid()), router, true);
+        t.put(logicalDatastoreType, UlnIidFactory.logicalRouterIid(router.getTenantId(), router.getUuid()), router,
+                true);
         if (submitToDs(t)) {
             LOG.debug("Wrote logical router {} to datastore.", router.getUuid().getValue());
         } else {
@@ -118,7 +120,8 @@ public class UlnDatastoreApi {
      */
     private static void submitLogicalSwitchToDs(LogicalSwitch lswitch) {
         WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
-        t.put(logicalDatastoreType, UlnIidFactory.logicalSwitchIid(lswitch.getTenantId(), lswitch.getUuid()), lswitch, true);
+        t.put(logicalDatastoreType, UlnIidFactory.logicalSwitchIid(lswitch.getTenantId(), lswitch.getUuid()), lswitch,
+                true);
         if (submitToDs(t)) {
             LOG.debug("Wrote logical switch {} to datastore.", lswitch.getUuid().getValue());
         } else {
@@ -142,11 +145,13 @@ public class UlnDatastoreApi {
     }
 
     /*
-     * SecurityGroup
+     * Security Rule Groups
      */
-    private static void submitSecurityGroupToDs(SecurityGroup securityGroup) {
+    private static void submitSecurityGroupsToDs(SecurityRuleGroups securityGroup) {
         WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
-        t.put(logicalDatastoreType, UlnIidFactory.securityGroupIid(securityGroup.getTenantId(), securityGroup.getUuid()), securityGroup, true);
+        t.put(logicalDatastoreType,
+                UlnIidFactory.securityGroupsIid(securityGroup.getTenantId(), securityGroup.getUuid()), securityGroup,
+                true);
         if (submitToDs(t)) {
             LOG.debug("Wrote logical securityGroup {} to datastore.", securityGroup.getUuid().getValue());
         } else {
@@ -154,9 +159,10 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static SecurityGroup readSecurityGroupFromDs(Uuid tenantId, Uuid securityGroupId) {
+    public static SecurityRuleGroups readSecurityGroupsFromDs(Uuid tenantId, Uuid securityGroupId) {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
-        Optional<SecurityGroup> potentialSecurityGroup = readFromDs(UlnIidFactory.securityGroupIid(tenantId, securityGroupId), t);
+        Optional<SecurityRuleGroups> potentialSecurityGroup = readFromDs(
+                UlnIidFactory.securityGroupsIid(tenantId, securityGroupId), t);
         if (!potentialSecurityGroup.isPresent()) {
             LOG.warn("Logical SecurityGroup {} does not exist.", securityGroupId.getValue());
             return null;
@@ -164,9 +170,9 @@ public class UlnDatastoreApi {
         return potentialSecurityGroup.get();
     }
 
-    public static void removeSecurityGroupFromDsIfExists(Uuid tenantId, Uuid securityGroupId) {
+    public static void removeSecurityGroupsFromDsIfExists(Uuid tenantId, Uuid securityGroupId) {
         ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        removeIfExists(UlnIidFactory.securityGroupIid(tenantId, securityGroupId), t);
+        removeIfExists(UlnIidFactory.securityGroupsIid(tenantId, securityGroupId), t);
     }
 
     /*
@@ -230,17 +236,21 @@ public class UlnDatastoreApi {
      */
     private static void submitEndpointLocationToDs(EndpointLocation endpointLocation) {
         WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
-        t.put(logicalDatastoreType, UlnIidFactory.endpointLocationIid(endpointLocation.getTenantId(), endpointLocation.getUuid()), endpointLocation, true);
+        t.put(logicalDatastoreType,
+                UlnIidFactory.endpointLocationIid(endpointLocation.getTenantId(), endpointLocation.getUuid()),
+                endpointLocation, true);
         if (submitToDs(t)) {
             LOG.debug("Wrote logical endpointLocation {} to datastore.", endpointLocation.getUuid().getValue());
         } else {
-            LOG.error("Failed to write logical endpointLocation {} to datastore.", endpointLocation.getUuid().getValue());
+            LOG.error("Failed to write logical endpointLocation {} to datastore.", endpointLocation.getUuid()
+                .getValue());
         }
     }
 
     public static EndpointLocation readEndpointLocationFromDs(Uuid tenantId, Uuid endpointLocationId) {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
-        Optional<EndpointLocation> potentialEndpointLocation = readFromDs(UlnIidFactory.endpointLocationIid(tenantId, endpointLocationId), t);
+        Optional<EndpointLocation> potentialEndpointLocation = readFromDs(
+                UlnIidFactory.endpointLocationIid(tenantId, endpointLocationId), t);
         if (!potentialEndpointLocation.isPresent()) {
             LOG.warn("Logical EndpointLocation {} does not exist.", endpointLocationId.getValue());
             return null;
@@ -277,7 +287,8 @@ public class UlnDatastoreApi {
         }
     }
 
-    private static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path, ReadWriteTransaction rwTx) {
+    private static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path,
+            ReadWriteTransaction rwTx) {
         Optional<T> potentialResult = readFromDs(path, rwTx);
         if (potentialResult.isPresent()) {
             rwTx.delete(logicalDatastoreType, path);
