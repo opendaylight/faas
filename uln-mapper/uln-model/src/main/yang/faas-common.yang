@@ -47,6 +47,7 @@ module faas-common {
 
         leaf uuid {
             type uuid;
+            mandatory true;
             description "Unique Id.";
         }
 
@@ -57,6 +58,7 @@ module faas-common {
 
         leaf tenant-id {
             type uuid;
+            mandatory true;
             description "Tenant Unique Id";
         }
     }
