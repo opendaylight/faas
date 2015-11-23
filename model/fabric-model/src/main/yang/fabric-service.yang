@@ -9,6 +9,7 @@ module fabric-service {
     import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
     import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
     import fabric { prefix fabric; revision-date "2015-09-30"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
 
     description
         "This module contains a collection of YANG definitions for Fabric.";
@@ -153,6 +154,9 @@ module fabric-service {
             leaf ip-address {
                 type inet:ip-address;
             }
+            leaf network {
+                type inet:ip-prefix;
+            }
             leaf logic-router {
                 type topo:node-id;
             }
@@ -172,6 +176,40 @@ module fabric-service {
             }
             leaf logic-router {
                 type topo:node-id;
+            }
+        }
+    }
+
+    rpc add-acl {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf logic-switch {
+                type topo:node-id;
+            }
+            leaf logic-port {
+                type topo:tp-id;
+            }
+            leaf acl-name {
+                type acl:access-control-list-ref;
+            }
+        }
+    }
+
+    rpc del-acl {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf logic-switch {
+                type topo:node-id;
+            }
+            leaf logic-port {
+                type topo:tp-id;
+            }
+            leaf acl-name {
+                type acl:access-control-list-ref;
             }
         }
     }

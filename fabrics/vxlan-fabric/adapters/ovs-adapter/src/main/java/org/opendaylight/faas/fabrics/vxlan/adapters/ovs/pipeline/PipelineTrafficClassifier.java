@@ -182,7 +182,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
     /*
      * (Table:  PipelineTrafficClassifier) Input Traffic from TunnelPort
      * Match:   TunnelID , OpenFlow InPort
-     * Actions: SLoad NXM_NX_REG0 to identify the Remote traffic from TunnelPort, GOTO Next Table
+     * Actions: Load NXM_NX_REG0 to identify the Remote traffic from TunnelPort, GOTO Next Table
      * Flow example:
      *      table=TRAFFIC_CLASSIFIER, tun_id=0x5, in_port=2, \
      *      actions=load:0x2->NXM_NX_REG0,goto_table=<next-table>"

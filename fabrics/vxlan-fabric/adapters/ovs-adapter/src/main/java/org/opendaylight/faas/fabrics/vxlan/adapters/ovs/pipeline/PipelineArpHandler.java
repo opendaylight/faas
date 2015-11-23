@@ -46,6 +46,14 @@ public class PipelineArpHandler extends AbstractServiceInstance {
 
     /*
      * (Table:  ARP_HANDlER) Handle the ARP packet, construct ARP Response
+     * Match:   arp, TunnelID , source mac, source ip
+     * Actions: Make ARP response packet
+     * Flow example:
+     *  table=20, priority=1024,arp,tun_id=0x3ea,arp_tpa=2.0.0.2
+     *  actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],set_field:fa:16:3e:41:56:ec->eth_src,
+     *      load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],
+     *      load:0xfa163e4156ec->NXM_NX_ARP_SHA[],load:0x2000002->NXM_OF_ARP_SPA[],
+     *      IN_PORT
      */
     public Status programStaticArpEntry(Long dpid, Long segmentationId, String macAddressStr, IpAddress ipAddress,
             AdpaterAction action) {

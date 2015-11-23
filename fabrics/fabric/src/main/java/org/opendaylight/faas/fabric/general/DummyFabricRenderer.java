@@ -7,7 +7,7 @@
  */
 package org.opendaylight.faas.fabric.general;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInput;
@@ -63,7 +63,7 @@ public class DummyFabricRenderer implements FabricRenderer {
     }
 
     @Override
-    public void buildGateway(NodeId switchid, IpAddress ip, NodeId routerid,  FabricId fabricid) {
+    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
     }
 
     @Override
@@ -79,5 +79,9 @@ public class DummyFabricRenderer implements FabricRenderer {
     @Override
     public void fabricDeleted(Node fabric) {
     }
+
+	@Override
+	public void aclUpdate(InstanceIdentifier<?> iid, boolean port) {
+	}
 
 }

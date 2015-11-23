@@ -46,19 +46,16 @@ public class EndPointManager implements AutoCloseable {
 
     private final ExecutorService executor;
 
-    private final ReadOnlyTransaction readTrans;
-
     private final SwitchManager switchMgr;
 
     public EndPointManager (DataBroker databroker, ExecutorService executor, SwitchManager switchMgr) {
         this.databroker = databroker;
         this.executor = executor;
         this.switchMgr = switchMgr;
-
-        readTrans = databroker.newReadOnlyTransaction();
     }
 
     public void addEndPointIId(final InstanceIdentifier<Endpoint> epIId) {
+    	ReadOnlyTransaction readTrans = databroker.newReadOnlyTransaction();
         CheckedFuture<Optional<Endpoint>,ReadFailedException> readFuture = readTrans.read(LogicalDatastoreType.OPERATIONAL, epIId);
 
         Futures.addCallback(readFuture, new FutureCallback<Optional<Endpoint>>(){
@@ -75,7 +72,6 @@ public class EndPointManager implements AutoCloseable {
                     }
                     if (ep.getLocation() != null) {
                         if (fabricid != null) {
-                            System.out.println(String.format("fabric: %s \t", fabricid));
                             rendererEndpoint(fabricid, ep);
                         }
                     }
@@ -113,13 +109,13 @@ public class EndPointManager implements AutoCloseable {
         NodeId destNodeId = destNodeIId.firstKeyOf(Node.class).getNodeId();
         DeviceContext devCtx = switchMgr.getDeviceCtx(fabricid, destNodeId);
         IpAddress vtepIp = devCtx.getVtep();
-        if (switchCtx.checkAndSetNewMember(destNodeId)) {
+        if (switchCtx.checkAndSetNewMember(destNodeId, vtepIp)) {
             devCtx.createBridgeDomain(switchCtx);
         }
 
         // dest-bridge-port
         @SuppressWarnings("unchecked")
-        InstanceIdentifier<TerminationPoint> tpIId = (InstanceIdentifier<TerminationPoint>) ep.getLogicLocation().getTpRef().getValue();
+        InstanceIdentifier<TerminationPoint> tpIId = (InstanceIdentifier<TerminationPoint>) ep.getLocation().getTpRef().getValue();
         TpId tpid = tpIId.firstKeyOf(TerminationPoint.class).getTpId();
 
         WriteTransaction trans = databroker.newWriteOnlyTransaction();

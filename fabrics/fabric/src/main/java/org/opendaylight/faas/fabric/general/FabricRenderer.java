@@ -7,7 +7,7 @@
  */
 package org.opendaylight.faas.fabric.general;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -34,6 +34,6 @@ public interface FabricRenderer extends FabricListener {
 
     void buildLogicPort(TpId tpid, LportAttributeBuilder lp, CreateLogicPortInput input);
 
-    public void buildGateway(NodeId switchid, IpAddress ip, NodeId routerid, FabricId fabricid);
+    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid, FabricId fabricid);
 
 }

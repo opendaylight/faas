@@ -39,6 +39,12 @@ public class MdSalUtils {
                 .child(Node.class, new NodeKey(nodeId));
     }
 
+    public static InstanceIdentifier<Node> createNodeIId(FabricId topoId, NodeId nodeId) {
+        return InstanceIdentifier.create(NetworkTopology.class)
+                .child(Topology.class, new TopologyKey(new TopologyId(topoId)))
+                .child(Node.class, new NodeKey(nodeId));
+    }
+
     public static InstanceIdentifier<FabricNode> createFabricIId(FabricId fabricId) {
         return Constants.DOM_FABRICS_PATH.child(Node.class, new NodeKey(fabricId))
                 .augmentation(FabricNode.class);

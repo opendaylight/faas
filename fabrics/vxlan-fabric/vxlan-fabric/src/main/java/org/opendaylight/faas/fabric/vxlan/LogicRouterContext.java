@@ -9,7 +9,7 @@ package org.opendaylight.faas.fabric.vxlan;
 
 import java.util.Map;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 
 import com.google.common.collect.Maps;
 
@@ -27,7 +27,7 @@ public class LogicRouterContext {
         return vrf;
     }
 
-    public void addGatewayPort(IpAddress ip, long vni) {
+    public void addGatewayPort(IpPrefix ip, long vni) {
         gatewayPorts.put(vni, new GatewayPort(ip, vni));
     }
 

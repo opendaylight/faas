@@ -7,7 +7,7 @@
  */
 package org.opendaylight.faas.fabric.general;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInput;
@@ -25,7 +25,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
-import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public class FabricInstance implements FabricRenderer {
@@ -34,12 +33,12 @@ public class FabricInstance implements FabricRenderer {
 
     private final UnderlayerNetworkType type;
 
-    private final FabricRenderer rendererDelegate;
+    private final FabricRenderer delegate;
 
     public FabricInstance(FabricId fabricId, UnderlayerNetworkType type, FabricRenderer renderer) {
         this.fabricId = fabricId;
         this.type = type;
-        this.rendererDelegate = renderer;
+        this.delegate = renderer;
     }
 
     public FabricId getId() {
@@ -52,63 +51,68 @@ public class FabricInstance implements FabricRenderer {
 
     @Override
     public void fabricCreated(InstanceIdentifier<FabricNode> fabric) {
-        rendererDelegate.fabricCreated(fabric);
+    	delegate.fabricCreated(fabric);
     }
 
     @Override
     public void deviceAdded(InstanceIdentifier<FabricNode> fabric, InstanceIdentifier<Node> device) {
-        rendererDelegate.deviceAdded(fabric, device);
+    	delegate.deviceAdded(fabric, device);
     }
 
     @Override
     public void deviceRemoved(InstanceIdentifier<FabricNode> fabric, InstanceIdentifier<Node> device) {
-        rendererDelegate.deviceRemoved(fabric, device);
+    	delegate.deviceRemoved(fabric, device);
 
     }
 
     @Override
     public void buildLogicSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicSwitchInput input) {
-        rendererDelegate.buildLogicSwitch(nodeid, lsw, input);
+    	delegate.buildLogicSwitch(nodeid, lsw, input);
     }
 
     @Override
     public void buildLogicRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicRouterInput input) {
-        rendererDelegate.buildLogicRouter(nodeid, lr, input);
+    	delegate.buildLogicRouter(nodeid, lr, input);
     }
 
     @Override
     public void buildLogicPort(TpId tpid, LportAttributeBuilder lp, CreateLogicPortInput input) {
-        rendererDelegate.buildLogicPort(tpid, lp, input);
+    	delegate.buildLogicPort(tpid, lp, input);
     }
 
     @Override
     public void endpointAdded(InstanceIdentifier<Endpoint> epIId) {
-        rendererDelegate.endpointAdded(epIId);
+    	delegate.endpointAdded(epIId);
     }
 
     @Override
     public void endpointUpdated(InstanceIdentifier<Endpoint> epIId) {
-        rendererDelegate.endpointUpdated(epIId);
+    	delegate.endpointUpdated(epIId);
     }
 
     @Override
-    public void buildGateway(NodeId switchid, IpAddress ip, NodeId routerid,  FabricId fabricid) {
-        rendererDelegate.buildGateway(switchid, ip, routerid, fabricid);
+    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
+    	delegate.buildGateway(switchid, ip, routerid, fabricid);
 
     }
 
     @Override
     public boolean composeFabric(FabricAttributeBuilder fabric, ComposeFabricInput input) {
-        return rendererDelegate.composeFabric(fabric, input);
+        return delegate.composeFabric(fabric, input);
     }
 
     @Override
     public boolean addNodeToFabric(DeviceNodesBuilder node, AddNodeToFabricInput input) {
-        return rendererDelegate.addNodeToFabric(node, input);
+        return delegate.addNodeToFabric(node, input);
     }
 
     @Override
     public void fabricDeleted(Node fabric) {
-        rendererDelegate.fabricDeleted(fabric);
+    	delegate.fabricDeleted(fabric);
     }
+
+	@Override
+	public void aclUpdate(InstanceIdentifier<?> iid, boolean port) {
+		delegate.aclUpdate(iid, port);
+	}
 }

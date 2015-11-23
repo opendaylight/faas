@@ -45,6 +45,14 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         super(Service.L3_ROUTING, dataBroker);
     }
 
+    /*
+     * (Table:  L3_ROUTING) Distribute Virtual Routing function
+     * Match:   IP, Source subnet TunnelID , dest subnet
+     * Actions: Set ethernet source address to Gateway mac, Set TunnelId to dest subnet tunnel id, GOTO Next Table
+     * Flow example:
+     *      table=60, ip,tun_id=0x3ea,nw_dst=1.0.0.0/24, \
+     *      actions=set_field:fa:16:3e:69:5a:42->eth_src,dec_ttl,set_field:0x3e9->tun_id,goto_table=<next-table>"
+     */
     public Status programRouterInterface(Long dpid, Long sourceSegId, Long destSegId, String macAddress,
             IpAddress address, int mask, AdpaterAction action) {
 

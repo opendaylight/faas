@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
@@ -42,7 +43,7 @@ public class SwitchManager {
 
     public void addLogicSwitch(FabricId fabricid, NodeId nodeId, long vni) {
         System.out.println(String.format("fabric:%s, \t lsw:%s",  fabricid, nodeId));
-        logicSwitches.put(fabricid, nodeId, new LogicSwitchContext(vni));
+        logicSwitches.put(fabricid, nodeId, new LogicSwitchContext(databroker, fabricid, vni));
     }
 
     public void addDeviceSwitch(FabricId fabricid,InstanceIdentifier<Node> deviceIId, IpAddress vtep) {
@@ -54,6 +55,16 @@ public class SwitchManager {
         return logicSwitches.get(fabricid, nodeId);
     }
 
+    public void associateSwitchToRouter(FabricId fabricid, NodeId lsw, NodeId lr, IpPrefix ip) {
+        LogicRouterContext routerCtx = getLogicRouterCtx(fabricid, lr);
+        LogicSwitchContext switchCtx = getLogicSwitchCtx(fabricid, lsw);
+        switchCtx.associateToRouter(routerCtx, ip);
+
+        for (NodeId device : switchCtx.getMembers()) {
+        	devices.get(fabricid, device).createBDIF(switchCtx.getVni(), routerCtx);
+        }
+    }
+    
     public DeviceContext getDeviceCtx(FabricId fabricid, NodeId nodeId) {
         return devices.get(fabricid, nodeId);
     }

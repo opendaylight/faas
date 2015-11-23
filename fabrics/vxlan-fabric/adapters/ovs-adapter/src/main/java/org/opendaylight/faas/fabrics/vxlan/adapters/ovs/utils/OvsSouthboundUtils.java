@@ -244,17 +244,14 @@ public class OvsSouthboundUtils {
         return ofPort;
     }
 
-    public static Long getVxlanTunnelOFPort(Node bridgeNode) {
+    public static Long getVxlanTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
         Long ofPort = 0L;
 
         String tunnelType = "vxlan";
-        String tunnelBridgeName = getBridgeName(bridgeNode);
+        //String tunnelBridgeName = getBridgeName(bridgeNode);
         String portName = getTunnelName(tunnelBridgeName, tunnelType);
 
-        OvsdbTerminationPointAugmentation port = extractTerminationPointAugmentation(bridgeNode, portName);
-        if (port != null) {
-            ofPort = getOFPort(port);
-        }
+        ofPort = getOfPort(nodeIid, new TpId(portName), databroker);
 
         return ofPort;
     }
@@ -277,10 +274,12 @@ public class OvsSouthboundUtils {
         Long ofPort = 0l;
         InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
         TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
-        OvsdbTerminationPointAugmentation port = teminationPoint.getAugmentation(OvsdbTerminationPointAugmentation.class);
+        if (teminationPoint != null) {
+            OvsdbTerminationPointAugmentation port = teminationPoint.getAugmentation(OvsdbTerminationPointAugmentation.class);
 
-        if (port != null) {
-            ofPort = port.getOfport();
+            if (port != null) {
+                ofPort = port.getOfport();
+            }
         }
         return ofPort;
     }

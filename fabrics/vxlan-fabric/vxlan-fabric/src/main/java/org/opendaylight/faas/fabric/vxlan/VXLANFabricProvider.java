@@ -22,6 +22,7 @@ import org.opendaylight.faas.fabric.general.FabricRenderer;
 import org.opendaylight.faas.fabric.general.FabricRendererRegistry;
 import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Attributes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInputBuilder;
@@ -218,10 +219,8 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRenderer {
     }
 
     @Override
-    public void buildGateway(NodeId switchid, IpAddress ip, NodeId routerid,  FabricId fabricid) {
-        LogicRouterContext routerCtx = switchMgr.getLogicRouterCtx(fabricid, routerid);
-        LogicSwitchContext switchCtx = switchMgr.getLogicSwitchCtx(fabricid, switchid);
-        switchCtx.associateToRouter(routerCtx, ip);
+    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
+        switchMgr.associateSwitchToRouter(fabricid, switchid, routerid, ip);
     }
 
     @Override
@@ -289,4 +288,11 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRenderer {
 
         ResourceManager.freeResourceManager(new FabricId(node.getNodeId()));
     }
+
+	@Override
+	public void aclUpdate(InstanceIdentifier<?> iid, boolean port) {
+		if (port) {
+
+		}
+	}
 }

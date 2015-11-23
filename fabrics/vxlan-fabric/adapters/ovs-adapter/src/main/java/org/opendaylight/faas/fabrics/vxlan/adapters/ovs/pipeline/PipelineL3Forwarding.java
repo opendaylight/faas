@@ -38,6 +38,14 @@ public class PipelineL3Forwarding extends AbstractServiceInstance {
         super(Service.L3_FORWARDING, dataBroker);
     }
 
+    /*
+     * (Table:  L3_FORWARDING) According to the dest ip address, set dest mac address
+     * Match:   IP, TunnelID , Dest ip address
+     * Actions: Set dest Mac address, GOTO Next Table
+     * Flow example:
+     *      table=70, ip,tun_id=0x3ea,nw_dst=2.0.0.2, \
+     *      actions=set_field:fa:16:3e:41:56:ec->eth_dst,goto_table=<next-table>"
+     */
     public Status programForwardingTableEntry(Long dpid, Long segmentationId, IpAddress ipAddress,
             String macAddress, AdpaterAction action) {
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;

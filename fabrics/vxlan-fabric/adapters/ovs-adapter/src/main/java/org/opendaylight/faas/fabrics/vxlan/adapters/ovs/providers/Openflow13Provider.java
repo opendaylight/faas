@@ -154,6 +154,8 @@ public class Openflow13Provider {
         IpAddress newBdIfIp = newBdIf.getIpAddress();
         int newBdIfMask = newBdIf.getMask();
 
+        arpHandler.programStaticArpEntry(dpidLong, newBdIfSegId, newBdIfMac, newBdIfIp, AdpaterAction.ADD);
+
         for (AdapterBdIf bdIf : bdIfs) {
             if ((bdIf.getVrf() == newBdIf.getVrf()) ) {
                 Long bdIfSegId = bdIf.getVni();

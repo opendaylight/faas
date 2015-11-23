@@ -26,4 +26,6 @@ public interface FabricListener {
 
     void endpointUpdated(InstanceIdentifier<Endpoint> epIId);
 
+    void aclUpdate(InstanceIdentifier<?> iid, boolean port);
+
 }

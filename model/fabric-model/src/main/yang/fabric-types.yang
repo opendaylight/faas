@@ -96,6 +96,15 @@ module fabric-types {
         }
     }
 
+    grouping acl-list {
+        list acl {
+            key acl-name;
+            leaf acl-name {
+                type acl:access-control-list-ref;
+            }
+        }
+    }
+
     grouping logic-switch {
         leaf lsw-uuid {
             type yang:uuid;
@@ -106,6 +115,10 @@ module fabric-types {
         leaf segment-id {
             type uint32;
         }
+        leaf network {
+            type inet:ip-prefix;
+        }
+        uses acl-list;
     }
 
     grouping logic-router {
@@ -147,6 +160,9 @@ module fabric-types {
             leaf ip {
                 type inet:ip-address;
             }
+            leaf network {
+                type inet:ip-prefix;
+            }
             leaf mac {
                 type yang:phys-address;
             }
@@ -154,6 +170,7 @@ module fabric-types {
                 type boolean;
             }
         }
+        uses acl-list;
     }
 
     grouping logic-link {
@@ -162,9 +179,22 @@ module fabric-types {
     augment "/acl:access-lists/acl:acl/acl:access-list-entries/acl:ace/acl:actions/acl:packet-handling" {
         case redirect {
             choice redirect-type {
-                case chain {
-                    leaf renderred-service-path {
-                        type string;
+                case tunnel {
+                    choice tunnel-type {
+                        case nsh {
+                            leaf dest-ip {
+                                type inet:ip-address;
+                            }
+                            leaf dest-port {
+                                type inet:port-number;
+                            }
+                            leaf nsi {
+                                type uint32;
+                            }
+                            leaf nsp {
+                                type uint32;
+                            }
+                        }
                     }
                 }
             }

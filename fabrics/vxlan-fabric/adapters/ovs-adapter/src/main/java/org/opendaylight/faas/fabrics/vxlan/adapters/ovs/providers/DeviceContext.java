@@ -32,7 +32,8 @@ public class DeviceContext {
 
         vtep = OvsSouthboundUtils.getVtepIp(node);
 
-        vtep_ofPort = OvsSouthboundUtils.getVxlanTunnelOFPort(node);
+        vtep_ofPort = 0l;
+        //vtep_ofPort = OvsSouthboundUtils.getVxlanTunnelOFPort(node);
 
         dpid = OvsSouthboundUtils.getDataPathId(node);
 
