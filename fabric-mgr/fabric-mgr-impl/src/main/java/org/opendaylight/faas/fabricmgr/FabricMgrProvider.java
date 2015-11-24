@@ -8,7 +8,7 @@
 package org.opendaylight.faas.fabricmgr;
 
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutorService;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
 public class FabricMgrProvider implements AutoCloseable, DataChangeListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricMgrProvider.class);
-    private final ScheduledExecutorService executor;
+    private final ExecutorService threadPool;
+    private final VcontainerServiceProvider vcProvider;
 
     public FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
             final NotificationService notificationService) {
@@ -33,7 +34,9 @@ public class FabricMgrProvider implements AutoCloseable, DataChangeListener {
         FabMgrDatastoreDependency.setNotificationService(notificationService);
 
         int numCPU = Runtime.getRuntime().availableProcessors();
-        executor = Executors.newScheduledThreadPool(numCPU * 2);
+        this.threadPool = Executors.newFixedThreadPool(numCPU * 2);
+        this.vcProvider = new VcontainerServiceProvider(this.threadPool);
+        this.vcProvider.registerRpc();
 
         LOG.info("FABMGR: FabricMgrProvider has Started");
     }
@@ -45,6 +48,7 @@ public class FabricMgrProvider implements AutoCloseable, DataChangeListener {
 
     @Override
     public void close() throws Exception {
-        executor.shutdownNow();
+        this.vcProvider.close();
+        this.threadPool.shutdown();
     }
 }
