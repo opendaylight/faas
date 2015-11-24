@@ -30,6 +30,8 @@ module vc-ld-node {
 
     augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
         when "../../nt:topology-types/vct:vcontainer-topology";
+        ext:augment-identifier "vc-ld-node";
+        ext:context-instance "vc-ld-node-context";
         description "Augmentation for LD nodes";
         container ld-node-attributes {
             uses vctype:vc-ld-node-attributes;

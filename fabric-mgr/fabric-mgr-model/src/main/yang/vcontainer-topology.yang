@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -13,6 +13,7 @@ module vcontainer-topology {
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
     import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
     import network-topology { prefix "nt"; revision-date "2013-10-21"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
     import vcontainer-types { prefix "vctype"; revision-date "2015-10-10"; }
 
     description
@@ -123,20 +124,21 @@ module vcontainer-topology {
                 type flag-type;
             }
         }
-    } // grouping vc-link-attributes
+    }
+    // grouping vc-link-attributes
 
     grouping vc-termination-point-attributes {
         container vc-termination-point-attributes {
             choice termination-point-type {
                 case io-port {
                     leaf name {
-                    	description "This port connects to outside of the current VC.";
+                        description "This port connects to outside of the current VC.";
                         type string;
                     }
                 }
                 case net-2-ld-port {
                     leaf name {
-                    	description "This port is on the link connecting NET and LD";
+                        description "This port is on the link connecting NET and LD";
                         type string;
                     }
                 }
@@ -155,7 +157,8 @@ module vcontainer-topology {
                 }
             }
         }
-    } // grouping vc-termination-point-attributes
+    }
+    // grouping vc-termination-point-attributes
 
     /******************************* AUGMENT ***********************************/
 
@@ -165,11 +168,15 @@ module vcontainer-topology {
 
     augment "/nt:network-topology/nt:topology" {
         when "nt:topology-types/vcontainer-topology";
+        ext:augment-identifier "vc-topology";
+        ext:context-instance "vc-topo-context";
         uses vc-topology-attributes;
     }
 
     augment "/nt:network-topology/nt:topology/nt:node" {
         when "../nt:topology-types/vcontainer-topology";
+        ext:augment-identifier "vc-node";
+        ext:context-instance "vc-node-context";
         uses vc-node-attributes;
     }
     augment "/nt:network-topology/nt:topology/nt:link" {
@@ -180,9 +187,9 @@ module vcontainer-topology {
         when "../../nt:topology-types/vcontainer-topology";
         uses vc-termination-point-attributes;
     }
-    
+
     /******************************* RPC ***********************************/
-    
+
     rpc create-vcontainer {
         input {
             leaf tenant-id {

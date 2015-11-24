@@ -103,6 +103,8 @@ module vc-net-node {
 
     augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
         when "../../nt:topology-types/vct:vcontainer-topology";
+        ext:augment-identifier "vc-net-node";
+        ext:context-instance "vc-net-node-context";
         description "Augmentation for NET node";
         container net-node-attributes {
             uses net-node-attributes;
