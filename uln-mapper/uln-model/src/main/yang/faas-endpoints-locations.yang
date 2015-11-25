@@ -19,7 +19,12 @@ module faas-endpoints-locations {
     grouping endpoints-locations-container {
         container endpoints-locations {
             list endpoint-location {
-                uses faas-common:logical-entity-attributes;
+                key "uuid";
+                uses faas-common:base-attributes;
+                leaf port {
+                    description "The port connected to this endpoint location";
+                    type faas-common:uuid;
+                }
                 leaf node-id {
                     description "The switch for this attached endpoint";
                     type inv:node-id;

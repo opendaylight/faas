@@ -11,7 +11,7 @@ module faas-ports {
 
     import faas-common { prefix faas-common; }
     import ietf-yang-types { prefix "yang"; }
-    import ietf-inet-types { prefix inet; }
+    import ietf-inet-types { prefix inet; revision-date 2010-09-24; }
 
     revision 2015-10-13 {
         description "Initial revision";

@@ -119,8 +119,6 @@ public class UlnDatastoreApi {
                 SubnetBuilder builder = new SubnetBuilder(newSubnet);
                 builder.setPort(merge(dsSubnet.getPort(), newSubnet.getPort()));
                 updatedSubnet = builder.build();
-            } else {
-                updatedSubnet = newSubnet;
             }
         }
         /*
@@ -155,7 +153,7 @@ public class UlnDatastoreApi {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
         Optional<Subnet> potentialSubnet = readFromDs(UlnIidFactory.subnetIid(tenantId, subnetId), t);
         if (!potentialSubnet.isPresent()) {
-            LOG.warn("Logical Subnet {} does not exist.", subnetId.getValue());
+            LOG.info("Logical Subnet {} does not exist.", subnetId.getValue());
             return null;
         }
         return potentialSubnet.get();
@@ -195,8 +193,6 @@ public class UlnDatastoreApi {
                 LogicalRouterBuilder builder = new LogicalRouterBuilder(newRouter);
                 builder.setPort(merge(dsRouter.getPort(), newRouter.getPort()));
                 updatedRouter = builder.build();
-            } else {
-                updatedRouter = newRouter;
             }
         }
         /*
@@ -232,7 +228,7 @@ public class UlnDatastoreApi {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
         Optional<LogicalRouter> potentialRouter = readFromDs(UlnIidFactory.logicalRouterIid(tenantId, routerId), t);
         if (!potentialRouter.isPresent()) {
-            LOG.warn("Logical Router {} does not exist.", routerId.getValue());
+            LOG.info("Logical Router {} does not exist.", routerId.getValue());
             return null;
         }
         return potentialRouter.get();
@@ -272,8 +268,6 @@ public class UlnDatastoreApi {
                 LogicalSwitchBuilder builder = new LogicalSwitchBuilder(newSwitch);
                 builder.setPort(merge(dsSwitch.getPort(), newSwitch.getPort()));
                 updatedSwitch = builder.build();
-            } else {
-                updatedSwitch = newSwitch;
             }
         }
         /*
@@ -309,7 +303,7 @@ public class UlnDatastoreApi {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
         Optional<LogicalSwitch> potentialSwitch = readFromDs(UlnIidFactory.logicalSwitchIid(tenantId, switchId), t);
         if (!potentialSwitch.isPresent()) {
-            LOG.warn("Logical Switch {} does not exist.", switchId.getValue());
+            LOG.info("Logical Switch {} does not exist.", switchId.getValue());
             return null;
         }
         return potentialSwitch.get();
@@ -350,8 +344,6 @@ public class UlnDatastoreApi {
                 SecurityRuleGroupsBuilder builder = new SecurityRuleGroupsBuilder(newSecurityGroups);
                 builder.setPorts(merge(dsSecurityGroups.getPorts(), newSecurityGroups.getPorts()));
                 updatedSecurityGroups = builder.build();
-            } else {
-                updatedSecurityGroups = newSecurityGroups;
             }
         }
 
@@ -395,7 +387,7 @@ public class UlnDatastoreApi {
         Optional<SecurityRuleGroups> potentialSecurityGroup = readFromDs(
                 UlnIidFactory.securityGroupsIid(tenantId, securityGroupId), t);
         if (!potentialSecurityGroup.isPresent()) {
-            LOG.debug("Logical SecurityGroup {} does not exist.", securityGroupId.getValue());
+            LOG.info("Logical SecurityGroup {} does not exist.", securityGroupId.getValue());
             return null;
         }
         return potentialSecurityGroup.get();
@@ -454,8 +446,6 @@ public class UlnDatastoreApi {
                 PortBuilder builder = new PortBuilder(newPort);
                 builder.setSecurityRulesGroups(merge(dsPort.getSecurityRulesGroups(), newPort.getSecurityRulesGroups()));
                 updatedPort = builder.build();
-            } else {
-                updatedPort = newPort;
             }
         }
         /*
@@ -514,7 +504,7 @@ public class UlnDatastoreApi {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
         Optional<Port> potentialPort = readFromDs(UlnIidFactory.portIid(tenantId, portId), t);
         if (!potentialPort.isPresent()) {
-            LOG.warn("Logical Port {} does not exist.", portId.getValue());
+            LOG.info("Logical Port {} does not exist.", portId.getValue());
             return null;
         }
         return potentialPort.get();
@@ -544,6 +534,13 @@ public class UlnDatastoreApi {
             }
             // remove edge
             UlnDatastoreApi.removeEdgeFromDsIfExists(tenantId, port.getEdgeId());
+
+            // update node
+            if (port.getLocationId() != null) {
+                if (port.getLocationType() == LocationType.EndpointType) {
+                    removeEndpointLocationFromDsIfExists(tenantId, port.getLocationId());
+                }
+            }
         }
     }
 
@@ -582,7 +579,7 @@ public class UlnDatastoreApi {
         ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
         Optional<Edge> potentialEdge = readFromDs(UlnIidFactory.edgeIid(tenantId, edgeId), t);
         if (!potentialEdge.isPresent()) {
-            LOG.warn("Logical Edge {} does not exist.", edgeId.getValue());
+            LOG.info("Logical Edge {} does not exist.", edgeId.getValue());
             return null;
         }
         return potentialEdge.get();
@@ -596,19 +593,12 @@ public class UlnDatastoreApi {
          */
         if (oldOptional.isPresent()) {
             Edge edge = oldOptional.get();
-            Port leftPort = readPortFromDs(tenantId, edge.getLeftPortId());
-            if (leftPort != null && leftPort.getEdgeId() != null) {
-                PortBuilder builder = new PortBuilder(leftPort);
-                builder.setEdgeId(null);
-                submitPortToDs(builder.build(), false);
+            if (edge.getLeftPortId() != null) {
+                removePortFromDsIfExists(tenantId, edge.getLeftPortId());
             }
-            Port rightPort = readPortFromDs(tenantId, edge.getRightPortId());
-            if (rightPort != null && rightPort.getEdgeId() != null) {
-                PortBuilder builder = new PortBuilder(rightPort);
-                builder.setEdgeId(null);
-                submitPortToDs(builder.build(), false);
+            if (edge.getRightPortId() != null) {
+                removePortFromDsIfExists(tenantId, edge.getRightPortId());
             }
-
         }
     }
 
@@ -624,16 +614,18 @@ public class UlnDatastoreApi {
          * Make sure we don't overwrite certain existing links
          */
         EndpointLocation updatedEndpointLocation = newEndpointLocation;
-        if (updateAndMergeRefs) {
+        if (updateAndMergeRefs && newEndpointLocation.getPort() == null) {
             EndpointLocation dsEndpointLocation = readEndpointLocationFromDs(newEndpointLocation.getTenantId(),
                     newEndpointLocation.getUuid());
             if (dsEndpointLocation != null) {
                 EndpointLocationBuilder builder = new EndpointLocationBuilder(newEndpointLocation);
-                builder.setPort(merge(dsEndpointLocation.getPort(), newEndpointLocation.getPort()));
+                builder.setPort(dsEndpointLocation.getPort());
                 updatedEndpointLocation = builder.build();
-            } else {
-                updatedEndpointLocation = newEndpointLocation;
             }
+        }
+        if (updatedEndpointLocation.getPort() == null) {
+            LOG.error("Endpoint Location {} has no port", updatedEndpointLocation);
+            return;
         }
         /*
          * Write to DS
@@ -648,16 +640,16 @@ public class UlnDatastoreApi {
              * Make sure other logical network nodes links are updated as well
              */
             if (updatedEndpointLocation.getPort() != null && updateAndMergeRefs) {
-                for (Uuid portId : updatedEndpointLocation.getPort()) {
-                    Port port = UlnDatastoreApi.readPortFromDs(updatedEndpointLocation.getTenantId(), portId);
-                    if ((port != null)
-                            && (!updatedEndpointLocation.getUuid().equals(port.getLocationId()) || port.getLocationType() != LocationType.EndpointType)) {
-                        PortBuilder builder = new PortBuilder(port);
-                        builder.setLocationId(updatedEndpointLocation.getUuid());
-                        builder.setLocationType(LocationType.EndpointType);
-                        UlnDatastoreApi.submitPortToDs(builder.build(), false);
-                    }
+                Port port = UlnDatastoreApi.readPortFromDs(updatedEndpointLocation.getTenantId(),
+                        updatedEndpointLocation.getPort());
+                if ((port != null)
+                        && (!updatedEndpointLocation.getUuid().equals(port.getLocationId()) || port.getLocationType() != LocationType.EndpointType)) {
+                    PortBuilder builder = new PortBuilder(port);
+                    builder.setLocationId(updatedEndpointLocation.getUuid());
+                    builder.setLocationType(LocationType.EndpointType);
+                    UlnDatastoreApi.submitPortToDs(builder.build(), false);
                 }
+
             }
         } else {
             LOG.error("Failed to write logical endpointLocation {} to datastore.", updatedEndpointLocation.getUuid()
@@ -670,7 +662,7 @@ public class UlnDatastoreApi {
         Optional<EndpointLocation> potentialEndpointLocation = readFromDs(
                 UlnIidFactory.endpointLocationIid(tenantId, endpointLocationId), t);
         if (!potentialEndpointLocation.isPresent()) {
-            LOG.warn("Logical EndpointLocation {} does not exist.", endpointLocationId.getValue());
+            LOG.info("Logical EndpointLocation {} does not exist.", endpointLocationId.getValue());
             return null;
         }
         return potentialEndpointLocation.get();
@@ -686,9 +678,7 @@ public class UlnDatastoreApi {
         if (oldOptional.isPresent()) {
             EndpointLocation epLoc = oldOptional.get();
             if (epLoc.getPort() != null) {
-                for (Uuid port : epLoc.getPort()) {
-                    removePortFromDsIfExists(tenantId, port);
-                }
+                removePortFromDsIfExists(tenantId, epLoc.getPort());
             }
         }
     }
