@@ -10,7 +10,7 @@ module faas-subnets {
     prefix "faas-subnets";
 
     import faas-common { prefix faas-common; }
-    import ietf-inet-types { prefix inet; }
+    import ietf-inet-types { prefix inet; revision-date 2010-09-24; }
 
     revision 2015-10-13 {
         description "Initial revision";
