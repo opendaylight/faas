@@ -7,6 +7,10 @@
  */
 package org.opendaylight.faas.fabric.utils;
 
+import java.util.concurrent.ExecutorService;
+
+import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
+import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.faas.fabric.general.Constants;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
@@ -24,8 +28,16 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 
 public class MdSalUtils {
+
+	private static final Logger LOG = LoggerFactory.getLogger(MdSalUtils.class);
 
     public static InstanceIdentifier<Node> createNodeIId(String topoId, String nodeId) {
         return InstanceIdentifier.create(NetworkTopology.class)
@@ -61,5 +73,19 @@ public class MdSalUtils {
         return InstanceIdentifier.create(NetworkTopology.class)
                 .child(Topology.class, new TopologyKey(new TopologyId(fabricId)))
                 .child(Link.class, new LinkKey(linkid));
+    }
+
+    public static void wrapperSubmit(final WriteTransaction trans, ExecutorService executor) {
+    	CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
+    	Futures.addCallback(future, new FutureCallback<Void>(){
+
+			@Override
+			public void onSuccess(Void result) {
+			}
+
+			@Override
+			public void onFailure(Throwable t) {
+				LOG.error("submit failed.", t);
+			}});
     }
 }

@@ -7,14 +7,16 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+import java.util.List;
+
+import org.opendaylight.faas.fabric.general.spi.FabricListener;
+import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInput;
@@ -22,10 +24,13 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+
+import com.google.common.collect.Lists;
 
 public class FabricInstance implements FabricRenderer {
 
@@ -33,12 +38,14 @@ public class FabricInstance implements FabricRenderer {
 
     private final UnderlayerNetworkType type;
 
-    private final FabricRenderer delegate;
+    private final FabricRenderer renderer;
+
+    private List<FabricListener> listeners = Lists.newArrayList();;
 
     public FabricInstance(FabricId fabricId, UnderlayerNetworkType type, FabricRenderer renderer) {
         this.fabricId = fabricId;
         this.type = type;
-        this.delegate = renderer;
+        this.renderer = renderer;
     }
 
     public FabricId getId() {
@@ -49,70 +56,104 @@ public class FabricInstance implements FabricRenderer {
         return type;
     }
 
-    @Override
-    public void fabricCreated(InstanceIdentifier<FabricNode> fabric) {
-    	delegate.fabricCreated(fabric);
+    public void addListener(FabricListener listener) {
+    	this.listeners.add(listener);
     }
 
-    @Override
-    public void deviceAdded(InstanceIdentifier<FabricNode> fabric, InstanceIdentifier<Node> device) {
-    	delegate.deviceAdded(fabric, device);
+    public void removeListener(FabricListener listener) {
+    	this.listeners.remove(listener);
     }
-
-    @Override
-    public void deviceRemoved(InstanceIdentifier<FabricNode> fabric, InstanceIdentifier<Node> device) {
-    	delegate.deviceRemoved(fabric, device);
-
-    }
+    
 
     @Override
     public void buildLogicSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicSwitchInput input) {
-    	delegate.buildLogicSwitch(nodeid, lsw, input);
+    	renderer.buildLogicSwitch(nodeid, lsw, input);
     }
 
     @Override
     public void buildLogicRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicRouterInput input) {
-    	delegate.buildLogicRouter(nodeid, lr, input);
+    	renderer.buildLogicRouter(nodeid, lr, input);
     }
 
     @Override
     public void buildLogicPort(TpId tpid, LportAttributeBuilder lp, CreateLogicPortInput input) {
-    	delegate.buildLogicPort(tpid, lp, input);
-    }
-
-    @Override
-    public void endpointAdded(InstanceIdentifier<Endpoint> epIId) {
-    	delegate.endpointAdded(epIId);
-    }
-
-    @Override
-    public void endpointUpdated(InstanceIdentifier<Endpoint> epIId) {
-    	delegate.endpointUpdated(epIId);
+    	renderer.buildLogicPort(tpid, lp, input);
     }
 
     @Override
     public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
-    	delegate.buildGateway(switchid, ip, routerid, fabricid);
+    	renderer.buildGateway(switchid, ip, routerid, fabricid);
 
-    }
-
-    @Override
-    public boolean composeFabric(FabricAttributeBuilder fabric, ComposeFabricInput input) {
-        return delegate.composeFabric(fabric, input);
     }
 
     @Override
     public boolean addNodeToFabric(DeviceNodesBuilder node, AddNodeToFabricInput input) {
-        return delegate.addNodeToFabric(node, input);
+        return renderer.addNodeToFabric(node, input);
     }
 
-    @Override
-    public void fabricDeleted(Node fabric) {
-    	delegate.fabricDeleted(fabric);
+    public void notifyFabricCreated(FabricNode node) {
+    	for (FabricListener listener : listeners) {
+    		listener.fabricCreated(node);
+    	}
     }
 
-	@Override
-	public void aclUpdate(InstanceIdentifier<?> iid, boolean port) {
-		delegate.aclUpdate(iid, port);
+    public void notifyLogicSwitchCreated(NodeId nodeId, Node lsw) {
+    	for (FabricListener listener : listeners) {
+    		listener.logicSwitchCreated(nodeId, lsw);
+    	}
+    }
+
+    public void notifyLogicSwitchRemoved(Node lsw) {
+    	for (FabricListener listener : listeners) {
+    		listener.logicSwitchRemoved(lsw);
+    	}
+    }
+
+    public void notifyLogicRouterCreated(NodeId nodeId, Node lr) {
+    	for (FabricListener listener : listeners) {
+    		listener.logicRouterCreated(nodeId, lr);
+    	}
+    }
+
+    public void notifyLogicRouterRemoved(Node lr) {
+    	for (FabricListener listener : listeners) {
+    		listener.logicRouterRemoved(lr);
+    	}
+    }
+
+    public void notifyDeviceAdded(InstanceIdentifier<Node> device) {
+    	for (FabricListener listener : listeners) {
+    		listener.deviceAdded(device);
+    	}
+    }
+
+    public void notifyDeviceRemoved(InstanceIdentifier<Node> device) {
+    	for (FabricListener listener : listeners) {
+    		listener.deviceRemoved(device);
+    	}
+    }
+
+    public void notifyFabricDeleted(Node fabric) {
+    	for (FabricListener listener : listeners) {
+    		listener.fabricDeleted(fabric);
+    	}
+    }
+
+	public void notifyAclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete) {
+    	for (FabricListener listener : listeners) {
+    		listener.aclUpdate(iid, delete);
+    	}
 	}
+
+    public void notifyEndpointAdded(InstanceIdentifier<Endpoint> epIId) {
+    	for (FabricListener listener : listeners) {
+    		listener.endpointAdded(epIId);
+    	}
+    }
+
+    public void notifyEndpointUpdated(InstanceIdentifier<Endpoint> epIId) {
+    	for (FabricListener listener : listeners) {
+    		listener.endpointUpdated(epIId);
+    	}
+    }
 }

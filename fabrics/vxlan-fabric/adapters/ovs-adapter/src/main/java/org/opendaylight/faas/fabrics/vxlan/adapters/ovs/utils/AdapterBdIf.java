@@ -6,7 +6,6 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifKey;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.bdif.Acl;
 
 public class AdapterBdIf {
 
@@ -40,10 +39,6 @@ public class AdapterBdIf {
 
     public MacAddress getMacAddress() {
         return bdif.getMacAddress();
-    }
-
-    public List<Acl> getAcl() {
-        return bdif.getAcl();
     }
 
     public BdifKey getKey() {

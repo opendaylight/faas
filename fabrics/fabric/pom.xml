@@ -65,6 +65,7 @@
                 <configuration>
                     <instructions>
                         <Export-Package>org.opendaylight.faas.fabric.general.*,
+                        org.opendaylight.faas.fabric.utils.*,
                         org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930,
                         org.opendaylight.controller.config.yang.config.fabric.impl
                         </Export-Package>

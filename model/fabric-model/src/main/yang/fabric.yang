@@ -36,7 +36,20 @@ module fabric {
                     description "";
                 }
             }
+            default "distributed";
         }
+
+		leaf traffic-behavior {
+			type enumeration {
+				enum normal {
+					description "";
+				}
+				enum need-acl {
+					description "";
+				}
+			}
+			default "normal";
+		}
     }
 
     grouping device-attributes {

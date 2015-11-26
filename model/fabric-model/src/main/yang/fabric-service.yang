@@ -9,7 +9,7 @@ module fabric-service {
     import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
     import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
     import fabric { prefix fabric; revision-date "2015-09-30"; }
-    import ietf-access-control-list { prefix acl; revision-date "2015-11-17"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
 
     description
         "This module contains a collection of YANG definitions for Fabric.";
@@ -22,7 +22,7 @@ module fabric-service {
     augment "/topo:network-topology/topo:topology/topo:node" {
         description "Augmentation for logic switch nodes provided by faas.";
 
-        ext:augment-identifier "logic-switch-context";
+        ext:augment-identifier "logic-switch-augment";
 
         container lsw-attribute {
             config false;
@@ -33,7 +33,7 @@ module fabric-service {
     augment "/topo:network-topology/topo:topology/topo:node" {
         description "Augmentation for logic router nodes provided by faas.";
 
-        ext:augment-identifier "logic-router-context";
+        ext:augment-identifier "logic-router-augment";
 
         container lr-attribute {
             config false;
@@ -44,7 +44,7 @@ module fabric-service {
     augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
         description "Augmentation for logic port provided by faas.";
 
-        ext:augment-identifier "logic-port-context";
+        ext:augment-identifier "logic-port-augment";
 
         container lport-attribute {
             config false;

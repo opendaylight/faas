@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
@@ -38,12 +39,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.DelAclInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicPortContext;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicPortContextBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterContext;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterContextBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchContext;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchContextBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicPortAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicPortAugmentBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterAugmentBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchAugmentBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmGatewayInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicRouterInput;
@@ -53,9 +54,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.Acl;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.AclBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.AclKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logic.port.Layer3InfoBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.LinkId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
@@ -172,19 +173,33 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     @Override
     public Future<RpcResult<Void>> rmLogicSwitch(RmLogicSwitchInput input) {
 
-        FabricId fabricId = input.getFabricId();
+        final FabricId fabricId = input.getFabricId();
         NodeId nodeid = input.getNodeId();
 
-        final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), nodeid);
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+        }
 
-        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        final InstanceIdentifier<Node> lswIId = MdSalUtils.createNodeIId(fabricId.getValue(), nodeid);
 
-        trans.delete(LogicalDatastoreType.CONFIGURATION,newRouterIId);
+        ReadOnlyTransaction trans = dataBroker.newReadOnlyTransaction();
 
-        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
+        CheckedFuture<Optional<Node>,ReadFailedException> readFuture = trans.read(LogicalDatastoreType.OPERATIONAL, lswIId);
+
+        return Futures.transform(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>(){
 
             @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+            public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
+
+            	if (optional.isPresent()) {
+	                Node lsw = optional.get();
+	                fabricObj.notifyLogicSwitchRemoved(lsw);
+	
+	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+	                wt.delete(LogicalDatastoreType.CONFIGURATION, lswIId);
+	                MdSalUtils.wrapperSubmit(wt, executor);
+            	}
 
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
@@ -258,11 +273,11 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpBuilder.setTpId(tpid);
         tpBuilder.setKey(new TerminationPointKey(tpid));
 
-        LogicPortContextBuilder lpCtx = new LogicPortContextBuilder();
+        LogicPortAugmentBuilder lpCtx = new LogicPortAugmentBuilder();
         LportAttributeBuilder lpAttr = new LportAttributeBuilder();
         lpAttr.setName("gateway port");
         lpCtx.setLportAttribute(lpAttr.build());
-        tpBuilder.addAugmentation(LogicPortContext.class, lpCtx.build());
+        tpBuilder.addAugmentation(LogicPortAugment.class, lpCtx.build());
 
         trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
 
@@ -277,12 +292,12 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpBuilder.setTpId(tpid);
         tpBuilder.setKey(new TerminationPointKey(tpid));
 
-        LogicPortContextBuilder lpCtx = new LogicPortContextBuilder();
+        LogicPortAugmentBuilder lpCtx = new LogicPortAugmentBuilder();
         LportAttributeBuilder lpAttr = new LportAttributeBuilder();
         lpAttr.setName("gateway port");
         lpAttr.setLayer3Info((new Layer3InfoBuilder()).setIp(gwIp).setNetwork(prefix).setForwardEnable(true).build());
         lpCtx.setLportAttribute(lpAttr.build());
-        tpBuilder.addAugmentation(LogicPortContext.class, lpCtx.build());
+        tpBuilder.addAugmentation(LogicPortAugment.class, lpCtx.build());
 
         trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
 
@@ -303,7 +318,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         }
 
         final String uuid = UUID.randomUUID().toString();
-        NodeId newNodeId = new NodeId(name);
+        final NodeId newNodeId = new NodeId(name);
         final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), newNodeId);
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
@@ -311,16 +326,17 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         nodeBuilder.setKey(new NodeKey(newNodeId));
         nodeBuilder.setNodeId(newNodeId);
 
-        LogicSwitchContextBuilder lswCtx = new LogicSwitchContextBuilder();
+        LogicSwitchAugmentBuilder lswCtx = new LogicSwitchAugmentBuilder();
         LswAttributeBuilder lswAttr = new LswAttributeBuilder();
         lswAttr.setName(input.getName());
         lswAttr.setLswUuid(new Uuid(uuid));
         fabricObj.buildLogicSwitch(newNodeId, lswAttr, input);
         lswCtx.setLswAttribute(lswAttr.build());
 
-        nodeBuilder.addAugmentation(LogicSwitchContext.class, lswCtx.build());
+        nodeBuilder.addAugmentation(LogicSwitchAugment.class, lswCtx.build());
 
-        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, nodeBuilder.build(), true);
+        final Node lsw = nodeBuilder.build();
+        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lsw, true);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicSwitchOutput>>(){
 
@@ -329,6 +345,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
                 outputBuilder.setLswUuid(new Uuid(uuid));
                 outputBuilder.setName(input.getName());
+                fabricObj.notifyLogicSwitchCreated(newNodeId, lsw);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }}, executor);
     }
@@ -338,16 +355,30 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         FabricId fabricId = input.getFabricId();
         NodeId nodeid = input.getNodeId();
 
-        final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), nodeid);
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+        }
 
-        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        final InstanceIdentifier<Node> routerIId = MdSalUtils.createNodeIId(fabricId.getValue(), nodeid);
 
-        trans.delete(LogicalDatastoreType.CONFIGURATION,newRouterIId);
+        ReadOnlyTransaction trans = dataBroker.newReadOnlyTransaction();
 
-        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
+        CheckedFuture<Optional<Node>,ReadFailedException> readFuture = trans.read(LogicalDatastoreType.OPERATIONAL, routerIId);
+
+        return Futures.transform(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>(){
 
             @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+            public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
+
+            	if (optional.isPresent()) {
+	                Node lr = optional.get();
+	                fabricObj.notifyLogicRouterRemoved(lr);
+	
+	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+	                wt.delete(LogicalDatastoreType.CONFIGURATION, routerIId);
+	                MdSalUtils.wrapperSubmit(wt, executor);
+            	}
 
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
@@ -390,15 +421,14 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final String uuid = UUID.randomUUID().toString();
 
-        NodeId newNodeId = new NodeId(name);
+        final NodeId newNodeId = new NodeId(name);
         final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), newNodeId);
 
-        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         NodeBuilder nodeBuilder = new NodeBuilder();
         nodeBuilder.setKey(new NodeKey(newNodeId));
         nodeBuilder.setNodeId(newNodeId);
 
-        LogicRouterContextBuilder lrCtx = new LogicRouterContextBuilder();
+        LogicRouterAugmentBuilder lrCtx = new LogicRouterAugmentBuilder();
         LrAttributeBuilder lrAttr = new LrAttributeBuilder();
         lrAttr.setName(name);
         lrAttr.setLrUuid(new Uuid(uuid));
@@ -406,9 +436,11 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         lrCtx.setLrAttribute(lrAttr.build());
 
-        nodeBuilder.addAugmentation(LogicRouterContext.class, lrCtx.build());
+        nodeBuilder.addAugmentation(LogicRouterAugment.class, lrCtx.build());
 
-        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, nodeBuilder.build());
+        final Node lr = nodeBuilder.build();
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lr);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicRouterOutput>>(){
 
@@ -417,6 +449,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
                 outputBuilder.setLrUuid(new Uuid(uuid));
                 outputBuilder.setName(input.getName());
+                fabricObj.notifyLogicRouterCreated(newNodeId, lr);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }}, executor);
 
@@ -447,14 +480,14 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpBuilder.setTpId(tpid);
         tpBuilder.setKey(new TerminationPointKey(tpid));
 
-        LogicPortContextBuilder lpCtx = new LogicPortContextBuilder();
+        LogicPortAugmentBuilder lpCtx = new LogicPortAugmentBuilder();
         LportAttributeBuilder lpAttr = new LportAttributeBuilder();
         lpAttr.setName(input.getName());
         fabricObj.buildLogicPort(tpid, lpAttr, input);
 
         lpCtx.setLportAttribute(lpAttr.build());
 
-        tpBuilder.addAugmentation(LogicPortContext.class, lpCtx.build());
+        tpBuilder.addAugmentation(LogicPortAugment.class, lpCtx.build());
 
         trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
 
@@ -476,30 +509,37 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		NodeId lsw = input.getLogicSwitch();
 		TpId tpid = input.getLogicPort();
 
-		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+        }
 
-		InstanceIdentifier<Acl> aclIId = null;
-		AclBuilder aclBuilder = new AclBuilder();
-		aclBuilder.setAclName(aclName);
-		aclBuilder.setKey(new AclKey(aclName));
+		InstanceIdentifier<FabricAcl> aclIId = null;
+		FabricAclBuilder aclBuilder = new FabricAclBuilder();
+		aclBuilder.setFabricAclName(aclName);
+		aclBuilder.setKey(new FabricAclKey(aclName));
 
 		if (tpid != null) {
 			aclIId = MdSalUtils.createLogicPortIId(fabricid, lsw, tpid)
-						.augmentation(LogicPortContext.class)
+						.augmentation(LogicPortAugment.class)
 						.child(LportAttribute.class)
-						.child(Acl.class, new AclKey(aclName));
+						.child(FabricAcl.class, new FabricAclKey(aclName));
 		} else {
 			 aclIId = MdSalUtils.createNodeIId(fabricid, lsw)
-					 .augmentation(LogicSwitchContext.class)
+					 .augmentation(LogicSwitchAugment.class)
 			 		.child(LswAttribute.class)
-			 		.child(Acl.class, new AclKey(aclName));
+			 		.child(FabricAcl.class, new FabricAclKey(aclName));
 		}
+		final InstanceIdentifier<FabricAcl> tgtAclIId = aclIId;
+
+		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 		trans.merge(LogicalDatastoreType.OPERATIONAL,aclIId, aclBuilder.build(), true);
-		
+
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+            	fabricObj.notifyAclUpdate(tgtAclIId, false);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
 	}
@@ -511,27 +551,34 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		NodeId lsw = input.getLogicSwitch();
 		TpId tpid = input.getLogicPort();
 
-		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+        }
 
-		InstanceIdentifier<Acl> aclIId = null;
+		InstanceIdentifier<FabricAcl> aclIId = null;
 
 		if (tpid != null) {
 			aclIId = MdSalUtils.createLogicPortIId(fabricid, lsw, tpid)
-						.augmentation(LogicPortContext.class)
+						.augmentation(LogicPortAugment.class)
 						.child(LportAttribute.class)
-						.child(Acl.class, new AclKey(aclName));
+						.child(FabricAcl.class, new FabricAclKey(aclName));
 		} else {
 			 aclIId = MdSalUtils.createNodeIId(fabricid, lsw)
-					 .augmentation(LogicSwitchContext.class)
+					 .augmentation(LogicSwitchAugment.class)
 			 		.child(LswAttribute.class)
-			 		.child(Acl.class, new AclKey(aclName));
+			 		.child(FabricAcl.class, new FabricAclKey(aclName));
 		}
+		final InstanceIdentifier<FabricAcl> tgtAclIId = aclIId;
+
+		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 		trans.delete(LogicalDatastoreType.OPERATIONAL,aclIId);
 		
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+            	fabricObj.notifyAclUpdate(tgtAclIId, false);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
 	}
@@ -556,7 +603,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		if (ipLong < 3758096383L) { // 192.0.0.0 - 223.255.255.255
 			return 24;
 		}
-		return 32;	// other
+		return 32;// other
 	}
 
 }

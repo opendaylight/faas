@@ -7,7 +7,7 @@ module fabric-types {
     import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
     import network-topology { prefix "topo"; revision-date "2013-10-21"; }
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
-    import ietf-access-control-list { prefix acl; revision-date "2015-11-17"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
 
     description
         "This module contains a collection of YANG definitions for Fabric.";
@@ -97,9 +97,9 @@ module fabric-types {
     }
 
     grouping acl-list {
-        list acl {
-            key acl-name;
-            leaf acl-name {
+        list fabric-acl {
+            key fabric-acl-name;
+            leaf fabric-acl-name {
                 type acl:access-control-list-ref;
             }
         }
@@ -189,7 +189,7 @@ module fabric-types {
                                 type inet:port-number;
                             }
                             leaf nsi {
-                                type uint32;
+                                type uint8;
                             }
                             leaf nsp {
                                 type uint32;

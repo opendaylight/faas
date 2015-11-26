@@ -22,6 +22,8 @@ import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
+import org.opendaylight.faas.fabric.general.spi.FabricRendererFactory;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddLinkToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
@@ -47,7 +49,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.netwo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.LinkRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930.FabricsSetting;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930.FabricsSettingBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
@@ -129,11 +130,11 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
             public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
 
                 Node fabric = optional.get();
-                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).fabricDeleted(fabric);
+                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricDeleted(fabric);
 
                 WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
                 wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
-                wt.submit();
+                MdSalUtils.wrapperSubmit(wt, executor);
 
                 FabricInstanceCache.INSTANCE.removeFabric(fabricId);
 
@@ -201,18 +202,20 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         attrBuilder.setDeviceNodes(getDeviceNodesInput(input.getDeviceNodes()));
         attrBuilder.setOptions(input.getOptions());
 
-        if (!rendererMgr.getFabricRenderer(input.getType()).composeFabric(attrBuilder, input)) {
+        final FabricRendererFactory rendererFactory = rendererMgr.getFabricRendererFactory(input.getType());
+        FabricRenderer renderer = rendererFactory.composeFabric(fabricpath, attrBuilder, input);
+        if (renderer == null) {
             LOG.error("can not compose fabric due the renderer return false.");
         }
 
         fabricBuilder.setFabricAttribute(attrBuilder.build());
-        FabricInstanceCache.INSTANCE.addFabric(fabricId, input.getType(), rendererMgr.getFabricRenderer(input.getType()));
+        FabricInstance fabric = FabricInstanceCache.INSTANCE.addFabric(fabricId, input.getType(), renderer);
+        fabric.addListener(rendererFactory.createListener(fabricpath, fabricBuilder.getFabricAttribute()));
 
-        trans.put(LogicalDatastoreType.OPERATIONAL, fabricpath, fabricBuilder.build(), true);
+        final FabricNode fabricNode = fabricBuilder.build();
+        trans.put(LogicalDatastoreType.OPERATIONAL, fabricpath, fabricNode, true);
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
-
-        FabricInstanceCache.INSTANCE.addFabric(fabricId, input.getType(), rendererMgr.getFabricRenderer(input.getType()));
 
         return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>(){
 
@@ -220,7 +223,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
             public ListenableFuture<RpcResult<ComposeFabricOutput>> apply(Void submitResult) throws Exception {
                 outputBuilder.setFabricId(fabricId);
 
-                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).fabricCreated(fabricpath);
+                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricCreated(fabricNode);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }});
     }
@@ -260,7 +263,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         settingBuilder.setNextFabricNum(ret + 1);
         trans.put(LogicalDatastoreType.OPERATIONAL, fabricImplPath, settingBuilder.build());
-        trans.submit();
+        MdSalUtils.wrapperSubmit(trans, executor);
 
         return ret;
     }
@@ -272,24 +275,12 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         FabricId fabricId = input.getFabricId();
         final NodeRef node = input.getNodeRef();
 
-        final InstanceIdentifier<FabricNode> fabricpath = MdSalUtils.createFabricIId(fabricId);
-
-        ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
-
-        CheckedFuture<Optional<FabricNode>,ReadFailedException> readfuture = trans.read(LogicalDatastoreType.OPERATIONAL, fabricpath);
-        Optional<FabricNode> optional = null;
-        try {
-            optional = readfuture.checkedGet();
-        } catch (ReadFailedException e) {
-            return Futures.immediateFailedCheckedFuture(e);
-        }
-
-        if (!optional.isPresent()) {
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
             return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
         }
 
-        FabricNode fabric = optional.get();
-        final UnderlayerNetworkType fabricType = fabric.getFabricAttribute().getType();
+        ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         InstanceIdentifier<DeviceNodes> devicepath = Constants.DOM_FABRICS_PATH
                     .child(Node.class, new NodeKey(fabricId)).augmentation(FabricNode.class)
@@ -302,9 +293,10 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>(){
 
-            @Override
+            @SuppressWarnings("unchecked")
+			@Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                rendererMgr.getFabricRenderer(fabricType).deviceRemoved(fabricpath, (InstanceIdentifier<Node>) node.getValue());
+            	fabricObj.notifyDeviceRemoved((InstanceIdentifier<Node>) node.getValue());
                 return Futures.immediateFuture(result);
             }});
     }
@@ -337,9 +329,10 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>(){
 
-            @Override
+            @SuppressWarnings("unchecked")
+			@Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.deviceAdded(path.firstIdentifierOf(FabricNode.class), (InstanceIdentifier<Node>) node.getValue());
+                fabricObj.notifyDeviceAdded((InstanceIdentifier<Node>) node.getValue());
                 return Futures.immediateFuture(result);
             }});
     }

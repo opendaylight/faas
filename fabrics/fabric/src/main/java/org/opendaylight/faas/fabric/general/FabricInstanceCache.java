@@ -10,6 +10,7 @@ package org.opendaylight.faas.fabric.general;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
 
@@ -20,8 +21,10 @@ public enum FabricInstanceCache {
 
     private Map<FabricId, FabricInstance> cache = new HashMap<FabricId, FabricInstance>();
 
-    void addFabric(FabricId fabricId, UnderlayerNetworkType type, FabricRenderer renderer) {
-        cache.put(fabricId, new FabricInstance(fabricId, type, renderer));
+    FabricInstance addFabric(FabricId fabricId, UnderlayerNetworkType type, FabricRenderer renderer) {
+    	FabricInstance newInstance = new FabricInstance(fabricId, type, renderer); 
+        cache.put(fabricId, newInstance);
+        return newInstance;
     }
 
     void removeFabric(FabricId fabricId) {

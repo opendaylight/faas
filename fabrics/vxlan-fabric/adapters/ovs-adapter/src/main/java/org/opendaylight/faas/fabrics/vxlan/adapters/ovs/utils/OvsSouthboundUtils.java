@@ -88,8 +88,12 @@ public class OvsSouthboundUtils {
         return datapathId;
     }
 
-    private static String getTunnelName(String bridgeName, String tunnelType) {
-        return tunnelType+"-"+bridgeName;
+    private static String generateTpName(String bridgeName, String tunnelType) {
+    	return generateTpName(bridgeName, tunnelType, "");
+    }
+
+    private static String generateTpName(String bridgeName, String tunnelType, String prefix) {
+    	return String.format("%s%s-%s", tunnelType, prefix, bridgeName);
     }
 
     private static List<OvsdbTerminationPointAugmentation> extractTerminationPointAugmentations( Node node ) {
@@ -168,7 +172,7 @@ public class OvsSouthboundUtils {
         //String tunnelBridgeName = getIntegrationBridgeName();
         String tunnelBridgeName = getBridgeName(node);
         String tunnelType = "vxlan";
-        String portName = getTunnelName(tunnelBridgeName, tunnelType);
+        String portName = generateTpName(tunnelBridgeName, tunnelType);
         LOG.info("addTunnelPort enter: portName: {}", portName);
         if (extractTerminationPointAugmentation(node, portName) != null
                 || isTunnelTerminationPointExist(node, tunnelBridgeName, portName, databroker)) {
@@ -180,6 +184,37 @@ public class OvsSouthboundUtils {
         options.put("local_ip", String.copyValueOf(getVtepIp(node).getValue()));
         options.put("key", "flow");
         options.put("remote_ip", "flow");
+
+        if (!addTunnelTerminationPoint(node, tunnelBridgeName, portName, tunnelType, options, databroker)) {
+            LOG.error("Failed to insert Tunnel port {} in {}", portName, tunnelBridgeName);
+            return false;
+        }
+
+        LOG.info("addTunnelPort exit: portName: {}", portName);
+        return true;
+    }
+
+    public static boolean addVxlanGpeTunnelPort(Node node, DataBroker databroker) {
+        String tunnelBridgeName = getBridgeName(node);
+        String tunnelType = "vxlan";
+        String portName = generateTpName(tunnelBridgeName, tunnelType, "gpe");
+        LOG.info("addTunnelPort enter: portName: {}", portName);
+        if (extractTerminationPointAugmentation(node, portName) != null
+                || isTunnelTerminationPointExist(node, tunnelBridgeName, portName, databroker)) {
+            LOG.info("Tunnel {} is present in {} of {}", portName, tunnelBridgeName, node.getNodeId().getValue());
+            return true;
+        }
+
+        Map<String, String> options = Maps.newHashMap();
+        options.put("local_ip", String.copyValueOf(getVtepIp(node).getValue()));
+        options.put("key", "flow");
+        options.put("remote_ip", "flow");
+        options.put("nsi", "flow");
+        options.put("nsp", "flow");
+        options.put("nshc1", "flow");
+        options.put("nshc2", "flow");
+        options.put("nshc3", "flow");
+        options.put("nshc4", "flow");
 
         if (!addTunnelTerminationPoint(node, tunnelBridgeName, portName, tunnelType, options, databroker)) {
             LOG.error("Failed to insert Tunnel port {} in {}", portName, tunnelBridgeName);
@@ -209,7 +244,7 @@ public class OvsSouthboundUtils {
     public static boolean deleteVxlanTunnelPort(Node node, DataBroker databroker) {
         String tunnelType = "vxlan";
         String tunnelBridgeName = getBridgeName(node);
-        String portName = getTunnelName(tunnelBridgeName, tunnelType);
+        String portName = generateTpName(tunnelBridgeName, tunnelType);
         return deletePort(node, tunnelBridgeName, portName, databroker);
     }
 
@@ -248,8 +283,18 @@ public class OvsSouthboundUtils {
         Long ofPort = 0L;
 
         String tunnelType = "vxlan";
-        //String tunnelBridgeName = getBridgeName(bridgeNode);
-        String portName = getTunnelName(tunnelBridgeName, tunnelType);
+        String portName = generateTpName(tunnelBridgeName, tunnelType);
+
+        ofPort = getOfPort(nodeIid, new TpId(portName), databroker);
+
+        return ofPort;
+    }
+
+    public static Long getVxlanGpeTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
+        Long ofPort = 0L;
+
+        String tunnelType = "vxlan";
+        String portName = generateTpName(tunnelBridgeName, tunnelType, "gpe");
 
         ofPort = getOfPort(nodeIid, new TpId(portName), databroker);
 

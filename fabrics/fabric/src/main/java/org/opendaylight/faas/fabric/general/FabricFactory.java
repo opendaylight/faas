@@ -7,16 +7,24 @@
  */
 package org.opendaylight.faas.fabric.general;
 
-import java.util.HashMap;
 import java.util.Map;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.sal.binding.api.NotificationProviderService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.general.spi.FabricListener;
+import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
+import org.opendaylight.faas.fabric.general.spi.FabricRendererFactory;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+
+import com.google.common.collect.Maps;
 
 public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
@@ -28,9 +36,20 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
     private final ExecutorService executor;
 
-    private final Map<UnderlayerNetworkType, FabricRenderer> registeredFabricImpls = new HashMap<UnderlayerNetworkType, FabricRenderer>();
+    private final Map<UnderlayerNetworkType, FabricRendererFactory> registeredFabricImpls = Maps.newHashMap();
 
-    private FabricRenderer defaultRenderer = new DummyFabricRenderer();
+    private final FabricRendererFactory defaultRendererFactory = new FabricRendererFactory(){
+
+		@Override
+		public FabricListener createListener(InstanceIdentifier<FabricNode> iid, FabricAttribute fabric) {
+			return null;
+		}
+
+		@Override
+		public FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid, FabricAttributeBuilder fabric,
+				ComposeFabricInput input) {
+			return null;
+		}};
 
 
     public FabricFactory (final DataBroker dataProvider,
@@ -63,15 +82,15 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
     }
 
     @Override
-    public void register(UnderlayerNetworkType fabricType, FabricRenderer impl) {
+    public void register(UnderlayerNetworkType fabricType, FabricRendererFactory impl) {
         registeredFabricImpls.put(fabricType, impl);
 
     }
 
     @Override
-    public FabricRenderer getFabricRenderer(UnderlayerNetworkType fabricType) {
-    	FabricRenderer renderer = registeredFabricImpls.get(fabricType);
-        return renderer == null ? defaultRenderer : renderer;
+    public FabricRendererFactory getFabricRendererFactory(UnderlayerNetworkType fabricType) {
+    	FabricRendererFactory rendererFactory = registeredFabricImpls.get(fabricType);
+        return rendererFactory == null ? defaultRendererFactory : rendererFactory;
     }
 
 }

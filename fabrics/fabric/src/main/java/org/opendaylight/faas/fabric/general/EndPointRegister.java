@@ -139,7 +139,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
             @Override
             public ListenableFuture<RpcResult<RegisterEndpointOutput>> apply(Void input) throws Exception {
                 outputBuilder.setEndpointId(newepId);
-                fabricObj.endpointAdded(eppath);
+                fabricObj.notifyEndpointAdded(eppath);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }}, executor);
     }
@@ -178,7 +178,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
-                fabricObj.endpointUpdated(eppath);
+                fabricObj.notifyEndpointUpdated(eppath);
                 return Futures.immediateFuture(result);
             }}, executor);
 

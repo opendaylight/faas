@@ -9,6 +9,7 @@ module fabric-vxlan-rendered-mapping {
     import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
     import network-topology {prefix topo; revision-date "2013-10-21"; }
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
 
     description
         "This module contains a collection of YANG definitions for Fabric.";
@@ -34,6 +35,14 @@ module fabric-vxlan-rendered-mapping {
                     type inet:ip-address;
                 }
             }
+
+			list acls {
+				key vni;
+				leaf vni {
+					type uint32;
+				}
+				uses fabrictype:acl-list;
+			}
 
             list host-route {
                 key "mac";

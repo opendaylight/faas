@@ -3,10 +3,9 @@ package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers;
 import java.util.Map;
 
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBridgeDomain;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OvsSouthboundUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricOptions.TrafficBehavior;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
@@ -20,9 +19,13 @@ public class DeviceContext {
 
     private long vtep_ofPort;
 
+    private long gpe_vtep_ofPort;
+
     private long dpid;
 
     private String bridgeName;
+
+    private TrafficBehavior trafficBehavior = TrafficBehavior.Normal;
 
     // bdif id to AdapterBdIf map
     Map<String, AdapterBdIf> bdifCache = Maps.newHashMap();
@@ -33,6 +36,8 @@ public class DeviceContext {
         vtep = OvsSouthboundUtils.getVtepIp(node);
 
         vtep_ofPort = 0l;
+
+        gpe_vtep_ofPort = 0l;
         //vtep_ofPort = OvsSouthboundUtils.getVxlanTunnelOFPort(node);
 
         dpid = OvsSouthboundUtils.getDataPathId(node);
@@ -92,5 +97,20 @@ public class DeviceContext {
         bdifCache.put(adapterBdIf.getId(), adapterBdIf);
     }
 
+    public long getGpe_vtep_ofPort() {
+        return gpe_vtep_ofPort;
+    }
+
+    public void setGpe_vtep_ofPort(long gpe_vtep_ofPort) {
+        this.gpe_vtep_ofPort = gpe_vtep_ofPort;
+    }
+
+    void setTrafficBehavior(TrafficBehavior newBehavior) {
+    	this.trafficBehavior = newBehavior;
+    }
+
+    public TrafficBehavior getTrafficBehavior() {
+        return trafficBehavior;
+    }
 
 }

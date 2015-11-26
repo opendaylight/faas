@@ -61,6 +61,13 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.group.types.rev131018.group
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxTunIdCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nodes.node.table.flow.instructions.instruction.instruction.apply.actions._case.apply.actions.action.action.NxActionSetNshc1NodesNodeTableFlowApplyActionsCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nodes.node.table.flow.instructions.instruction.instruction.apply.actions._case.apply.actions.action.action.NxActionSetNshc2NodesNodeTableFlowApplyActionsCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._1.grouping.NxSetNshc1;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._1.grouping.NxSetNshc1Builder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._2.grouping.NxSetNshc2;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._2.grouping.NxSetNshc2Builder;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -302,6 +309,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         flowBuilder.setBarrier(false);
         flowBuilder.setTableId(getTable());
         flowBuilder.setKey(key);
+        flowBuilder.setPriority(32768);
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
@@ -344,6 +352,99 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         } else {
             removeFlow(flowBuilder, nodeBuilder);
         }
+    }
+
+    public void programSfcTunnelOut(Long dpidLong, Long segmentationId, Long OFSfcTunPort, IpAddress dstVmVtepIp, boolean write) {
+
+        String nodeName = OPENFLOW + dpidLong;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        // Create the OF Match using MatchBuilder
+        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineAclHandler.REG_SFC_FIELD, PipelineAclHandler.REG_VALUE_SFC_REDIRECT));
+
+        String flowId = "SfcTunnelOut_"+segmentationId+"_"+OFSfcTunPort+"_"+dstVmVtepIp.getIpv4Address().getValue();
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setStrict(true);
+        flowBuilder.setBarrier(false);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        //Priority is bigger than TunnelOut_** flow
+        flowBuilder.setPriority(32769);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (write) {
+            // Instantiate the Builders for the OF Actions and Instructions
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+            List<Action> actionList = new ArrayList<Action>();
+
+            ActionBuilder ab = new ActionBuilder();
+
+            //Load Dest Vm Vtep IP to Nshc1 Register
+            int ip = InetAddresses.coerceToInteger(InetAddresses.forString(dstVmVtepIp.getIpv4Address().getValue()));
+            long ipl = ip & 0xffffffffL;
+            ab.setAction(nxLoadNshc1RegAction(ipl));
+            ab.setOrder(0);
+            ab.setKey(new ActionKey(0));
+            actionList.add(ab.build());
+
+            //Load Dest Vm VNI to Nshc1 Register
+            ab.setAction(nxLoadNshc2RegAction(segmentationId));
+            ab.setOrder(1);
+            ab.setKey(new ActionKey(1));
+            actionList.add(ab.build());
+
+            //Load Dest Vm VNI to TUN_ID
+            ab.setAction(nxLoadTunIdAction(segmentationId));
+            ab.setOrder(2);
+            ab.setKey(new ActionKey(2));
+            actionList.add(ab.build());
+
+            //add Output Action
+            NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpidLong + ":" + OFSfcTunPort);
+            ab.setAction(ActionUtils.outputAction(ncid));
+            ab.setOrder(3);
+            ab.setKey(new ActionKey(3));
+            actionList.add(ab.build());
+
+            ApplyActionsBuilder aab = new ApplyActionsBuilder();
+            aab.setAction(actionList);
+
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+
+            List<Instruction> instructions = Lists.newArrayList();
+            instructions.add(ib.build());
+            isb.setInstruction(instructions);
+
+            flowBuilder.setInstructions(isb.build());
+
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+    }
+
+    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc1RegAction(Long value) {
+        NxSetNshc1 newNshc1 = new NxSetNshc1Builder().setNshc(value).build();
+        return new NxActionSetNshc1NodesNodeTableFlowApplyActionsCaseBuilder().setNxSetNshc1(newNshc1).build();
+    }
+
+    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc2RegAction(Long value) {
+        NxSetNshc2 newNshc2 = new NxSetNshc2Builder().setNshc(value).build();
+        return new NxActionSetNshc2NodesNodeTableFlowApplyActionsCaseBuilder().setNxSetNshc2(newNshc2).build();
+    }
+
+    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadTunIdAction(Long value) {
+        return ActionUtils.nxLoadRegAction(new DstNxTunIdCaseBuilder().setNxTunId(Boolean.TRUE).build(), BigInteger.valueOf(value));
     }
 
     /*
@@ -617,6 +718,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     /*
      * Used for flood to local port
      * groupId is segment id
+     * bucketId is always 1, all local port in this flood domain use one bucket ID
      */
     protected InstructionBuilder createOutputGroupInstructionsToLocalPort(NodeBuilder nodeBuilder,
             InstructionBuilder ib,
@@ -676,7 +778,11 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             /* modify the action bucket in group */
             groupBuilder = new GroupBuilder(group);
             Buckets buckets = groupBuilder.getBuckets();
+            //find the bucket used for local ports
+            int bucketIndex = -1;
+            int tempIndex = -1;
             for (Bucket bucket : buckets.getBucket()) {
+                tempIndex++;
                 if (bucket.getBucketId().getValue() == 1l) {
                     //for local port, the bucket id is always 1
                     List<Action> bucketActions = bucket.getAction();
@@ -690,37 +796,49 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                             }
                         }
                     }
+                    bucketIndex = tempIndex;
                     break;
                 }
             }
-            {
-                {
 
-                    LOG.debug("createOutputGroupInstructionsToLocalPort: addNew {}", addNew);
-                    if (addNew && !buckets.getBucket().isEmpty()) {
-                        /* the new output action is not in the bucket, add to bucket */
-                        //bucket = buckets.getBucket().get(0);
-                        List<Action> bucketActionList = Lists.newArrayList();
-                        //bucketActionList.addAll(bucket.getAction());
-                        /* set order for new action and add to action list */
-                        ab.setOrder(bucketActionList.size());
-                        ab.setKey(new ActionKey(bucketActionList.size()));
-                        bucketActionList.add(ab.build());
 
-                        /* set bucket and buckets list. Reset groupBuilder with new buckets.*/
-                        BucketsBuilder bucketsBuilder = new BucketsBuilder();
-                        List<Bucket> bucketList = Lists.newArrayList();
-                        BucketBuilder bucketBuilder = new BucketBuilder();
-                        bucketBuilder.setBucketId(bucketId);
-                        bucketBuilder.setKey(new BucketKey(bucketId));
-                        bucketBuilder.setAction(bucketActionList);
-                        bucketList.add(bucketBuilder.build());
-                        bucketsBuilder.setBucket(bucketList);
-                        groupBuilder.setBuckets(bucketsBuilder.build());
-                        LOG.debug("createOutputGroupInstructionsToLocalPort: bucketList {}", bucketList);
+            if (addNew) {
+                BucketsBuilder bucketsBuilder = new BucketsBuilder();
+                BucketBuilder bucketBuilder = new BucketBuilder();
+                List<Action> bucketActionList = Lists.newArrayList();
+                List<Bucket> bucketList = Lists.newArrayList();
+
+                for (Bucket bucket : buckets.getBucket()) {
+                    if (bucket.getBucketId().getValue() != 1l) {
+                        bucketList.add(bucket);
                     }
-                    //break;
                 }
+
+                if (bucketIndex != -1) {
+                    /* Bucket exsit, but the new output action is not in the exsited bucket, add to bucket */
+                    Bucket bucket = buckets.getBucket().get(bucketIndex);
+
+                    bucketActionList.addAll(bucket.getAction());
+                    /* set order for new action and add to action list */
+                    ab.setOrder(bucketActionList.size());
+                    ab.setKey(new ActionKey(bucketActionList.size()));
+                    bucketActionList.add(ab.build());
+                }
+                else {
+                    /* Create new bucket, and add output action to the bucket*/
+                    ab.setOrder(bucketActionList.size());
+                    ab.setKey(new ActionKey(bucketActionList.size()));
+                    bucketActionList.add(ab.build());
+                }
+
+                /* set bucket and buckets list. Reset groupBuilder with new buckets.*/
+                bucketBuilder.setBucketId(bucketId);
+                bucketBuilder.setKey(new BucketKey(bucketId));
+                bucketBuilder.setAction(bucketActionList);
+
+                bucketList.add(bucketBuilder.build());
+                bucketsBuilder.setBucket(bucketList);
+                groupBuilder.setBuckets(bucketsBuilder.build());
             }
 
         } else {
@@ -732,11 +850,11 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             groupBuilder.setGroupName("Output port group " + groupId);
             groupBuilder.setBarrier(false);
 
-            BucketsBuilder bucketBuilder = new BucketsBuilder();
+            BucketsBuilder bucketsBuilder = new BucketsBuilder();
             List<Bucket> bucketList = Lists.newArrayList();
-            BucketBuilder bucket = new BucketBuilder();
-            bucket.setBucketId(bucketId);
-            bucket.setKey(new BucketKey(bucketId));
+            BucketBuilder bucketBuilder = new BucketBuilder();
+            bucketBuilder.setBucketId(bucketId);
+            bucketBuilder.setKey(new BucketKey(bucketId));
 
             /* put output action to the bucket */
             List<Action> bucketActionList = Lists.newArrayList();
@@ -745,10 +863,10 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             ab.setKey(new ActionKey(bucketActionList.size()));
             bucketActionList.add(ab.build());
 
-            bucket.setAction(bucketActionList);
-            bucketList.add(bucket.build());
-            bucketBuilder.setBucket(bucketList);
-            groupBuilder.setBuckets(bucketBuilder.build());
+            bucketBuilder.setAction(bucketActionList);
+            bucketList.add(bucketBuilder.build());
+            bucketsBuilder.setBucket(bucketList);
+            groupBuilder.setBuckets(bucketsBuilder.build());
 
             /* Add new group action */
             GroupActionBuilder groupActionB = new GroupActionBuilder();

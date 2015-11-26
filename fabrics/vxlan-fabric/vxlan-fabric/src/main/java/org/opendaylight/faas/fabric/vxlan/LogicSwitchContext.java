@@ -8,10 +8,12 @@
 package org.opendaylight.faas.fabric.vxlan;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -38,10 +40,13 @@ public class LogicSwitchContext {
 
     private final FabricId fabricid;
 
-    LogicSwitchContext(DataBroker databroker, FabricId fabricid, long vni) {
+    private final ExecutorService executor;
+
+    LogicSwitchContext(DataBroker databroker, FabricId fabricid, long vni, ExecutorService executor) {
     	this.databroker = databroker;
         this.vni = vni;
         this.fabricid = fabricid;
+        this.executor = executor;
     }
 
     public long getVni() {
@@ -80,7 +85,7 @@ public class LogicSwitchContext {
 
 		WriteTransaction trans = databroker.newWriteOnlyTransaction();
 		trans.merge(LogicalDatastoreType.OPERATIONAL, vniMembersIId, builder.build(), true);
-		trans.submit();
+		MdSalUtils.wrapperSubmit(trans, executor);
     }
 
     private InstanceIdentifier<VniMembers> createVniMembersIId(FabricId fabricId, long vni) {

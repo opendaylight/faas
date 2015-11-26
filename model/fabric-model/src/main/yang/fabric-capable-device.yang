@@ -9,7 +9,7 @@ module fabric-capable-device {
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
     import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
     import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
-    import ietf-access-control-list { prefix acl; revision-date "2015-11-17"; }
+    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
 
     description
         "This module contains a collection of YANG definitions for Fabric.";
@@ -64,12 +64,7 @@ module fabric-capable-device {
             leaf access-tag {
                 type uint32;
             }
-            list acl {
-                key name;
-                leaf name {
-                    type acl:access-control-list-ref;
-                }
-            }
+            uses fabrictype:acl-list;
         }
 
         list vrf {
@@ -105,12 +100,7 @@ module fabric-capable-device {
             leaf mac-address {
                 type yang:mac-address;
             }
-            list acl {
-                key name;
-                leaf name {
-                    type acl:access-control-list-ref;
-                }
-            }
+            uses fabrictype:acl-list;
         }
     }
 

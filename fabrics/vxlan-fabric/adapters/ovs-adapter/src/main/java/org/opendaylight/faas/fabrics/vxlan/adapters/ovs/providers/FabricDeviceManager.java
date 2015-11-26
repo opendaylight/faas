@@ -106,10 +106,16 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         final Node bridgeNode = OvsSouthboundUtils.getOvsdbBridgeNode(deviceIId, databroker);
 
         Preconditions.checkNotNull(bridgeNode);
+
         if (!OvsSouthboundUtils.addVxlanTunnelPort(bridgeNode, databroker)) {
             LOG.error("can not create tunnel port!");
             return Futures.immediateFailedFuture(new RuntimeException("can not create tunnel port"));
         }
+
+		if (!OvsSouthboundUtils.addVxlanGpeTunnelPort(bridgeNode, databroker)) {
+		    LOG.error("can not create tunnel port!");
+		    return Futures.immediateFailedFuture(new RuntimeException("can not create nsh tunnel port"));
+		}
 
         FabricCapableDeviceBuilder deviceBuilder = new FabricCapableDeviceBuilder();
         AttributesBuilder attributesBuilder = new AttributesBuilder();

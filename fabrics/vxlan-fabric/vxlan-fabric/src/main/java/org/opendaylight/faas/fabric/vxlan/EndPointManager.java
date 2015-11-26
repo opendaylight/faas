@@ -46,12 +46,12 @@ public class EndPointManager implements AutoCloseable {
 
     private final ExecutorService executor;
 
-    private final SwitchManager switchMgr;
+    private final FabricContext fabricCtx;
 
-    public EndPointManager (DataBroker databroker, ExecutorService executor, SwitchManager switchMgr) {
+    public EndPointManager (DataBroker databroker, ExecutorService executor, FabricContext fabricCtx) {
         this.databroker = databroker;
         this.executor = executor;
-        this.switchMgr = switchMgr;
+        this.fabricCtx = fabricCtx;
     }
 
     public void addEndPointIId(final InstanceIdentifier<Endpoint> epIId) {
@@ -93,7 +93,7 @@ public class EndPointManager implements AutoCloseable {
         @SuppressWarnings("unchecked")
         InstanceIdentifier<Node> logicNodeIId = (InstanceIdentifier<Node>) ep.getLogicLocation().getNodeRef().getValue();
         NodeId logicNode = logicNodeIId.firstKeyOf(Node.class).getNodeId();
-        LogicSwitchContext switchCtx = switchMgr.getLogicSwitchCtx(fabricid, logicNode);
+        LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
         if (switchCtx == null) {
             LOG.warn("There are no such switch's context.({})", logicNode.getValue());
             return;
@@ -107,7 +107,7 @@ public class EndPointManager implements AutoCloseable {
         @SuppressWarnings("unchecked")
         InstanceIdentifier<Node> destNodeIId = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
         NodeId destNodeId = destNodeIId.firstKeyOf(Node.class).getNodeId();
-        DeviceContext devCtx = switchMgr.getDeviceCtx(fabricid, destNodeId);
+        DeviceContext devCtx = fabricCtx.getDeviceCtx(destNodeId);
         IpAddress vtepIp = devCtx.getVtep();
         if (switchCtx.checkAndSetNewMember(destNodeId, vtepIp)) {
             devCtx.createBridgeDomain(switchCtx);
