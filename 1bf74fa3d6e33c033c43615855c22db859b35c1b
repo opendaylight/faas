@@ -1,0 +1,8 @@
+Verified+1: jenkins-releng <jenkins-releng@opendaylight.org>
+Code-Review+1: Henry Yu <henry.yu1@huawei.com>
+Code-Review+2: Khaldoon Al-zoubi <khalAlzoubi@gmail.com>
+Submitted-by: Khaldoon Al-zoubi <khalAlzoubi@gmail.com>
+Submitted-at: Thu, 26 Nov 2015 00:38:20 +0000
+Reviewed-on: https://git.opendaylight.org/gerrit/30214
+Project: faas
+Branch: refs/heads/master
