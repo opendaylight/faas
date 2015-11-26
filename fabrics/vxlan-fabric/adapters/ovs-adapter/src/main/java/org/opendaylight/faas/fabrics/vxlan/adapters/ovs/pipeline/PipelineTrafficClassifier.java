@@ -55,7 +55,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
      *      table=TRAFFIC_CLASSIFIER,in_port=2,dl_src=00:00:00:00:00:01 \
      *      actions=set_field:5->tun_id,load:0x1->NXM_NX_REG0,goto_table=<next-table>"
      */
-    public void programLocalInPort(Long dpidLong, Long segmentationId, Long inPort, String attachedMac, boolean write) {
+    public void programLocalInPort(Long dpidLong, Long segmentationId, Long inPort, String attachedMac, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -78,7 +78,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (write) {
+        if (writeFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -128,7 +128,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
      *      table=TRAFFIC_CLASSIFIER,in_port=2 \
      *      actions=drop"
      */
-    public void programDropSrcIface(Long dpidLong, Long inPort, boolean write) {
+    public void programDropSrcIface(Long dpidLong, Long inPort, boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -139,7 +139,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         // Create the OF Match using MatchBuilder
         flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, inPort).build());
 
-        if (write) {
+        if (writeFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -172,7 +172,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         flowBuilder.setPriority(8192);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
-        if (write) {
+        if (writeFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);
@@ -188,7 +188,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
      *      actions=load:0x2->NXM_NX_REG0,goto_table=<next-table>"
      */
     public void programTunnelIn(Long dpidLong, Long segmentationId,
-            Long ofPort, boolean write) {
+            Long ofPort, boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -201,7 +201,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build());
         flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, ofPort).build());
 
-        if (write) {
+        if (writeFlow) {
             // Create the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -251,7 +251,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (write) {
+        if (writeFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);

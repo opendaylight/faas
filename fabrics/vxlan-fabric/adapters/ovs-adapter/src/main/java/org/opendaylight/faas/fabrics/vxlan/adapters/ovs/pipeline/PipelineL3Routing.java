@@ -11,12 +11,9 @@ import java.math.BigInteger;
 import java.util.List;
 
 import org.apache.commons.net.util.SubnetUtils;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Status;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdpaterAction;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.StatusCode;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.ActionUtils;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
@@ -39,27 +36,29 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.N
 import com.google.common.collect.Lists;
 
 public class PipelineL3Routing extends AbstractServiceInstance {
-    //private static final Logger LOG = LoggerFactory.getLogger(PipelineL3Routing.class);
+    // private static final Logger LOG =
+    // LoggerFactory.getLogger(PipelineL3Routing.class);
 
     public PipelineL3Routing(DataBroker dataBroker) {
         super(Service.L3_ROUTING, dataBroker);
     }
 
     /*
-     * (Table:  L3_ROUTING) Distribute Virtual Routing function
-     * Match:   IP, Source subnet TunnelID , dest subnet
-     * Actions: Set ethernet source address to Gateway mac, Set TunnelId to dest subnet tunnel id, GOTO Next Table
-     * Flow example:
-     *      table=60, ip,tun_id=0x3ea,nw_dst=1.0.0.0/24, \
-     *      actions=set_field:fa:16:3e:69:5a:42->eth_src,dec_ttl,set_field:0x3e9->tun_id,goto_table=<next-table>"
+     * (Table: L3_ROUTING) Distribute Virtual Routing function Match: IP, Source
+     * subnet TunnelID , dest subnet Actions: Set ethernet source address to
+     * Gateway mac, Set TunnelId to dest subnet tunnel id, GOTO Next Table Flow
+     * example: table=60, ip,tun_id=0x3ea,nw_dst=1.0.0.0/24, \
+     * actions=set_field:fa:16:3e:69:5a:42->eth_src,dec_ttl,set_field:0x3e9->
+     * tun_id,goto_table=<next-table>"
      */
-    public Status programRouterInterface(Long dpid, Long sourceSegId, Long destSegId, String macAddress,
-            IpAddress address, int mask, AdpaterAction action) {
+    public void programRouterInterface(Long dpid, Long sourceSegId, Long destSegId, String macAddress,
+            IpAddress address, int mask, boolean writeFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
 
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = Openflow13Provider.createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
 
         // Instructions List Stores Individual Instructions
         InstructionsBuilder isb = new InstructionsBuilder();
@@ -76,41 +75,6 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         final String prefixString = addressSubnetInfo.getInfo().getNetworkAddress() + "/" + mask;
         MatchUtils.createDstL3IPv4Match(matchBuilder, new Ipv4Prefix(prefixString));
 
-        // Set source Mac address
-        ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
-        ab.setOrder(0);
-        ab.setKey(new ActionKey(0));
-        actionList.add(ab.build());
-
-        // DecTTL
-        ab.setAction(ActionUtils.decNwTtlAction());
-        ab.setOrder(1);
-        ab.setKey(new ActionKey(1));
-        actionList.add(ab.build());
-
-        // Set Destination Tunnel ID
-        ab.setAction(ActionUtils.setTunnelIdAction(BigInteger.valueOf(destSegId.longValue())));
-        ab.setOrder(2);
-        ab.setKey(new ActionKey(2));
-        actionList.add(ab.build());
-
-        // Create Apply Actions Instruction
-        aab.setAction(actionList);
-        ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
-        ib.setOrder(0);
-        ib.setKey(new InstructionKey(0));
-        instructions.add(ib.build());
-
-        // Goto Next Table
-        ib = getMutablePipelineInstructionBuilder();
-        ib.setOrder(2);
-        ib.setKey(new InstructionKey(2));
-        instructions.add(ib.build());
-
-        FlowBuilder flowBuilder = new FlowBuilder();
-        flowBuilder.setMatch(matchBuilder.build());
-        flowBuilder.setInstructions(isb.setInstruction(instructions).build());
-
         String flowId = "Routing_" + sourceSegId + "_" + destSegId + "_" + prefixString;
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -121,13 +85,45 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
+        flowBuilder.setMatch(matchBuilder.build());
 
-        if (action.equals(AdpaterAction.ADD)) {
+        if (writeFlow) {
+            // Set source Mac address
+            ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
+            ab.setOrder(0);
+            ab.setKey(new ActionKey(0));
+            actionList.add(ab.build());
+
+            // DecTTL
+            ab.setAction(ActionUtils.decNwTtlAction());
+            ab.setOrder(1);
+            ab.setKey(new ActionKey(1));
+            actionList.add(ab.build());
+
+            // Set Destination Tunnel ID
+            ab.setAction(ActionUtils.setTunnelIdAction(BigInteger.valueOf(destSegId.longValue())));
+            ab.setOrder(2);
+            ab.setKey(new ActionKey(2));
+            actionList.add(ab.build());
+
+            // Create Apply Actions Instruction
+            aab.setAction(actionList);
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+            instructions.add(ib.build());
+
+            // Goto Next Table
+            ib = getMutablePipelineInstructionBuilder();
+            ib.setOrder(2);
+            ib.setKey(new InstructionKey(2));
+            instructions.add(ib.build());
+
+            flowBuilder.setInstructions(isb.setInstruction(instructions).build());
+
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);
         }
-
-        return new Status(StatusCode.SUCCESS);
     }
 }

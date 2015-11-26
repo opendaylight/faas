@@ -57,7 +57,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
-	private static final Logger LOG = LoggerFactory.getLogger(DeviceRenderer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DeviceRenderer.class);
 
     private DeviceContext ctx;
 
@@ -76,8 +76,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private ListenerRegistration<DataChangeListener> vniMembersListener = null;
     private ListenerRegistration<DataChangeListener> aclsListener = null;
 
-    public DeviceRenderer(ExecutorService exector, DataBroker databroker, InstanceIdentifier<Node> iid, Node node, FabricId fabricId) {
-        this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());;
+    public DeviceRenderer(ExecutorService exector, DataBroker databroker, InstanceIdentifier<Node> iid, Node node,
+            FabricId fabricId) {
+        this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());
+        ;
         this.databroker = databroker;
 
         this.fabricId = fabricId;
@@ -85,60 +87,66 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         ctx = new DeviceContext(node, iid);
 
-        //Initialize openflow pipeline in this Device
+        // Initialize openflow pipeline in this Device
         openflow13Provider = new Openflow13Provider(databroker);
         openflow13Provider.initialOpenflowPipeline(node);
 
         InstanceIdentifier<HostRoute> hostRouteIId = InstanceIdentifier.create(FabricRenderedMapping.class)
-                    .child(Fabric.class, new FabricKey(fabricId)).child(HostRoute.class);
-        hostRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, hostRouteIId, this, DataChangeScope.BASE);
+                .child(Fabric.class, new FabricKey(fabricId)).child(HostRoute.class);
+        hostRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, hostRouteIId, this,
+                DataChangeScope.BASE);
 
         InstanceIdentifier<BridgeDomain> bridgeDomainIId = iid.augmentation(FabricCapableDevice.class)
                 .child(Config.class).child(BridgeDomain.class);
-        bridgeDomainListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bridgeDomainIId, this, DataChangeScope.BASE);
+        bridgeDomainListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bridgeDomainIId,
+                this, DataChangeScope.BASE);
 
-        InstanceIdentifier<Bdif> bdifIId = iid.augmentation(FabricCapableDevice.class)
-                .child(Config.class).child(Bdif.class);
-        bdifListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdifIId, this, DataChangeScope.BASE);
+        InstanceIdentifier<Bdif> bdifIId = iid.augmentation(FabricCapableDevice.class).child(Config.class)
+                .child(Bdif.class);
+        bdifListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdifIId, this,
+                DataChangeScope.BASE);
 
         InstanceIdentifier<VniMembers> vniMembersIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(VniMembers.class);
-        vniMembersListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, vniMembersIId, this, DataChangeScope.BASE);
+        vniMembersListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, vniMembersIId,
+                this, DataChangeScope.SUBTREE);
 
         InstanceIdentifier<Acls> aclsIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(Acls.class);
-        aclsListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, aclsIId, this, DataChangeScope.BASE);
+        aclsListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, aclsIId, this,
+                DataChangeScope.SUBTREE);
 
         readFabricOptions(node);
     }
 
     private void readFabricOptions(final Node node) {
-    	ReadOnlyTransaction trans = databroker.newReadOnlyTransaction();
-    	InstanceIdentifier<Options> iid = MdSalUtils.createFabricIId(this.fabricId)
-    			.child(FabricAttribute.class).child(Options.class);
+        ReadOnlyTransaction trans = databroker.newReadOnlyTransaction();
+        InstanceIdentifier<Options> iid = MdSalUtils.createFabricIId(this.fabricId).child(FabricAttribute.class)
+                .child(Options.class);
 
-    	ListenableFuture<Optional<Options>> future = trans.read(LogicalDatastoreType.OPERATIONAL, iid);
-    	Futures.addCallback(future, new FutureCallback<Optional<Options>>(){
+        ListenableFuture<Optional<Options>> future = trans.read(LogicalDatastoreType.OPERATIONAL, iid);
+        Futures.addCallback(future, new FutureCallback<Optional<Options>>() {
 
-			@Override
-			public void onSuccess(Optional<Options> result) {
-				if (result.isPresent()) {
-					Options opt = result.get();
-					TrafficBehavior behavior = opt.getTrafficBehavior();
-					ctx.setTrafficBehavior(behavior == null ? behavior : TrafficBehavior.Normal);
-				} else {
-					ctx.setTrafficBehavior(TrafficBehavior.Normal);
-				}
+            @Override
+            public void onSuccess(Optional<Options> result) {
+                if (result.isPresent()) {
+                    Options opt = result.get();
+                    TrafficBehavior behavior = opt.getTrafficBehavior();
+                    ctx.setTrafficBehavior(behavior == null ? behavior : TrafficBehavior.Normal);
+                } else {
+                    ctx.setTrafficBehavior(TrafficBehavior.Normal);
+                }
 
-				//Set Traffic Behavior in Pipeline table 90, Acl table
-				openflow13Provider.setTrafficBehavior(ctx.getDpid(), ctx.getTrafficBehavior());
+                // Set Traffic Behavior in Pipeline table 90, Acl table
+                openflow13Provider.updateTrafficBehavior(ctx.getDpid(), ctx.getTrafficBehavior(), true);
 
-			}
+            }
 
-			@Override
-			public void onFailure(Throwable t) {
-				LOG.error("unexcepted exception", t);
-			}}, executor);
+            @Override
+            public void onFailure(Throwable t) {
+                LOG.error("unexcepted exception", t);
+            }
+        }, executor);
     }
 
     @Override
@@ -163,61 +171,191 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     @Override
     public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
 
-        Map<InstanceIdentifier<?>, DataObject> newData = change.getCreatedData();
-        for (Entry<InstanceIdentifier<?>, DataObject> entry : newData.entrySet()) {
-            if (entry.getValue() instanceof HostRoute) {
-                final HostRoute newRec = (HostRoute) entry.getValue();
-                executor.submit(new Callable<Void>(){
-
-					@Override
-					public Void call() throws Exception {
-						onHostRouteCreate(newRec);
-						return null;
-					}});
-                //onHostRouteCreate(newRec);
-            } else if (entry.getValue() instanceof BridgeDomain) {
-                final BridgeDomain newRec = (BridgeDomain) entry.getValue();
-                executor.submit(new Callable<Void>(){
-
-					@Override
-					public Void call() throws Exception {
-						onBridgeDomainCreate(newRec);
-						return null;
-					}});
-                //onBridgeDomainCreate(newRec);
-            } else if (entry.getValue() instanceof Bdif) {
-                final Bdif newRec = (Bdif) entry.getValue();
-                executor.submit(new Callable<Void>(){
-
-					@Override
-					public Void call() throws Exception {
-						onBDIFCreate(newRec);
-						return null;
-					}});
-                // onBDIFCreate(newRec);
-            } else if (entry.getValue() instanceof VniMembers) {
-                final VniMembers newRec = (VniMembers) entry.getValue();
-                executor.submit(new Callable<Void>(){
-
-                    @Override
-                    public Void call() throws Exception {
-                        onVniMembersCreate(newRec);
-                        return null;
-                    }});
-                // onVniMembersCreate(newRec);
-            } else if (entry.getValue() instanceof Acls) {
-                final Acls newRec = (Acls) entry.getValue();
-                executor.submit(new Callable<Void>(){
-
-                    @Override
-                    public Void call() throws Exception {
-                        onAclsCreate(newRec);
-                        return null;
-                    }});
-                // onAclsCreate(newRec);
-            }
+        Map<InstanceIdentifier<?>, DataObject> createdData = change.getCreatedData();
+        for (Entry<InstanceIdentifier<?>, DataObject> entry : createdData.entrySet()) {
+            onDataCreated(entry);
         }
 
+        Map<InstanceIdentifier<?>, DataObject> updatedData = change.getUpdatedData();
+        for (Entry<InstanceIdentifier<?>, DataObject> entry : updatedData.entrySet()) {
+            onDataUpdated(entry);
+        }
+
+        for (InstanceIdentifier<?> iid: change.getRemovedPaths()) {
+            DataObject oldData = change.getOriginalData().get(iid);
+            onDataRemoved(oldData);
+        }
+
+    }
+
+
+    private void onDataCreated(Entry<InstanceIdentifier<?>, DataObject> entry) {
+        if (entry.getValue() instanceof HostRoute) {
+            final HostRoute newRec = (HostRoute) entry.getValue();
+
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onHostRouteCreate(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof BridgeDomain) {
+            final BridgeDomain newRec = (BridgeDomain) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBridgeDomainCreate(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof Bdif) {
+            final Bdif newRec = (Bdif) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBDIFCreate(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof VniMembers) {
+            final VniMembers newRec = (VniMembers) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onVniMembersCreate(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof Acls) {
+            final Acls newRec = (Acls) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onAclsCreate(newRec);
+                    return null;
+                }
+            });
+        }
+
+    }
+
+    private void onDataUpdated(Entry<InstanceIdentifier<?>, DataObject> entry) {
+
+        if (entry.getValue() instanceof HostRoute) {
+            final HostRoute newRec = (HostRoute) entry.getValue();
+
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onHostRouteModified(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof BridgeDomain) {
+            final BridgeDomain newRec = (BridgeDomain) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBridgeDomainModified(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof Bdif) {
+            final Bdif newRec = (Bdif) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBDIFModified(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof VniMembers) {
+            final VniMembers newRec = (VniMembers) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onVniMembersModified(newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof Acls) {
+            final Acls newRec = (Acls) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onAclsModified(newRec);
+                    return null;
+                }
+            });
+        }
+
+    }
+
+    private void onDataRemoved(DataObject entry) {
+
+        if (entry instanceof HostRoute) {
+            final HostRoute newRec = (HostRoute) entry;
+
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onHostRouteDelete(newRec);
+                    return null;
+                }
+            });
+        } else if (entry instanceof BridgeDomain) {
+            final BridgeDomain newRec = (BridgeDomain) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBridgeDomainDelete(newRec);
+                    return null;
+                }
+            });
+        } else if (entry instanceof Bdif) {
+            final Bdif newRec = (Bdif) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBDIFDelete(newRec);
+                    return null;
+                }
+            });
+        } /*else if (entry instanceof VniMembers) {
+            final VniMembers newRec = (VniMembers) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onVniMembersDelete(newRec);
+                    return null;
+                }
+            });
+        } else if (entry instanceof Acls) {
+            final Acls newRec = (Acls) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onAclsDelete(newRec);
+                    return null;
+                }
+            });
+        }*/
     }
 
     private void onHostRouteCreate(HostRoute newRec) {
@@ -225,17 +363,19 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
         if (gpeTunnelOfPort == 0l) {
-            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
-            ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
+            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
+                    databroker);
+            if (gpeTunnelOfPort != 0l) {
+                ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
+            }
         }
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
             if (ofPort != 0l) {
-                openflow13Provider.addLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec);
+                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec, true);
             }
-        }
-        else {
+        } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
             if (tunnelOfPort == 0l) {
                 tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
@@ -243,17 +383,44 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
 
             if (tunnelOfPort != 0l) {
-                openflow13Provider.addRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec);
+                openflow13Provider.updateRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec, true);
             }
         }
     }
 
-    private void onHostRouteDelete() {
+    private void onHostRouteDelete(HostRoute newRec) {
+        Long dpidLong = ctx.getDpid();
 
+        Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
+        if (gpeTunnelOfPort == 0l) {
+            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
+                    databroker);
+            if (gpeTunnelOfPort != 0l) {
+                ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
+            }
+        }
+
+        if (ctx.getVtep().equals(newRec.getDestVtep())) {
+            Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+            if (ofPort != 0l) {
+                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec, false);
+            }
+        } else {
+            Long tunnelOfPort = ctx.getVtep_ofPort();
+            if (tunnelOfPort == 0l) {
+                tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
+                ctx.setVtep_ofPort(tunnelOfPort);
+            }
+
+            if (tunnelOfPort != 0l) {
+                openflow13Provider.updateRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec, false);
+            }
+        }
     }
 
-    private void onHostRouteModified() {
-
+    private void onHostRouteModified(HostRoute newRec) {
+        // Just create new flows
+        onHostRouteCreate(newRec);
     }
 
     private void onBDIFCreate(Bdif newRec) {
@@ -265,22 +432,31 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
-        openflow13Provider.addBdifInDevice(dpidLong, bdIfs, newAdapterBdIf);
+        openflow13Provider.updateBdifInDevice(dpidLong, bdIfs, newAdapterBdIf, true);
 
         ctx.addBdifToCache(newAdapterBdIf);
     }
 
-    private void onBDIFDelete() {
+    private void onBDIFDelete(Bdif newRec) {
+        String bridgeDomainId = newRec.getBdid();
+        Long vni = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bridgeDomainId, databroker);
+        Long dpidLong = ctx.getDpid();
 
+        AdapterBdIf newAdapterBdIf = new AdapterBdIf(newRec, vni);
+
+        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+
+        openflow13Provider.updateBdifInDevice(dpidLong, bdIfs, newAdapterBdIf, false);
+
+        ctx.addBdifToCache(newAdapterBdIf);
     }
 
-    private void onBDIFModified() {
-        // do nothing
+    private void onBDIFModified(Bdif newRec) {
+        // Just create new flows
+        onBDIFCreate(newRec);
     }
-
 
     private void onBridgeDomainCreate(BridgeDomain newRec) {
-
         Long dpidLong = ctx.getDpid();
         Long tunnelOfPort = ctx.getVtep_ofPort();
         if (tunnelOfPort == 0l) {
@@ -288,33 +464,58 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
             if (tunnelOfPort != 0l) {
                 ctx.setVtep_ofPort(tunnelOfPort);
-            }
-            else {
+            } else {
                 return;
             }
         }
 
         Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
 
-        openflow13Provider.addBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId);
+        openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, true);
 
     }
 
-    private void onBridgeDomainDelete() {
+    private void onBridgeDomainDelete(BridgeDomain newRec) {
+        Long dpidLong = ctx.getDpid();
+        Long tunnelOfPort = ctx.getVtep_ofPort();
+        if (tunnelOfPort == 0l) {
+            tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
 
+            if (tunnelOfPort != 0l) {
+                ctx.setVtep_ofPort(tunnelOfPort);
+            } else {
+                return;
+            }
+        }
+
+        Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
+
+        openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, false);
     }
 
-    private void onBridgeDomainModified() {
-        // do nothing
+    private void onBridgeDomainModified(BridgeDomain newRec) {
+        // Just create new flows
+        onBridgeDomainCreate(newRec);
     }
 
     private void onVniMembersCreate(VniMembers newRec) {
         Long dpidLong = ctx.getDpid();
         Long tunnelOfPort = ctx.getVtep_ofPort();
+        if (tunnelOfPort == 0l) {
+            tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
+
+            if (tunnelOfPort != 0l) {
+                ctx.setVtep_ofPort(tunnelOfPort);
+            } else {
+                return;
+            }
+        }
         Long segmentationId = newRec.getVni();
 
         for (IpAddress dstTunIp : newRec.getVteps()) {
-            openflow13Provider.addVniMembersInDevice(dpidLong, tunnelOfPort, segmentationId, dstTunIp);
+            if (!dstTunIp.equals(ctx.getVtep())) {
+                openflow13Provider.updateVniMembersInDevice(dpidLong, tunnelOfPort, segmentationId, dstTunIp, true);
+            }
         }
     }
 
@@ -322,15 +523,16 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
     }
 
-    private void onVniMembersModified() {
-
+    private void onVniMembersModified(VniMembers newRec) {
+        // Not really implemented the real modify function
+        onVniMembersCreate(newRec);
     }
 
     private void onAclsCreate(Acls newRec) {
         Long dpidLong = ctx.getDpid();
 
         for (FabricAcl acl : newRec.getFabricAcl()) {
-            openflow13Provider.addAclsInDevice(dpidLong, acl);
+            openflow13Provider.updateAclsInDevice(dpidLong, acl, true);
         }
 
     }
@@ -339,7 +541,9 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
     }
 
-    private void onAclsModified() {
+    private void onAclsModified(Acls newRec) {
+        // Not really implemented the real modify function
+        onAclsCreate(newRec);
 
     }
 }

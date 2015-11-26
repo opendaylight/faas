@@ -74,7 +74,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         super(Service.ACL_HANDlER, dataBroker);
     }
 
-    public void programTrafficBehaviorRule(Long dpid, TrafficBehavior trafficBehavior) {
+    public void programTrafficBehaviorRule(Long dpid, TrafficBehavior trafficBehavior, boolean writeFlow) {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
 
@@ -121,10 +121,16 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
-        writeFlow(flowBuilder, nodeBuilder);
+
+        if (writeFlow) {
+            writeFlow(flowBuilder, nodeBuilder);
+        }
+        else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
     }
 
-    public void programAclEntry(Long dpidLong, Acl acl, boolean write) {
+    public void programAclEntry(Long dpidLong, Acl acl, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
         //MatchBuilder matchBuilder = new MatchBuilder();
@@ -142,16 +148,16 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, (AceEth)aceType, write, aclActions);
+                aceEthAcl(nodeName, flowId, (AceEth)aceType, writeFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, (AceIp)aceType, write, aclActions);
+                aceIpAcl(nodeName, flowId, (AceIp)aceType, writeFlow, aclActions);
             }
 
         }
     }
 
     //Match Ethernet source/dest mac, macmask
-    private void aceEthAcl(String nodeName, String flowId, AceEth aceEth, boolean write, Actions aclActions) {
+    private void aceEthAcl(String nodeName, String flowId, AceEth aceEth, boolean writeFlow, Actions aclActions) {
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
@@ -182,11 +188,11 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
         matchBuilder.setEthernetMatch(ethernetMatch.build());
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, MATCH_PRIORITY, write, aclActions);
+        syncFlow(flowId, nodeBuilder, matchBuilder, MATCH_PRIORITY, writeFlow, aclActions);
     }
 
     //Match IP protocol(TCP/UDP/ICMP), IPv4 source/des Address
-    private void aceIpAcl(String nodeName, String flowId, AceIp aceIp, boolean write, Actions aclActions) {
+    private void aceIpAcl(String nodeName, String flowId, AceIp aceIp, boolean writeFlow, Actions aclActions) {
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
@@ -227,8 +233,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             matchBuilder = createUdpMatch(matchBuilder, aceIp);
         }
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, MATCH_PRIORITY, write, aclActions);
-
+        syncFlow(flowId, nodeBuilder, matchBuilder, MATCH_PRIORITY, writeFlow, aclActions);
     }
 
     private MatchBuilder createIpProtocolMatch(MatchBuilder matchBuilder, short ipProtocol) {
@@ -290,7 +295,8 @@ public class PipelineAclHandler extends AbstractServiceInstance{
     }
 
     private void syncFlow(String flowId, NodeBuilder nodeBuilder, MatchBuilder matchBuilder,
-            Integer priority, boolean write, Actions aclActions) {
+            Integer priority, boolean writeFlow, Actions aclActions) {
+
         FlowBuilder flowBuilder = new FlowBuilder();
         flowBuilder.setMatch(matchBuilder.build());
         flowBuilder.setId(new FlowId(flowId));
@@ -304,7 +310,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (write) {
+        if (writeFlow) {
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
             List<Instruction> instructionsList = Lists.newArrayList();

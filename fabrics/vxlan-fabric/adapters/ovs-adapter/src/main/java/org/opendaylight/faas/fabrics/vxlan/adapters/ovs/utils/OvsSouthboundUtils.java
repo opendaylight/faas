@@ -184,6 +184,7 @@ public class OvsSouthboundUtils {
         options.put("local_ip", String.copyValueOf(getVtepIp(node).getValue()));
         options.put("key", "flow");
         options.put("remote_ip", "flow");
+        options.put("dst_port", "4789");
 
         if (!addTunnelTerminationPoint(node, tunnelBridgeName, portName, tunnelType, options, databroker)) {
             LOG.error("Failed to insert Tunnel port {} in {}", portName, tunnelBridgeName);
@@ -215,6 +216,7 @@ public class OvsSouthboundUtils {
         options.put("nshc2", "flow");
         options.put("nshc3", "flow");
         options.put("nshc4", "flow");
+        options.put("dst_port", "6633");
 
         if (!addTunnelTerminationPoint(node, tunnelBridgeName, portName, tunnelType, options, databroker)) {
             LOG.error("Failed to insert Tunnel port {} in {}", portName, tunnelBridgeName);

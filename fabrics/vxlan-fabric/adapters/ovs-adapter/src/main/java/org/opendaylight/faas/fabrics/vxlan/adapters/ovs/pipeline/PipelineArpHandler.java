@@ -10,12 +10,9 @@ package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline;
 import java.math.BigInteger;
 import java.util.List;
 
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Status;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdpaterAction;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.StatusCode;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.ActionUtils;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
@@ -35,34 +32,49 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.EtherType;
+
 import com.google.common.collect.Lists;
 
 public class PipelineArpHandler extends AbstractServiceInstance {
-    //private static final Logger LOG = LoggerFactory.getLogger(PipelineArpHandler.class);
+    // private static final Logger LOG =
+    // LoggerFactory.getLogger(PipelineArpHandler.class);
 
     public PipelineArpHandler(DataBroker dataBroker) {
         super(Service.ARP_HANDlER, dataBroker);
     }
 
     /*
-     * (Table:  ARP_HANDlER) Handle the ARP packet, construct ARP Response
-     * Match:   arp, TunnelID , source mac, source ip
-     * Actions: Make ARP response packet
-     * Flow example:
-     *  table=20, priority=1024,arp,tun_id=0x3ea,arp_tpa=2.0.0.2
-     *  actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],set_field:fa:16:3e:41:56:ec->eth_src,
-     *      load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],
-     *      load:0xfa163e4156ec->NXM_NX_ARP_SHA[],load:0x2000002->NXM_OF_ARP_SPA[],
-     *      IN_PORT
+     * (Table: ARP_HANDlER) Handle the ARP packet, construct ARP Response Match:
+     * arp, TunnelID , source mac, source ip Actions: Make ARP response packet
+     * Flow example: table=20, priority=1024,arp,tun_id=0x3ea,arp_tpa=2.0.0.2
+     * actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],set_field:fa:16:3e:41:56:
+     * ec->eth_src,
+     * load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:
+     * NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],
+     * load:0xfa163e4156ec->NXM_NX_ARP_SHA[],load:0x2000002->NXM_OF_ARP_SPA[],
+     * IN_PORT
      */
-    public Status programStaticArpEntry(Long dpid, Long segmentationId, String macAddressStr, IpAddress ipAddress,
-            AdpaterAction action) {
+    public void programStaticArpEntry(Long dpid, Long segmentationId, String macAddressStr, IpAddress ipAddress,
+            boolean writeFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
         MacAddress macAddress = new MacAddress(macAddressStr);
 
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = Openflow13Provider.createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        String flowId = "ArpResponder_" + segmentationId + "_" + ipAddress.getIpv4Address().getValue();
+
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setBarrier(true);
+        flowBuilder.setTableId(this.getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setPriority(1024);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
 
         // Instructions List Stores Individual Instructions
         InstructionsBuilder isb = new InstructionsBuilder();
@@ -86,83 +98,72 @@ public class PipelineArpHandler extends AbstractServiceInstance {
         MatchUtils.createArpDstIpv4Match(matchBuilder,
                 MatchUtils.iPv4PrefixFromIPv4Address(ipAddress.getIpv4Address().getValue()));
 
-        // Move Eth Src to Eth Dst
-        ab.setAction(ActionUtils.nxMoveEthSrcToEthDstAction());
-        ab.setOrder(0);
-        ab.setKey(new ActionKey(0));
-        actionList.add(ab.build());
-
-        // Set Eth Src
-        ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
-        ab.setOrder(1);
-        ab.setKey(new ActionKey(1));
-        actionList.add(ab.build());
-
-        // Set ARP OP
-        ab.setAction(ActionUtils.nxLoadArpOpAction(BigInteger.valueOf(0x02L)));
-        ab.setOrder(2);
-        ab.setKey(new ActionKey(2));
-        actionList.add(ab.build());
-
-        // Move ARP SHA to ARP THA
-        ab.setAction(ActionUtils.nxMoveArpShaToArpThaAction());
-        ab.setOrder(3);
-        ab.setKey(new ActionKey(3));
-        actionList.add(ab.build());
-
-        // Move ARP SPA to ARP TPA
-        ab.setAction(ActionUtils.nxMoveArpSpaToArpTpaAction());
-        ab.setOrder(4);
-        ab.setKey(new ActionKey(4));
-        actionList.add(ab.build());
-
-        // Load Mac to ARP SHA
-        ab.setAction(ActionUtils.nxLoadArpShaAction(macAddress));
-        ab.setOrder(5);
-        ab.setKey(new ActionKey(5));
-        actionList.add(ab.build());
-
-        // Load IP to ARP SPA
-        ab.setAction(ActionUtils.nxLoadArpSpaAction(ipAddress.getIpv4Address().getValue()));
-        ab.setOrder(6);
-        ab.setKey(new ActionKey(6));
-        actionList.add(ab.build());
-
-        // Output of InPort
-        ab.setAction(ActionUtils.outputAction(new NodeConnectorId(nodeName + ":INPORT")));
-        ab.setOrder(7);
-        ab.setKey(new ActionKey(7));
-        actionList.add(ab.build());
-
-        // Create Apply Actions Instruction
-        aab.setAction(actionList);
-        ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
-        ib.setOrder(0);
-        ib.setKey(new InstructionKey(0));
-        instructions.add(ib.build());
-
-        FlowBuilder flowBuilder = new FlowBuilder();
         flowBuilder.setMatch(matchBuilder.build());
-        flowBuilder.setInstructions(isb.setInstruction(instructions).build());
 
-        String flowId = "ArpResponder_" + segmentationId + "_" + ipAddress.getIpv4Address().getValue();
-        flowBuilder.setId(new FlowId(flowId));
-        FlowKey key = new FlowKey(new FlowId(flowId));
-        flowBuilder.setBarrier(true);
-        flowBuilder.setTableId(this.getTable());
-        flowBuilder.setKey(key);
-        flowBuilder.setPriority(1024);
-        flowBuilder.setFlowName(flowId);
-        flowBuilder.setHardTimeout(0);
-        flowBuilder.setIdleTimeout(0);
+        if (writeFlow) {
+            // Move Eth Src to Eth Dst
+            ab.setAction(ActionUtils.nxMoveEthSrcToEthDstAction());
+            ab.setOrder(0);
+            ab.setKey(new ActionKey(0));
+            actionList.add(ab.build());
 
-        if (action.equals(AdpaterAction.ADD)) {
+            // Set Eth Src
+            ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
+            ab.setOrder(1);
+            ab.setKey(new ActionKey(1));
+            actionList.add(ab.build());
+
+            // Set ARP OP
+            ab.setAction(ActionUtils.nxLoadArpOpAction(BigInteger.valueOf(0x02L)));
+            ab.setOrder(2);
+            ab.setKey(new ActionKey(2));
+            actionList.add(ab.build());
+
+            // Move ARP SHA to ARP THA
+            ab.setAction(ActionUtils.nxMoveArpShaToArpThaAction());
+            ab.setOrder(3);
+            ab.setKey(new ActionKey(3));
+            actionList.add(ab.build());
+
+            // Move ARP SPA to ARP TPA
+            ab.setAction(ActionUtils.nxMoveArpSpaToArpTpaAction());
+            ab.setOrder(4);
+            ab.setKey(new ActionKey(4));
+            actionList.add(ab.build());
+
+            // Load Mac to ARP SHA
+            ab.setAction(ActionUtils.nxLoadArpShaAction(macAddress));
+            ab.setOrder(5);
+            ab.setKey(new ActionKey(5));
+            actionList.add(ab.build());
+
+            // Load IP to ARP SPA
+            ab.setAction(ActionUtils.nxLoadArpSpaAction(ipAddress.getIpv4Address().getValue()));
+            ab.setOrder(6);
+            ab.setKey(new ActionKey(6));
+            actionList.add(ab.build());
+
+            // Output of InPort
+            ab.setAction(ActionUtils.outputAction(new NodeConnectorId(nodeName + ":INPORT")));
+            ab.setOrder(7);
+            ab.setKey(new ActionKey(7));
+            actionList.add(ab.build());
+
+            // Create Apply Actions Instruction
+            aab.setAction(actionList);
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+            instructions.add(ib.build());
+
+            flowBuilder.setInstructions(isb.setInstruction(instructions).build());
+
             writeFlow(flowBuilder, nodeBuilder);
-        } else {
-            removeFlow(flowBuilder, nodeBuilder);
         }
 
-        return new Status(StatusCode.SUCCESS);
+        else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
     }
 
 }

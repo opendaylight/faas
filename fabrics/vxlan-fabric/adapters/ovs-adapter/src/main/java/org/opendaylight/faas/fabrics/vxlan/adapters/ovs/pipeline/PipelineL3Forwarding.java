@@ -10,12 +10,9 @@ package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline;
 import java.math.BigInteger;
 import java.util.List;
 
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Status;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdpaterAction;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.StatusCode;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.InstructionUtils;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
@@ -29,6 +26,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+
 import com.google.common.collect.Lists;
 
 public class PipelineL3Forwarding extends AbstractServiceInstance {
@@ -46,8 +44,8 @@ public class PipelineL3Forwarding extends AbstractServiceInstance {
      *      table=70, ip,tun_id=0x3ea,nw_dst=2.0.0.2, \
      *      actions=set_field:fa:16:3e:41:56:ec->eth_dst,goto_table=<next-table>"
      */
-    public Status programForwardingTableEntry(Long dpid, Long segmentationId, IpAddress ipAddress,
-            String macAddress, AdpaterAction action) {
+    public void programForwardingTableEntry(Long dpid, Long segmentationId, IpAddress ipAddress,
+            String macAddress, boolean writeFlow) {
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
 
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -88,12 +86,10 @@ public class PipelineL3Forwarding extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (action.equals(AdpaterAction.ADD)) {
+        if (writeFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);
         }
-
-        return new Status(StatusCode.SUCCESS);
     }
 }

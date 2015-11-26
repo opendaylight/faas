@@ -215,6 +215,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         IpPrefix network = input.getNetwork();
         if (network == null) {
         	network = createDefaultPrefix(gwIp);
+        } else {
+        	network = createGwPrefix(gwIp, network);
         }
 
         final IpPrefix ipPrefix = network;
@@ -581,6 +583,14 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             	fabricObj.notifyAclUpdate(tgtAclIId, false);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
+	}
+
+	private IpPrefix createGwPrefix(IpAddress ipAddress, IpPrefix network) {
+		StringBuilder buf = new StringBuilder();
+		buf.append(ipAddress.getValue());
+		String str = network.getIpv4Prefix().getValue();
+		buf.append(str.substring(str.indexOf("/")));
+		return new IpPrefix(new Ipv4Prefix(buf.toString()));
 	}
 
 	private IpPrefix createDefaultPrefix(IpAddress ipAddress) {

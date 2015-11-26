@@ -7,6 +7,7 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -27,12 +28,12 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 public class LogicSwitchContext {
     private final long vni;
 
-    private Set<NodeId> members = Sets.newConcurrentHashSet();
+    private Map<NodeId, IpAddress> members = Maps.newConcurrentMap();
 
     private LogicRouterContext vrfCtx = null;
 
@@ -54,8 +55,9 @@ public class LogicSwitchContext {
     }
 
     public boolean checkAndSetNewMember(NodeId nodeid, IpAddress vtepIp) {
-    	if (members.add(nodeid)) {
-    		writeToDom(vtepIp);
+    	if (!members.containsKey(nodeid)) {
+    		members.put(nodeid, vtepIp);
+    		writeToDom();
     		return true;
     	} else {
     		return false;
@@ -72,16 +74,16 @@ public class LogicSwitchContext {
     }
 
     public Set<NodeId> getMembers() {
-    	return members;
+    	return members.keySet();
     }
 
-    private void writeToDom(IpAddress vtepIp) {
+    private void writeToDom() {
     	InstanceIdentifier<VniMembers> vniMembersIId = createVniMembersIId(fabricid, vni);
 
     	VniMembersBuilder builder = new VniMembersBuilder();
 		builder.setVni(vni);
 		builder.setKey(new VniMembersKey(vni));
-		builder.setVteps(Lists.newArrayList(vtepIp));
+		builder.setVteps(Lists.newArrayList(members.values()));
 
 		WriteTransaction trans = databroker.newWriteOnlyTransaction();
 		trans.merge(LogicalDatastoreType.OPERATIONAL, vniMembersIId, builder.build(), true);

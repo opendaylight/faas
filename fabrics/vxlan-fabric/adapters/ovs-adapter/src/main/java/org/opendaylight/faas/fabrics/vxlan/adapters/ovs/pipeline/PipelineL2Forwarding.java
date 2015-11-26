@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutionException;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
+import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
@@ -77,7 +78,7 @@ import com.google.common.collect.Lists;
 import com.google.common.net.InetAddresses;
 import com.google.common.util.concurrent.CheckedFuture;
 
-public class PipelineL2Forwarding  extends AbstractServiceInstance {
+public class PipelineL2Forwarding extends AbstractServiceInstance {
     private static final Logger LOG = LoggerFactory.getLogger(PipelineL2Forwarding.class);
 
     public PipelineL2Forwarding(DataBroker dataBroker) {
@@ -85,15 +86,13 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     }
 
     /*
-     * (Table:  L2_FORWARDING) To Local port unicast traffic
-     * Match:   TunnelID , Dest Mac
-     * Actions: Output to local port
-     * Flow example:
-     *      table=110, n_packets=2, n_bytes=196, tun_id=0x3ea,dl_dst=fa:16:3e:41:56:ec , \
-     *      actions=output:1"
+     * (Table: L2_FORWARDING) To Local port unicast traffic Match: TunnelID ,
+     * Dest Mac Actions: Output to local port Flow example: table=110,
+     * n_packets=2, n_bytes=196, tun_id=0x3ea,dl_dst=fa:16:3e:41:56:ec , \
+     * actions=output:1"
      */
-    public void programLocalUcastOut(Long dpidLong, Long segmentationId,
-            Long localPort, String attachedMac, boolean write) {
+    public void programLocalUcastOut(Long dpidLong, Long segmentationId, Long localPort, String attachedMac,
+            boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -102,10 +101,11 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress(attachedMac), null).build());
 
-        String flowId = "UcastOut_"+segmentationId+"_"+localPort+"_"+attachedMac;
+        String flowId = "UcastOut_" + segmentationId + "_" + localPort + "_" + attachedMac;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -117,7 +117,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (write) {
+        if (writeFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -143,14 +143,14 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     }
 
     /*
-     * (Table:  L2_FORWARDING) Broadcast traffic from Remote device
-     * Match:   NXM_NX_REG0=0x2 , TunnelId
-     * Actions: Output to local port belongs to this Tunnel bridge domain
-     * Flow example:
-     *      table=110, reg0=0x2,tun_id=0x3ea,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 , \
-     *      actions=output:3,output:5"
+     * (Table: L2_FORWARDING) Broadcast traffic from Remote device Match:
+     * NXM_NX_REG0=0x2 , TunnelId Actions: Output to local port belongs to this
+     * Tunnel bridge domain Flow example: table=110,
+     * reg0=0x2,tun_id=0x3ea,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 , \
+     * actions=output:3,output:5"
      */
-    public void programRemoteBcastOutToLocalPort(Long dpidLong, Long segmentationId, Long localPort, boolean write) {
+    public void programRemoteBcastOutToLocalPort(Long dpidLong, Long segmentationId, Long localPort,
+            boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -159,13 +159,15 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD, PipelineTrafficClassifier.REG_VALUE_FROM_REMOTE));
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+                PipelineTrafficClassifier.REG_VALUE_FROM_REMOTE));
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         BigInteger.valueOf(segmentationId.longValue());
         flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
                 new MacAddress("01:00:00:00:00:00")).build());
 
-        String flowId = "BcastOut_"+segmentationId;
+        String flowId = "BcastOut_" + segmentationId;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -190,7 +192,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             }
         }
 
-        if (write) {
+        if (writeFlow) {
             // Create output port list
             createOutputPortInstructions(ib, dpidLong, localPort, existingInstructions);
             ib.setOrder(0);
@@ -212,7 +214,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                 /* if all ports are removed, remove flow */
                 removeFlow(flowBuilder, nodeBuilder);
             } else {
-                /* Install instruction with new output port list*/
+                /* Install instruction with new output port list */
                 ib.setOrder(0);
                 ib.setKey(new InstructionKey(0));
                 instructions.add(ib.build());
@@ -230,7 +232,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     /*
      * Local Table Miss
      */
-    public void programLocalTableMiss(Long dpidLong, Long segmentationId, boolean write) {
+    public void programLocalTableMiss(Long dpidLong, Long segmentationId, boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -239,9 +241,10 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create Match(es) and Set them in the FlowBuilder Object
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
 
-        if (write) {
+        if (writeFlow) {
             // Create the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -262,7 +265,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             flowBuilder.setInstructions(isb.build());
         }
 
-        String flowId = "LocalTableMiss_"+segmentationId;
+        String flowId = "LocalTableMiss_" + segmentationId;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -274,7 +277,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
-        if (write) {
+        if (writeFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);
@@ -282,14 +285,14 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     }
 
     /*
-     * (Table:  L2_FORWARDING) To Tunnel port unicast traffic
-     * Match:   TunnelID , Dest Mac
-     * Actions: Load dest Tunnel ip address, Output to Tunnel port
-     * Flow example:
-     *      table=110, n_packets=2, n_bytes=196, tun_id=0x3ea,dl_dst=fa:16:3e:41:56:ec , \
-     *      actions=load:0xc0a876a1->NXM_NX_TUN_IPV4_DST[],output:2"
+     * (Table: L2_FORWARDING) To Tunnel port unicast traffic Match: TunnelID ,
+     * Dest Mac Actions: Load dest Tunnel ip address, Output to Tunnel port Flow
+     * example: table=110, n_packets=2, n_bytes=196,
+     * tun_id=0x3ea,dl_dst=fa:16:3e:41:56:ec , \
+     * actions=load:0xc0a876a1->NXM_NX_TUN_IPV4_DST[],output:2"
      */
-    public void programTunnelOut(Long dpidLong, Long segmentationId, Long OFPortOut, String attachedMac, IpAddress dstTunIpAddress, boolean write) {
+    public void programTunnelOut(Long dpidLong, Long segmentationId, Long OFPortOut, String attachedMac,
+            IpAddress dstTunIpAddress, boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -298,10 +301,12 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress(attachedMac), null).build());
 
-        String flowId = "TunnelOut_"+segmentationId+"_"+OFPortOut+"_"+attachedMac+"_"+dstTunIpAddress.getIpv4Address().getValue();
+        String flowId = "TunnelOut_" + segmentationId + "_" + OFPortOut + "_" + attachedMac + "_"
+                + dstTunIpAddress.getIpv4Address().getValue();
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -314,7 +319,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (write) {
+        if (writeFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -322,13 +327,13 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
 
             ActionBuilder ab = new ActionBuilder();
 
-            //add Load Tunnel Ip Action
+            // add Load Tunnel Ip Action
             ab.setAction(ActionUtils.nxLoadTunIPv4Action(dstTunIpAddress.getIpv4Address().getValue(), false));
             ab.setOrder(0);
             ab.setKey(new ActionKey(0));
             actionList.add(ab.build());
 
-            //add Output Action
+            // add Output Action
             NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpidLong + ":" + OFPortOut);
             ab.setAction(ActionUtils.outputAction(ncid));
             ab.setOrder(1);
@@ -354,7 +359,8 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         }
     }
 
-    public void programSfcTunnelOut(Long dpidLong, Long segmentationId, Long OFSfcTunPort, IpAddress dstVmVtepIp, boolean write) {
+    public void programSfcTunnelOut(Long dpidLong, Long segmentationId, Long OFSfcTunPort, String attachedMac,
+            IpAddress dstVmVtepIp, boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -363,9 +369,17 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineAclHandler.REG_SFC_FIELD, PipelineAclHandler.REG_VALUE_SFC_REDIRECT));
+        MatchUtils.addNxRegMatch(matchBuilder,
+                new MatchUtils.RegMatch(PipelineAclHandler.REG_SFC_FIELD, PipelineAclHandler.REG_VALUE_SFC_REDIRECT));
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress(attachedMac), null).build());
 
-        String flowId = "SfcTunnelOut_"+segmentationId+"_"+OFSfcTunPort+"_"+dstVmVtepIp.getIpv4Address().getValue();
+        flowBuilder.setMatch(matchBuilder.build());
+
+        String flowId = "SfcTunnelOut_" + segmentationId + "_" + OFSfcTunPort + "_" + attachedMac + "_"
+                + dstVmVtepIp.getIpv4Address().getValue();
+
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -373,13 +387,13 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         flowBuilder.setBarrier(false);
         flowBuilder.setTableId(getTable());
         flowBuilder.setKey(key);
-        //Priority is bigger than TunnelOut_** flow
+        // Priority is bigger than TunnelOut_** flow
         flowBuilder.setPriority(32769);
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (write) {
+        if (writeFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -387,7 +401,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
 
             ActionBuilder ab = new ActionBuilder();
 
-            //Load Dest Vm Vtep IP to Nshc1 Register
+            // Load Dest Vm Vtep IP to Nshc1 Register
             int ip = InetAddresses.coerceToInteger(InetAddresses.forString(dstVmVtepIp.getIpv4Address().getValue()));
             long ipl = ip & 0xffffffffL;
             ab.setAction(nxLoadNshc1RegAction(ipl));
@@ -395,19 +409,19 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             ab.setKey(new ActionKey(0));
             actionList.add(ab.build());
 
-            //Load Dest Vm VNI to Nshc1 Register
+            // Load Dest Vm VNI to Nshc1 Register
             ab.setAction(nxLoadNshc2RegAction(segmentationId));
             ab.setOrder(1);
             ab.setKey(new ActionKey(1));
             actionList.add(ab.build());
 
-            //Load Dest Vm VNI to TUN_ID
+            // Load Dest Vm VNI to TUN_ID
             ab.setAction(nxLoadTunIdAction(segmentationId));
             ab.setOrder(2);
             ab.setKey(new ActionKey(2));
             actionList.add(ab.build());
 
-            //add Output Action
+            // add Output Action
             NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpidLong + ":" + OFSfcTunPort);
             ab.setAction(ActionUtils.outputAction(ncid));
             ab.setOrder(3);
@@ -433,32 +447,36 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         }
     }
 
-    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc1RegAction(Long value) {
+    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc1RegAction(
+            Long value) {
         NxSetNshc1 newNshc1 = new NxSetNshc1Builder().setNshc(value).build();
         return new NxActionSetNshc1NodesNodeTableFlowApplyActionsCaseBuilder().setNxSetNshc1(newNshc1).build();
     }
 
-    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc2RegAction(Long value) {
+    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc2RegAction(
+            Long value) {
         NxSetNshc2 newNshc2 = new NxSetNshc2Builder().setNshc(value).build();
         return new NxActionSetNshc2NodesNodeTableFlowApplyActionsCaseBuilder().setNxSetNshc2(newNshc2).build();
     }
 
-    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadTunIdAction(Long value) {
-        return ActionUtils.nxLoadRegAction(new DstNxTunIdCaseBuilder().setNxTunId(Boolean.TRUE).build(), BigInteger.valueOf(value));
+    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadTunIdAction(
+            Long value) {
+        return ActionUtils.nxLoadRegAction(new DstNxTunIdCaseBuilder().setNxTunId(Boolean.TRUE).build(),
+                BigInteger.valueOf(value));
     }
 
     /*
-     * (Table:  L2_FORWARDING) Broadcast packet from local port, to other local porte
-     * Match:   NXM_NX_REG0=0x1 , TunnelId
-     * Actions: group:TunnelId
-     * Flow example:
-     *      table=110, reg0=0x1,tun_id=0x3ea,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 , \
-     *      actions=group:0x3ea"
+     * (Table: L2_FORWARDING) Broadcast packet from local port, to other local
+     * porte Match: NXM_NX_REG0=0x1 , TunnelId Actions: group:TunnelId Flow
+     * example: table=110,
+     * reg0=0x1,tun_id=0x3ea,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 , \
+     * actions=group:0x3ea"
      *
-     *      groupid=0x3ea  bucketid=1, actions=output:1,output2;
-     *      bucketid: 1 is for all local ports
+     * groupid=0x3ea bucketid=1, actions=output:1,output2; bucketid: 1 is for
+     * all local ports
      */
-    public void programLocalBcastToLocalPort(Long dpidLong, Long segmentationId, Long OFLocalPortOut, boolean write) {
+    public void programLocalBcastToLocalPort(Long dpidLong, Long segmentationId, Long OFLocalPortOut,
+            boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
 
@@ -468,20 +486,23 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
 
         // Create the OF Match using MatchBuilder
         // Match TunnelID
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD, PipelineTrafficClassifier.REG_VALUE_FROM_LOCAL));
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+                PipelineTrafficClassifier.REG_VALUE_FROM_LOCAL));
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         // Match DMAC
         flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
                 new MacAddress("01:00:00:00:00:00")).build());
 
-        String flowId = "TunnelFloodOut_"+segmentationId;
+        String flowId = "TunnelFloodOut_" + segmentationId;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
         flowBuilder.setBarrier(true);
         flowBuilder.setTableId(getTable());
         flowBuilder.setKey(key);
-        flowBuilder.setPriority(16383);  // FIXME: change it back to 16384 once bug 3005 is fixed.
+        flowBuilder.setPriority(16383); // FIXME: change it back to 16384 once
+                                        // bug 3005 is fixed.
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
@@ -499,113 +520,108 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             }
         }
 
-        if (write) {
+        if (writeFlow) {
             // Set the Output Port/Iface
-            createOutputGroupInstructionsToLocalPort(nodeBuilder, ib, dpidLong, OFLocalPortOut, segmentationId, existingInstructions);
-            //createOutputPortInstructions(ib, dpidLong, OFLocalPortOut, existingInstructions);
-            ib.setOrder(0);
-            ib.setKey(new InstructionKey(0));
-            instructions.add(ib.build());
-
-            // Add InstructionBuilder to the Instruction(s)Builder List
-            isb.setInstruction(instructions);
-
-            // Add InstructionsBuilder to FlowBuilder
-            flowBuilder.setInstructions(isb.build());
-
-            writeFlow(flowBuilder, nodeBuilder);
-        } else {
-            //yzy: not implement now!!!
-//            /* remove port from action list */
-//            boolean flowRemove = InstructionUtils.removeOutputPortFromInstructions(ib, dpidLong,
-//                    OFLocalPortOut, existingInstructions);
-//            if (flowRemove) {
-//                /* if all port are removed, remove the flow too. */
-//                removeFlow(flowBuilder, nodeBuilder);
-//            } else {
-//                /* Install instruction with new output port list*/
-//                ib.setOrder(0);
-//                ib.setKey(new InstructionKey(0));
-//                instructions.add(ib.build());
-//
-//                // Add InstructionBuilder to the Instruction(s)Builder List
-//                isb.setInstruction(instructions);
-//
-//                // Add InstructionsBuilder to FlowBuilder
-//                flowBuilder.setInstructions(isb.build());
-//                writeFlow(flowBuilder, nodeBuilder);
-//            }
-        }
-    }
-
-    /*
-     * (Table:  L2_FORWARDING) Broadcast packet from local port, to tunnel port, each tunnel port, create a single flow
-     * Match:   NXM_NX_REG0=0x1 , TunnelId
-     * Actions: group:TunnelId
-     * Flow example:
-     *      table=110, reg0=0x1,tun_id=0x3ea,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 , \
-     *      actions=group:0x3ea"
-     *
-     *      groupid=0x3ea  bucketid=destTunnelIp, actions=load:0xc0a876a1->NXM_NX_TUN_IPV4_DST[],output:3;
-     *      bucket id is dest tunnel ip
-     */
-    public void programLocalBcastToTunnelPort(Long dpidLong, Long segmentationId, Long OFTunnelPortOut, IpAddress dstTunIpAddress,  boolean write) {
-
-        String nodeName = OPENFLOW + dpidLong;
-
-        MatchBuilder matchBuilder = new MatchBuilder();
-        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
-        FlowBuilder flowBuilder = new FlowBuilder();
-
-        // Create the OF Match using MatchBuilder
-        // Match TunnelID
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD, PipelineTrafficClassifier.REG_VALUE_FROM_LOCAL));
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
-        // Match DMAC
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
-                new MacAddress("01:00:00:00:00:00")).build());
-
-        String flowId = "TunnelFloodOut_"+segmentationId;
-        // Add Flow Attributes
-        flowBuilder.setId(new FlowId(flowId));
-        FlowKey key = new FlowKey(new FlowId(flowId));
-        flowBuilder.setBarrier(true);
-        flowBuilder.setTableId(getTable());
-        flowBuilder.setKey(key);
-        flowBuilder.setPriority(16383);  // FIXME: change it back to 16384 once bug 3005 is fixed.
-        flowBuilder.setFlowName(flowId);
-        flowBuilder.setHardTimeout(0);
-        flowBuilder.setIdleTimeout(0);
-
-        Flow flow = this.getFlow(flowBuilder, nodeBuilder);
-
-        // Instantiate the Builders for the OF Actions and Instructions
-        InstructionBuilder ib = new InstructionBuilder();
-        InstructionsBuilder isb = new InstructionsBuilder();
-        List<Instruction> instructions = Lists.newArrayList();
-        List<Instruction> existingInstructions = null;
-        if (flow != null) {
-            Instructions ins = flow.getInstructions();
-            if (ins != null) {
-                existingInstructions = ins.getInstruction();
-            }
-        }
-
-        if (write) {
-            // Set the Output Port/Iface
-            //InstructionUtils.createOutputPortInstructions(ib, dpidLong, OFTunnelPortOut);
-            createOutputGroupInstructionsToTunnelPort(nodeBuilder, ib,
-                    dpidLong, OFTunnelPortOut , segmentationId, dstTunIpAddress,
+            createOutputGroupInstructionsToLocalPort(nodeBuilder, ib, dpidLong, OFLocalPortOut, segmentationId,
                     existingInstructions);
-//            //add by yzy:
-//            ApplyActionsCase aac = (ApplyActionsCase) ib.getInstruction();
-//            List<Action> actionList = aac.getApplyActions().getAction();
-//            ActionBuilder ab = new ActionBuilder();
-//            ab.setAction(ActionUtils.nxLoadTunIPv4Action(dstTunIpAddress.getIpv4Address().getValue(), false));
-//            ab.setOrder(1);
-//            ab.setKey(new ActionKey(1));
-//            actionList.add(ab.build());
-//            //end by yzy
+            // createOutputPortInstructions(ib, dpidLong, OFLocalPortOut,
+            // existingInstructions);
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+            instructions.add(ib.build());
+
+            // Add InstructionBuilder to the Instruction(s)Builder List
+            isb.setInstruction(instructions);
+
+            // Add InstructionsBuilder to FlowBuilder
+            flowBuilder.setInstructions(isb.build());
+
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            /* remove port from the bucket used for local port, bucketid=1 */
+            boolean flowRemove = removeActionFromGroup(nodeBuilder, ib, dpidLong, OFLocalPortOut, null,
+                    existingInstructions);
+            if (flowRemove) {
+                /* if all port are removed, remove the flow too. */
+                removeFlow(flowBuilder, nodeBuilder);
+            } else {
+                /* Install instruction with new output port list */
+                ib.setOrder(0);
+                ib.setKey(new InstructionKey(0));
+                instructions.add(ib.build());
+
+                // Add InstructionBuilder to the Instruction(s)Builder List
+                isb.setInstruction(instructions);
+
+                // Add InstructionsBuilder to FlowBuilder
+                flowBuilder.setInstructions(isb.build());
+                writeFlow(flowBuilder, nodeBuilder);
+            }
+        }
+    }
+
+    /*
+     * (Table: L2_FORWARDING) Broadcast packet from local port, to tunnel port,
+     * each tunnel port, create a single flow Match: NXM_NX_REG0=0x1 , TunnelId
+     * Actions: group:TunnelId Flow example: table=110,
+     * reg0=0x1,tun_id=0x3ea,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 , \
+     * actions=group:0x3ea"
+     *
+     * groupid=0x3ea bucketid=destTunnelIp,
+     * actions=load:0xc0a876a1->NXM_NX_TUN_IPV4_DST[],output:3; bucket id is
+     * dest tunnel ip
+     */
+    public void programLocalBcastToTunnelPort(Long dpidLong, Long segmentationId, Long OFTunnelPortOut,
+            IpAddress dstTunIpAddress, boolean writeFlow) {
+
+        String nodeName = OPENFLOW + dpidLong;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        // Create the OF Match using MatchBuilder
+        // Match TunnelID
+        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+                PipelineTrafficClassifier.REG_VALUE_FROM_LOCAL));
+        flowBuilder.setMatch(
+                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        // Match DMAC
+        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
+                new MacAddress("01:00:00:00:00:00")).build());
+
+        String flowId = "TunnelFloodOut_" + segmentationId;
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setBarrier(true);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setPriority(16383); // FIXME: change it back to 16384 once
+                                        // bug 3005 is fixed.
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        Flow flow = this.getFlow(flowBuilder, nodeBuilder);
+
+        // Instantiate the Builders for the OF Actions and Instructions
+        InstructionBuilder ib = new InstructionBuilder();
+        InstructionsBuilder isb = new InstructionsBuilder();
+        List<Instruction> instructions = Lists.newArrayList();
+        List<Instruction> existingInstructions = null;
+        if (flow != null) {
+            Instructions ins = flow.getInstructions();
+            if (ins != null) {
+                existingInstructions = ins.getInstruction();
+            }
+        }
+
+        if (writeFlow) {
+            // create a bucket to group bucket list,
+            // bucketid=(long)dstTunIpAddress
+            createOutputGroupInstructionsToTunnelPort(nodeBuilder, ib, dpidLong, OFTunnelPortOut, segmentationId,
+                    dstTunIpAddress, existingInstructions);
 
             ib.setOrder(0);
             ib.setKey(new InstructionKey(0));
@@ -619,15 +635,34 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
 
             writeFlow(flowBuilder, nodeBuilder);
         } else {
-            removeFlow(flowBuilder, nodeBuilder);
+            /* remove port from the bucket used for local port, bucketid=1 */
+            boolean flowRemove = removeActionFromGroup(nodeBuilder, ib, dpidLong, OFTunnelPortOut, dstTunIpAddress,
+                    existingInstructions);
+            if (flowRemove) {
+                /* if all port are removed, remove the flow too. */
+                removeFlow(flowBuilder, nodeBuilder);
+            } else {
+                /* Install instruction with new output port list */
+                ib.setOrder(0);
+                ib.setKey(new InstructionKey(0));
+                instructions.add(ib.build());
+
+                // Add InstructionBuilder to the Instruction(s)Builder List
+                isb.setInstruction(instructions);
+
+                // Add InstructionsBuilder to FlowBuilder
+                flowBuilder.setInstructions(isb.build());
+                writeFlow(flowBuilder, nodeBuilder);
+            }
         }
     }
 
-    protected InstructionBuilder createOutputPortInstructions(InstructionBuilder ib,
-            Long dpidLong, Long port ,
+    protected InstructionBuilder createOutputPortInstructions(InstructionBuilder ib, Long dpidLong, Long port,
             List<Instruction> instructions) {
         NodeConnectorId ncid = new NodeConnectorId(OPENFLOW + dpidLong + ":" + port);
-        LOG.debug("createOutputPortInstructions() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}", dpidLong, port, instructions);
+        LOG.debug(
+                "createOutputPortInstructions() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
+                dpidLong, port, instructions);
 
         List<Action> actionList = Lists.newArrayList();
         ActionBuilder ab = new ActionBuilder();
@@ -635,8 +670,8 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         List<Action> existingActions;
         if (instructions != null && instructions.size() > 0) {
             /**
-             * First instruction is the one containing the output ports.
-             * So, only extract the actions from that.
+             * First instruction is the one containing the output ports. So,
+             * only extract the actions from that.
              */
             Instruction in = instructions.get(0);
             if (in.getInstruction() instanceof ApplyActionsCase) {
@@ -649,7 +684,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                 }
             }
         }
-        /* Create output action for this port*/
+        /* Create output action for this port */
         OutputActionBuilder oab = new OutputActionBuilder();
         oab.setOutputNodeConnector(ncid);
         ab.setAction(new OutputActionCaseBuilder().setOutputAction(oab.build()).build());
@@ -657,8 +692,11 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
 
         /* Find the group action and get the group */
         for (Action action : actionList) {
-            OutputActionCase opAction = (OutputActionCase)action.getAction();
-            /* If output port action already in the action list of one of the buckets, skip */
+            OutputActionCase opAction = (OutputActionCase) action.getAction();
+            /*
+             * If output port action already in the action list of one of the
+             * buckets, skip
+             */
             if (opAction.getOutputAction().getOutputNodeConnector().equals(new Uri(ncid))) {
                 addNew = false;
                 break;
@@ -677,11 +715,12 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         return ib;
     }
 
-
     private Group getGroup(GroupBuilder groupBuilder, NodeBuilder nodeBuilder) {
-        InstanceIdentifier<Group> path1 = InstanceIdentifier.builder(Nodes.class).child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory
-                .rev130819.nodes.Node.class, nodeBuilder.getKey()).augmentation(FlowCapableNode.class).child(Group.class,
-                        new GroupKey(groupBuilder.getGroupId())).build();
+        InstanceIdentifier<Group> path1 = InstanceIdentifier.builder(Nodes.class)
+                .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class,
+                        nodeBuilder.getKey())
+                .augmentation(FlowCapableNode.class).child(Group.class, new GroupKey(groupBuilder.getGroupId()))
+                .build();
         DataBroker databroker = getDataBroker();
         ReadOnlyTransaction readTx = databroker.newReadOnlyTransaction();
         try {
@@ -689,7 +728,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             if (data.isPresent()) {
                 return data.get();
             }
-        } catch (InterruptedException|ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             LOG.error(e.getMessage(), e);
         }
 
@@ -700,33 +739,63 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     private void writeGroup(GroupBuilder groupBuilder, NodeBuilder nodeBuilder) {
         DataBroker databroker = getDataBroker();
         ReadWriteTransaction modification = databroker.newReadWriteTransaction();
-        InstanceIdentifier<Group> path1 = InstanceIdentifier.builder(Nodes.class).child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory
-                .rev130819.nodes.Node.class, nodeBuilder.getKey()).augmentation(FlowCapableNode.class).child(Group.class,
-                        new GroupKey(groupBuilder.getGroupId())).build();
-        //modification.put(LogicalDatastoreType.CONFIGURATION, path1, groupBuilder.build(), true /*createMissingParents*/);
-        modification.merge(LogicalDatastoreType.CONFIGURATION, path1, groupBuilder.build(), true /*createMissingParents*/);
+        InstanceIdentifier<Group> path1 = InstanceIdentifier.builder(Nodes.class)
+                .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class,
+                        nodeBuilder.getKey())
+                .augmentation(FlowCapableNode.class).child(Group.class, new GroupKey(groupBuilder.getGroupId()))
+                .build();
+        // modification.put(LogicalDatastoreType.CONFIGURATION, path1,
+        // groupBuilder.build(), true /*createMissingParents*/);
+        modification.merge(LogicalDatastoreType.CONFIGURATION, path1, groupBuilder.build(),
+                true /* createMissingParents */);
 
         CheckedFuture<Void, TransactionCommitFailedException> commitFuture = modification.submit();
         try {
-            commitFuture.get();  // TODO: Make it async (See bug 1362)
+            commitFuture.get();
             LOG.debug("Transaction success for write of Group " + groupBuilder.getGroupName());
-        } catch (InterruptedException|ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    private void removeGroup(GroupBuilder groupBuilder, NodeBuilder nodeBuilder) {
+        DataBroker databroker = getDataBroker();
+        WriteTransaction modification = databroker.newWriteOnlyTransaction();
+        InstanceIdentifier<Group> path1 = InstanceIdentifier.builder(Nodes.class)
+                .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class,
+                        nodeBuilder.getKey())
+                .augmentation(FlowCapableNode.class).child(Group.class, new GroupKey(groupBuilder.getGroupId()))
+                .build();
+        modification.delete(LogicalDatastoreType.CONFIGURATION, path1);
+        CheckedFuture<Void, TransactionCommitFailedException> commitFuture = modification.submit();
+
+        try {
+            commitFuture.get();
+            LOG.debug("Transaction success for deletion of Group " + groupBuilder.getGroupName());
+        } catch (InterruptedException | ExecutionException e) {
             LOG.error(e.getMessage(), e);
         }
     }
 
     /*
+<<<<<<< HEAD
      * Used for flood to local port
      * groupId is segment id
      * bucketId is always 1, all local port in this flood domain use one bucket ID
+=======
+     * Used for flood to local port groupId is segment id bucketId is always 1,
+     * all local port in this flood domain use one bucket ID
+>>>>>>> Fix some openflow problems
      */
     protected InstructionBuilder createOutputGroupInstructionsToLocalPort(NodeBuilder nodeBuilder,
-            InstructionBuilder ib,
-            Long dpidLong, Long port , long groupId,
-            List<Instruction> instructions) {
+            InstructionBuilder ib, Long dpidLong, Long port, long groupId, List<Instruction> instructions) {
         NodeConnectorId ncid = new NodeConnectorId(Constants.OPENFLOW_NODE_PREFIX + dpidLong + ":" + port);
-        LOG.warn("yzy: createOutputGroupInstructionsToLocalPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}", dpidLong, port, instructions);
-        LOG.debug("createOutputGroupInstructionsToLocalPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}", dpidLong, port, instructions);
+        LOG.warn(
+                "yzy: createOutputGroupInstructionsToLocalPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
+                dpidLong, port, instructions);
+        LOG.debug(
+                "createOutputGroupInstructionsToLocalPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
+                dpidLong, port, instructions);
 
         List<Action> actionList = Lists.newArrayList();
         ActionBuilder ab = new ActionBuilder();
@@ -744,7 +813,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         GroupBuilder groupBuilder = new GroupBuilder();
         Group group = null;
 
-        /* Create output action for this port*/
+        /* Create output action for this port */
         OutputActionBuilder oab = new OutputActionBuilder();
         oab.setOutputNodeConnector(ncid);
         ab.setAction(new OutputActionCaseBuilder().setOutputAction(oab.build()).build());
@@ -778,18 +847,21 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             /* modify the action bucket in group */
             groupBuilder = new GroupBuilder(group);
             Buckets buckets = groupBuilder.getBuckets();
-            //find the bucket used for local ports
+            // find the bucket used for local ports
             int bucketIndex = -1;
             int tempIndex = -1;
             for (Bucket bucket : buckets.getBucket()) {
                 tempIndex++;
                 if (bucket.getBucketId().getValue() == 1l) {
-                    //for local port, the bucket id is always 1
+                    // for local port, the bucket id is always 1
                     List<Action> bucketActions = bucket.getAction();
                     for (Action action : bucketActions) {
                         if (action.getAction() instanceof OutputActionCase) {
-                            OutputActionCase opAction = (OutputActionCase)action.getAction();
-                            /* If output port action already in the action list of one of the buckets, skip */
+                            OutputActionCase opAction = (OutputActionCase) action.getAction();
+                            /*
+                             * If output port action already in the action list
+                             * of one of the buckets, skip
+                             */
                             if (opAction.getOutputAction().getOutputNodeConnector().equals(new Uri(ncid))) {
                                 addNew = false;
                                 break;
@@ -800,7 +872,6 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                     break;
                 }
             }
-
 
             if (addNew) {
                 BucketsBuilder bucketsBuilder = new BucketsBuilder();
@@ -815,7 +886,10 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                 }
 
                 if (bucketIndex != -1) {
-                    /* Bucket exsit, but the new output action is not in the exsited bucket, add to bucket */
+                    /*
+                     * Bucket exsit, but the new output action is not in the
+                     * exsited bucket, add to bucket
+                     */
                     Bucket bucket = buckets.getBucket().get(bucketIndex);
 
                     bucketActionList.addAll(bucket.getAction());
@@ -823,15 +897,17 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                     ab.setOrder(bucketActionList.size());
                     ab.setKey(new ActionKey(bucketActionList.size()));
                     bucketActionList.add(ab.build());
-                }
-                else {
-                    /* Create new bucket, and add output action to the bucket*/
+                } else {
+                    /* Create new bucket, and add output action to the bucket */
                     ab.setOrder(bucketActionList.size());
                     ab.setKey(new ActionKey(bucketActionList.size()));
                     bucketActionList.add(ab.build());
                 }
 
-                /* set bucket and buckets list. Reset groupBuilder with new buckets.*/
+                /*
+                 * set bucket and buckets list. Reset groupBuilder with new
+                 * buckets.
+                 */
                 bucketBuilder.setBucketId(bucketId);
                 bucketBuilder.setKey(new BucketKey(bucketId));
                 bucketBuilder.setAction(bucketActionList);
@@ -878,7 +954,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
-            //groupId++;
+            // groupId++;
         }
         LOG.debug("createOutputGroupInstructionsToLocalPort: group {}", groupBuilder.build());
         LOG.debug("createOutputGroupInstructionsToLocalPort: actionList {}", actionList);
@@ -897,16 +973,19 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
     }
 
     /*
-     * Used for flood to tunnel port, for different dest Node, have different dest tunnel ip address
-     * groupId is segment id
+     * Used for flood to tunnel port, for different dest Node, have different
+     * dest tunnel ip address groupId is segment id
      */
     protected InstructionBuilder createOutputGroupInstructionsToTunnelPort(NodeBuilder nodeBuilder,
-            InstructionBuilder ib,
-            Long dpidLong, Long port , Long groupId, IpAddress destTunnelIp,
+            InstructionBuilder ib, Long dpidLong, Long port, Long groupId, IpAddress destTunnelIp,
             List<Instruction> instructions) {
         NodeConnectorId ncid = new NodeConnectorId(Constants.OPENFLOW_NODE_PREFIX + dpidLong + ":" + port);
-        LOG.warn("yzy: createOutputGroupInstructionsToTunnelPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}", dpidLong, port, instructions);
-        //LOG.debug("createOutputGroupInstructionsToTunnelPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}", dpidLong, port, instructions);
+        LOG.warn(
+                "yzy: createOutputGroupInstructionsToTunnelPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
+                dpidLong, port, instructions);
+        // LOG.debug("createOutputGroupInstructionsToTunnelPort() Node Connector
+        // ID is - Type=openflow: DPID={} port={} existingInstructions={}",
+        // dpidLong, port, instructions);
 
         List<Action> actionList = Lists.newArrayList();
 
@@ -923,7 +1002,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         GroupBuilder groupBuilder = new GroupBuilder();
         Group group = null;
 
-        /* Create output action for this port*/
+        /* Create output action for this port */
         ActionBuilder outPortActionBuilder = new ActionBuilder();
         ActionBuilder loadTunIPv4ActionBuilder = new ActionBuilder();
 
@@ -931,7 +1010,8 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         oab.setOutputNodeConnector(ncid);
         outPortActionBuilder.setAction(new OutputActionCaseBuilder().setOutputAction(oab.build()).build());
         /* Create load tunnel ip action */
-        loadTunIPv4ActionBuilder.setAction(ActionUtils.nxLoadTunIPv4Action(destTunnelIp.getIpv4Address().getValue(), false));
+        loadTunIPv4ActionBuilder
+                .setAction(ActionUtils.nxLoadTunIPv4Action(destTunnelIp.getIpv4Address().getValue(), false));
 
         boolean addNew = true;
         boolean groupActionAdded = false;
@@ -957,7 +1037,7 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
 
         BucketId bucketId = null;
 
-        //add tunnel port out, bucket_id=destTunnelIp.int
+        // add tunnel port out, bucket_id=destTunnelIp.int
         int ip = InetAddresses.coerceToInteger(InetAddresses.forString(destTunnelIp.getIpv4Address().getValue()));
         long ipl = ip & 0xffffffffL;
         bucketId = new BucketId(ipl);
@@ -968,19 +1048,20 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             Buckets buckets = groupBuilder.getBuckets();
 
             for (Bucket bucket : buckets.getBucket()) {
-                if ( (bucket.getBucketId().getValue() == bucketId.getValue())
-                        && (bucket.getBucketId().getValue() != 1l) ) {
-                    LOG.warn("Warning: createOutputGroupInstructionsToTunnelPort: the bucket is exsit for a tunnel port");
+                if ((bucket.getBucketId().getValue() == bucketId.getValue())
+                        && (bucket.getBucketId().getValue() != 1l)) {
+                    LOG.warn(
+                            "Warning: createOutputGroupInstructionsToTunnelPort: the bucket is exsit for a tunnel port");
                     addNew = false;
                     break;
                 }
             }
             if (addNew) {
                 /* the new output action is not in the bucket, add to bucket */
-                //Bucket bucket = buckets.getBucket().get(0);
-                //BucketBuilder bucket = new BucketBuilder();
+                // Bucket bucket = buckets.getBucket().get(0);
+                // BucketBuilder bucket = new BucketBuilder();
                 List<Action> bucketActionList = Lists.newArrayList();
-                //bucketActionList.addAll(bucket.getAction());
+                // bucketActionList.addAll(bucket.getAction());
                 /* set order for new action and add to action list */
                 loadTunIPv4ActionBuilder.setOrder(0);
                 loadTunIPv4ActionBuilder.setKey(new ActionKey(0));
@@ -990,7 +1071,10 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
                 outPortActionBuilder.setKey(new ActionKey(1));
                 bucketActionList.add(outPortActionBuilder.build());
 
-                /* set bucket and buckets list. Reset groupBuilder with new buckets.*/
+                /*
+                 * set bucket and buckets list. Reset groupBuilder with new
+                 * buckets.
+                 */
                 BucketsBuilder bucketsBuilder = new BucketsBuilder();
                 List<Bucket> bucketList = Lists.newArrayList();
                 bucketList.addAll(buckets.getBucket());
@@ -1047,10 +1131,12 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
-            //groupId++;
+            // groupId++;
         }
-        //LOG.debug("createOutputGroupInstructions: group {}", groupBuilder.build());
-        //LOG.debug("createOutputGroupInstructions: actionList {}", actionList);
+        // LOG.debug("createOutputGroupInstructions: group {}",
+        // groupBuilder.build());
+        // LOG.debug("createOutputGroupInstructions: actionList {}",
+        // actionList);
 
         if (addNew) {
             /* rewrite the group to group table */
@@ -1063,5 +1149,134 @@ public class PipelineL2Forwarding  extends AbstractServiceInstance {
         ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
 
         return ib;
+    }
+
+    protected boolean removeActionFromGroup(NodeBuilder nodeBuilder, InstructionBuilder ib, Long dpidLong, Long port,
+            IpAddress destTunnelIp, List<Instruction> instructions) {
+
+        NodeConnectorId ncid = new NodeConnectorId(Constants.OPENFLOW_NODE_PREFIX + dpidLong + ":" + port);
+
+        List<Action> actionList = Lists.newArrayList();
+        ActionBuilder ab;
+
+        List<Action> existingActions;
+        if (instructions != null) {
+            for (Instruction in : instructions) {
+                if (in.getInstruction() instanceof ApplyActionsCase) {
+                    existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                    actionList.addAll(existingActions);
+                    break;
+                }
+            }
+        }
+
+        GroupBuilder groupBuilder = new GroupBuilder();
+        Group group = null;
+        boolean groupActionAdded = false;
+        /* Find the group action and get the group */
+        for (Action action : actionList) {
+            if (action.getAction() instanceof GroupActionCase) {
+                groupActionAdded = true;
+                GroupActionCase groupAction = (GroupActionCase) action.getAction();
+                Long id = groupAction.getGroupAction().getGroupId();
+                String groupName = groupAction.getGroupAction().getGroup();
+                GroupKey key = new GroupKey(new GroupId(id));
+
+                groupBuilder.setGroupId(new GroupId(id));
+                groupBuilder.setGroupName(groupName);
+                groupBuilder.setGroupType(GroupTypes.GroupAll);
+                groupBuilder.setKey(key);
+                group = getGroup(groupBuilder, nodeBuilder);
+                break;
+            }
+        }
+
+        if (groupActionAdded) {
+            /* modify the action bucket in group */
+            groupBuilder = new GroupBuilder(group);
+            Buckets buckets = groupBuilder.getBuckets();
+            List<Action> bucketActions = Lists.newArrayList();
+            for (Bucket bucket : buckets.getBucket()) {
+                if ((destTunnelIp != null) && (bucket.getBucketId().getValue() == 1l)) {
+                    // remove port from the bucket id = 1
+                    int index = 0;
+                    boolean isPortDeleted = false;
+                    bucketActions = bucket.getAction();
+                    for (Action action : bucketActions) {
+                        if (action.getAction() instanceof OutputActionCase) {
+                            OutputActionCase opAction = (OutputActionCase) action.getAction();
+                            if (opAction.getOutputAction().getOutputNodeConnector().equals(new Uri(ncid))) {
+                                /*
+                                 * Find the output port in action list and
+                                 * remove
+                                 */
+                                index = bucketActions.indexOf(action);
+                                bucketActions.remove(action);
+                                isPortDeleted = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isPortDeleted && !bucketActions.isEmpty()) {
+                        for (int i = index; i < bucketActions.size(); i++) {
+                            Action action = bucketActions.get(i);
+                            if (action.getOrder() != i) {
+                                /* Shift the action order */
+                                ab = new ActionBuilder();
+                                ab.setAction(action.getAction());
+                                ab.setOrder(i);
+                                ab.setKey(new ActionKey(i));
+                                Action actionNewOrder = ab.build();
+                                bucketActions.remove(action);
+                                bucketActions.add(i, actionNewOrder);
+                            }
+                        }
+
+                    } else if (bucketActions.isEmpty()) {
+                        /* remove bucket with empty action list */
+                        buckets.getBucket().remove(bucket);
+                        break;
+                    }
+                } // if bucketid=1
+                else if (destTunnelIp != null) {
+                    // Remove the bucket to the dest Vtep
+                    int ip = InetAddresses
+                            .coerceToInteger(InetAddresses.forString(destTunnelIp.getIpv4Address().getValue()));
+                    long ipBucketId = ip & 0xffffffffL;
+                    // BucketId bucketId = new BucketId(ipl);
+                    if (bucket.getBucketId().getValue() == ipBucketId) {
+                        buckets.getBucket().remove(bucket);
+                    }
+                }
+            }
+            if (!buckets.getBucket().isEmpty()) {
+                /* rewrite the group to group table */
+                /*
+                 * set bucket and buckets list. Reset groupBuilder with new
+                 * buckets.
+                 */
+                List<Bucket> bucketList = Lists.newArrayList();
+
+                bucketList.addAll(buckets.getBucket());
+                BucketsBuilder bucketsBuilder = new BucketsBuilder();
+
+                bucketsBuilder.setBucket(bucketList);
+                groupBuilder.setBuckets(bucketsBuilder.build());
+                LOG.debug("removeOutputPortFromGroup: bucketList {}", bucketList);
+
+                writeGroup(groupBuilder, nodeBuilder);
+                ApplyActionsBuilder aab = new ApplyActionsBuilder();
+                aab.setAction(actionList);
+                ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+                return false;
+            } else {
+                /* remove group with empty bucket. return true to delete flow */
+                removeGroup(groupBuilder, nodeBuilder);
+                return true;
+            }
+        } else {
+            /* no group for port list. flow can be removed */
+            return true;
+        }
     }
 }
