@@ -15,6 +15,7 @@
   <repository>mvn:org.opendaylight.controller/features-mdsal/{{VERSION}}/xml/features</repository>
   <repository>mvn:org.opendaylight.mdsal.model/features-mdsal-model/{{VERSION}}/xml/features</repository>
   <repository>mvn:org.opendaylight.netconf/features-restconf/{{VERSION}}/xml/features</repository>
+  <repository>mvn:org.opendaylight.sfc/features-sfc/{{VERSION}}/xml/features</repository>
 
   <feature name='odl-faas-base' version='${project.version}' description='OpenDaylight :: faas :: base'>
     <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.snmp4j/2.1.0_1</bundle>
@@ -81,10 +82,10 @@
     <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
     <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
     <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
-    <!--
+    <feature version='${sfc.version}'>odl-sfcofl2</feature>
+    <feature version='${sfc.version}'>odl-sfc-ui</feature>
+
     <bundle>mvn:org.opendaylight.controller.model/model-inventory/${inventory.model.version}</bundle>
-    -->
-    <bundle>mvn:org.opendaylight.controller.model/model-inventory/1.3.0-SNAPSHOT</bundle>
 
     <bundle>mvn:org.opendaylight.faas/uln-mapper-model/${project.version}</bundle>
     <!-- TODO:

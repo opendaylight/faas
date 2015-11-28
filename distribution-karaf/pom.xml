@@ -31,62 +31,27 @@
     <features.faas.version>1.0.0-SNAPSHOT</features.faas.version>
   </properties>
   
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>faas-artifacts</artifactId>
+        <version>${project.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <!-- scope is compile so all features (there is only one) are installed -->
       <!-- into startup.properties and the feature repo itself is not installed -->
       <groupId>org.apache.karaf.features</groupId>
       <artifactId>framework</artifactId>
-      <version>${karaf.version}</version>
       <type>kar</type>
     </dependency>
-<!--
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>karaf.branding</artifactId>
-      <scope>compile</scope>
-    </dependency>
--->
 
-    <!-- scope is not runtime so the feature repo is pulled into the local -->
-    <!--repo on build and thus you actually run. Failure to do so can lead -->
-    <!-- to very -->
-    <!--confusing errors for devs -->
-    <!--
-    <dependency>
-      <groupId>org.apache.karaf.features</groupId>
-      <artifactId>standard</artifactId>
-      <version>${karaf.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>features-base</artifactId>
-      <classifier>features</classifier>
-   	  <version>${odl.version}</version>
-      <type>xml</type>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>features-nsf</artifactId>
-      <version>0.5.0-SNAPSHOT</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-    -->
-    <!-- MD-SAL Related Features -->
-    <!--
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>features-mdsal</artifactId>
-   	  <version>${mdsal.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-    -->
-	
     <!-- faas Related Features -->
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
@@ -98,249 +63,10 @@
     </dependency>
   </dependencies>
 
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.eclipse.m2e</groupId>
-          <artifactId>lifecycle-mapping</artifactId>
-          <version>1.0.0</version>
-          <configuration>
-            <lifecycleMappingMetadata>
-              <pluginExecutions>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.apache.felix</groupId>
-                    <artifactId>maven-bundle-plugin</artifactId>
-                    <versionRange>[0,)</versionRange>
-                    <goals>
-                      <goal>cleanVersions</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore></ignore>
-                  </action>
-                </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <versionRange>[0,)</versionRange>
-                    <goals>
-                      <goal>copy</goal>
-                      <goal>unpack</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore></ignore>
-                  </action>
-                </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.apache.karaf.tooling</groupId>
-                    <artifactId>karaf-maven-plugin</artifactId>
-                    <versionRange>[0,)</versionRange>
-                    <goals>
-                      <goal>commands-generate-help</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore></ignore>
-                  </action>
-                </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.fusesource.scalate</groupId>
-                    <artifactId>maven-scalate-plugin</artifactId>
-                    <versionRange>[0,)</versionRange>
-                    <goals>
-                      <goal>sitegen</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore></ignore>
-                  </action>
-                </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.apache.servicemix.tooling</groupId>
-                    <artifactId>depends-maven-plugin</artifactId>
-                    <versionRange>[0,)</versionRange>
-                    <goals>
-                      <goal>generate-depends-file</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore></ignore>
-                  </action>
-                </pluginExecution>
-              </pluginExecutions>
-            </lifecycleMappingMetadata>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.karaf.tooling</groupId>
-        <artifactId>karaf-maven-plugin</artifactId>
-        <version>${karaf.version}</version>
-        <extensions>true</extensions>
-        <configuration>
-          <bootFeatures>
-            <feature>standard</feature>
-          </bootFeatures>
-        </configuration>
-        <executions>
-          <execution>
-            <id>process-resources</id>
-            <goals>
-              <goal>install-kars</goal>
-            </goals>
-            <phase>process-resources</phase>
-          </execution>
-          <execution>
-            <id>package</id>
-            <goals>
-              <goal>instance-create-archive</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>features-add-to-repo</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>features-add-to-repository</goal>
-            </goals>
-            <configuration>
-              <descriptors>
-                  <!--
-                <descriptor>mvn:org.apache.karaf.features/standard/3.0.1/xml/features</descriptor>
-                <descriptor>mvn:org.apache.karaf.features/enterprise/3.0.1/xml/features</descriptor>
-                <descriptor>mvn:org.ops4j.pax.web/pax-web-features/3.1.0/xml/features</descriptor>
-                <descriptor>mvn:org.apache.karaf.features/spring/3.0.1/xml/features</descriptor>
-                <descriptor>mvn:org.opendaylight.controller/features-base/1.4.3-SNAPSHOT/xml/features</descriptor>
-                <descriptor>mvn:org.opendaylight.controller/features-nsf/0.5.0-SNAPSHOT/xml/features</descriptor>
-                <descriptor>mvn:org.opendaylight.controller/features-mdsal/1.2.0-SNAPSHOT/xml/features</descriptor>
-                -->
-				        <descriptor>mvn:org.opendaylight.faas/features-faas/${features.faas.version}/xml/features</descriptor>
-              </descriptors>
-              <features>
-                  <!--
-                <feature>standard</feature>
-                -->
-                <feature>odl-faas-all</feature>			
-              </features>
-              <repository>target/assembly/system</repository>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${checkstyle.version}</version>
-        <configuration>
-          <excludes>**\/target\/,**\/bin\/,**\/target-ide\/,**\/configuration\/initial\/</excludes>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.6</version>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <!-- here the phase you need -->
-            <phase>generate-resources</phase>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.opendaylight.controller</groupId>
-                  <artifactId>karaf.branding</artifactId>
-                  <version>${karaf.branding.version}</version>
-                  <outputDirectory>target/assembly/lib</outputDirectory>
-                  <destFileName>karaf.branding-${branding.version}.jar</destFileName>
-                </artifactItem>
-                <!-- Needs to be copied to lib/ext in order to start bouncy -->
-                <!-- provider for mina sshd -->
-                <artifactItem>
-                  <groupId>org.bouncycastle</groupId>
-                  <artifactId>bcprov-jdk15on</artifactId>
-                  <version>${bouncycastle.version}</version>
-                  <outputDirectory>target/assembly/lib/ext</outputDirectory>
-                  <destFileName>bcprov-jdk15on-${bouncycastle.version}.jar</destFileName>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
-          </execution>
-          <execution>
-            <id>unpack-karaf-resources</id>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>${project.build.directory}/assembly</outputDirectory>
-              <groupId>org.opendaylight.controller</groupId>
-              <includeArtifactIds>opendaylight-karaf-resources</includeArtifactIds>
-              <excludes>META-INF\/**</excludes>
-              <excludeTransitive>true</excludeTransitive>
-              <ignorePermissions>false</ignorePermissions>
-            </configuration>
-          </execution>
-          <execution>
-            <id>unpack-naas-karaf-resources</id>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>${project.build.directory}/assembly</outputDirectory>
-              <groupId></groupId>
-              <includeArtifactIds>naas-karaf-resources</includeArtifactIds>
-              <excludes>META-INF\/**</excludes>
-              <excludeTransitive>true</excludeTransitive>
-              <ignorePermissions>false</ignorePermissions>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <tasks>
-                <chmod perm="755">
-                  <fileset dir="${project.build.directory}/assembly/bin">
-                    <include name="karaf" />
-                    <include name="instance" />
-                    <include name="start" />
-                    <include name="stop" />
-                    <include name="status" />
-                    <include name="client" />
-                    <include name="shell" />
-                  </fileset>
-                </chmod>
-              </tasks>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
   <scm>
-    <connection>scm:git:ssh://git.opendaylight.org:29418/controller.git</connection>
-    <developerConnection>scm:git:ssh://git.opendaylight.org:29418/controller.git</developerConnection>
+    <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
+    <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>
     <tag>HEAD</tag>
-    <url>https://wiki.opendaylight.org/view/OpenDaylight_Controller:Main</url>
+    <url>https://wiki.opendaylight.org/view/faas:Main</url>
   </scm>
 </project>

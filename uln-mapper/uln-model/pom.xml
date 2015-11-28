@@ -19,6 +19,10 @@
   <artifactId>uln-mapper-model</artifactId>
   <packaging>bundle</packaging>
 
+  <properties>
+    <sfc.version>0.2.0-SNAPSHOT</sfc.version>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
@@ -70,6 +74,12 @@
     <dependency>
       <groupId>org.opendaylight.controller.model</groupId>
       <artifactId>model-inventory</artifactId>
+    </dependency>
+    <!-- SFC -->
+    <dependency>
+      <groupId>org.opendaylight.sfc</groupId>
+      <artifactId>sfc-provider</artifactId>
+      <version>${sfc.version}</version>
     </dependency>
   </dependencies>
 
