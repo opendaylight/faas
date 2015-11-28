@@ -13,7 +13,7 @@ module faas-common {
         description "Initial revision";
     }
 
-    typedef description {
+    typedef text {
         description "A human-readable description for a object.";
         type string {
             length "1..4096";
@@ -35,10 +35,8 @@ module faas-common {
             + '[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
         }
         description
-                "A Universally Unique IDentifier in the string representation
-                defined in RFC 4122. The canonical representation uses lowercase
-                characters. The following is an example of a UUID in string representation:
-                f81d4fae-7dec-11d0-a765-00a0c91e6bf6";
+                "A Universally Unique IDentifier in the string representation defined in RFC 4122. The canonical representation uses lowercase
+                characters. The following is an example of a UUID in string representation: f81d4fae-7dec-11d0-a765-00a0c91e6bf6";
         reference
                 "RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace";
     }
@@ -51,15 +49,20 @@ module faas-common {
             description "Unique Id.";
         }
 
-        leaf name {
-            type description;
-            description "Human-readable name.";
-        }
-
         leaf tenant-id {
             type uuid;
             mandatory true;
             description "Tenant Unique Id";
+        }
+
+        leaf name {
+            type text;
+            description "name.";
+        }
+
+        leaf description {
+            type text;
+            description "Human readable description.";
         }
     }
 
