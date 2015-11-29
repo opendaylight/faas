@@ -1,12 +1,16 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 package org.opendaylight.faas.uln.datastore.api;
 
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.common.rev151017.RspName;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.rsp.rev140701.RenderedServicePaths;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.rsp.rev140701.rendered.service.paths.RenderedServicePath;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.rsp.rev140701.rendered.service.paths.RenderedServicePathKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.Edges;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
@@ -223,5 +227,12 @@ public class UlnIidFactory {
             .child(EndpointsLocations.class)
             .child(EndpointLocation.class, new EndpointLocationKey(endpointLocationId))
             .build();
+    }
+
+    public static InstanceIdentifier<RenderedServicePath> rspIid(RspName rspName) {
+
+        RenderedServicePathKey rspKey = new RenderedServicePathKey(rspName);
+        return InstanceIdentifier.builder(RenderedServicePaths.class)
+                .child(RenderedServicePath.class, rspKey).build();
     }
 }
