@@ -25,6 +25,7 @@ public class FabricMgrProvider implements AutoCloseable, DataChangeListener {
     private static final Logger LOG = LoggerFactory.getLogger(FabricMgrProvider.class);
     private final ExecutorService threadPool;
     private final VcontainerServiceProvider vcProvider;
+    private final VcNetNodeServiceApiProvider netNodeApiProvider;
 
     public FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
             final NotificationService notificationService) {
@@ -37,6 +38,8 @@ public class FabricMgrProvider implements AutoCloseable, DataChangeListener {
         this.threadPool = Executors.newFixedThreadPool(numCPU * 2);
         this.vcProvider = new VcontainerServiceProvider(this.threadPool);
         this.vcProvider.registerRpc();
+        this.netNodeApiProvider = new VcNetNodeServiceApiProvider(this.threadPool);
+        this.netNodeApiProvider.initialize();
 
         LOG.info("FABMGR: FabricMgrProvider has Started");
     }

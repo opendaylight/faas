@@ -181,7 +181,7 @@ module vc-net-node {
         }
     }
 
-    rpc add-appliance-to-vcontainer {
+    rpc add-appliance-to-net-node {
         input {
             leaf net-node-ref {
                 type vctype:vc-net-node-ref;
@@ -192,7 +192,7 @@ module vc-net-node {
         }
     }
 
-    rpc rm-appliance-from-vcontainer {
+    rpc rm-appliance-from-net-node {
         input {
             leaf net-node-ref {
                 type vctype:vc-net-node-ref;

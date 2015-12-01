@@ -19,6 +19,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.re
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.UndefinedFlag;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.VcNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.VcNodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.create.vcontainer.input.VcontainerConfig;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.vc.node.attributes.VcNodeAttributes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.vc.node.attributes.VcNodeAttributesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.vcontainer.topology.type.VcontainerTopology;
@@ -41,6 +42,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNode;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.vc.ld.node.attributes.Vfabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.VcLdNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.VcLdNodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.network.topology.topology.node.vc.node.attributes.LdNodeAttributes;
@@ -99,6 +101,12 @@ public class FabMgrYangDataUtil {
         InstanceIdentifierBuilder<Node> nodePathBuilder = topoPathBuilder.child(Node.class, nodeKey);
         InstanceIdentifier<Node> nodePath = nodePathBuilder.build();
         return nodePath;
+    }
+
+    public static InstanceIdentifier<Node> createNodePath(String topoId, NodeId nodeId) {
+        return InstanceIdentifier.create(NetworkTopology.class)
+            .child(Topology.class, new TopologyKey(new TopologyId(topoId)))
+            .child(Node.class, new NodeKey(nodeId));
     }
 
     public static Node createBasicVcLdNode() {
@@ -225,5 +233,38 @@ public class FabMgrYangDataUtil {
         linkBuilder.setSource(sourceBuilder.build());
 
         return linkBuilder.build();
+    }
+
+    public static Node updateVcLdNode(Node ldNode, VcontainerConfig vcConfig) {
+        // TODO: Only add vfabric list for now.
+        return addVfabListToVcLdNode(ldNode, vcConfig.getVfabric());
+    }
+
+    public static Node addVfabListToVcLdNode(Node ldNode, List<Vfabric> vfabricList) {
+        /*
+         * Node <-- VcNode <>-- VcNodeAttributes <-- VcLdNode <>-- LdNodeAttributes <>-- vfabrics
+         */
+        VcNode oldVcNode = ldNode.getAugmentation(VcNode.class);
+        VcNodeAttributes oldVcNodeAttr = oldVcNode.getVcNodeAttributes();
+        VcLdNode oldVcLdNode = oldVcNodeAttr.getAugmentation(VcLdNode.class);
+        LdNodeAttributes oldVcLdNodeAttr = oldVcLdNode.getLdNodeAttributes();
+
+        LdNodeAttributesBuilder ldNodeAttrBuilder = new LdNodeAttributesBuilder(oldVcLdNodeAttr);
+        ldNodeAttrBuilder.setVfabric(vfabricList);
+        ldNodeAttrBuilder.setIsLdNodeEmpty(false);
+
+        VcLdNodeBuilder vcLdNodeBuilder = new VcLdNodeBuilder(oldVcLdNode);
+        vcLdNodeBuilder.setLdNodeAttributes(ldNodeAttrBuilder.build());
+
+        VcNodeAttributesBuilder vcNodeAttrBuilder = new VcNodeAttributesBuilder(oldVcNodeAttr);
+        vcNodeAttrBuilder.addAugmentation(VcLdNode.class, vcLdNodeBuilder.build());
+
+        VcNodeBuilder vcNodeBuilder = new VcNodeBuilder(oldVcNode);
+        vcNodeBuilder.setVcNodeAttributes(vcNodeAttrBuilder.build());
+
+        NodeBuilder nodeBuilder = new NodeBuilder(ldNode);
+        nodeBuilder.addAugmentation(VcNode.class, vcNodeBuilder.build());
+
+        return nodeBuilder.build();
     }
 }

@@ -101,6 +101,7 @@
     <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
     <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
 
+    <bundle>mvn:org.opendaylight.faas/fabric-model/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-model/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-impl/${project.version}</bundle>
 
