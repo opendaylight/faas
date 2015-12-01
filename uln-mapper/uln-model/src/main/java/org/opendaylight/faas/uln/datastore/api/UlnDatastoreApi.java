@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- *
+ * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
@@ -20,6 +20,8 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.EdgeBuilder;
@@ -32,6 +34,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.s
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.PortLocationAttributes.LocationType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.PortBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.port.PrivateIps;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroupsBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
@@ -73,6 +76,11 @@ public class UlnDatastoreApi {
                 t.put(logicalDatastoreType,
                         UlnIidFactory.securityGroupsIid(securityRuleGroups.getTenantId(), securityRuleGroups.getUuid()),
                         securityRuleGroups, true);
+            } else if (dao instanceof EndpointLocation) {
+                EndpointLocation endpointLocation = (EndpointLocation) dao;
+                t.put(logicalDatastoreType,
+                        UlnIidFactory.endpointLocationIid(endpointLocation.getTenantId(), endpointLocation.getUuid()),
+                        endpointLocation, true);
             } else {
                 LOG.error("submitlogicalNetworkTopologyToDs method doesn't support object of type {}", dao.getClass()
                     .getName());
@@ -604,8 +612,54 @@ public class UlnDatastoreApi {
     }
 
     /*
-     * EndpointLocation
+     * EndpointLocation Methods
      */
+
+    public static void attachEndpointToSubnet(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
+            MacAddress macAddress, List<PrivateIps> privateIpAddresses, List<IpAddress> publicIpAddresses) {
+        synchronized (UlnDatastoreApi.class) {
+            // remove endpoint location, if exists, to handle the case of moving endpoints
+            removeEndpointLocationFromDsIfExists(epLocBuilder.getTenantId(), epLocBuilder.getUuid());
+            Uuid epLocPortId = new Uuid(UUID.randomUUID().toString());
+            epLocBuilder.setPort(epLocPortId);
+            PortBuilder epLocPortbuilder = new PortBuilder();
+            epLocPortbuilder.setUuid(epLocPortId);
+            epLocPortbuilder.setAdminStateUp(true);
+            epLocPortbuilder.setLocationId(epLocBuilder.getUuid());
+            epLocPortbuilder.setLocationType(LocationType.EndpointType);
+            epLocPortbuilder.setTenantId(epLocBuilder.getTenantId());
+            epLocPortbuilder.setMacAddress(macAddress);
+            epLocPortbuilder.setPrivateIps(privateIpAddresses);
+            epLocPortbuilder.setPublicIps(publicIpAddresses);
+
+            Uuid subnetPortId = new Uuid(UUID.randomUUID().toString());
+            PortBuilder subnetPortbuilder = new PortBuilder();
+            subnetPortbuilder.setUuid(subnetPortId);
+            subnetPortbuilder.setAdminStateUp(true);
+            subnetPortbuilder.setLocationId(faasSubnetId);
+            subnetPortbuilder.setLocationType(LocationType.SubnetType);
+            subnetPortbuilder.setTenantId(epLocBuilder.getTenantId());
+
+            Subnet subnet = readSubnetFromDs(epLocBuilder.getTenantId(), faasSubnetId);
+            if (subnet == null) {
+                LOG.error("Failed to attach endpoint -- unable to find subnet {} in tenant {}", faasSubnetId,
+                        epLocBuilder.getTenantId());
+                return;
+            }
+            SubnetBuilder subnetBuilder = new SubnetBuilder(subnet);
+            List<Uuid> ports = new ArrayList<>();
+            ports.add(subnetPortId);
+            subnetBuilder.setPort(merge(subnetBuilder.getPort(), ports));
+
+            List<DataObject> nodes = new ArrayList<>();
+            nodes.add(epLocBuilder.build());
+            nodes.add(subnetBuilder.build());
+            List<Pair<Port, Port>> portLinks = new ArrayList<>();
+            portLinks.add(new Pair<>(epLocPortbuilder.build(), subnetPortbuilder.build()));
+            submitlogicalTopologyToDs(nodes, portLinks);
+        }
+    }
+
     public static void submitEndpointLocationToDs(EndpointLocation endpointLocation) {
         submitEndpointLocationToDs(endpointLocation, true);
     }
@@ -697,7 +751,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    private static boolean submitToDs(WriteTransaction wTx) {
+    public static boolean submitToDs(WriteTransaction wTx) {
         CheckedFuture<Void, TransactionCommitFailedException> submitFuture = wTx.submit();
         try {
             submitFuture.checkedGet();
@@ -708,7 +762,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    private static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path,
+    public static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path,
             ReadWriteTransaction rwTx) {
         Optional<T> potentialResult = readFromDs(path, rwTx);
         if (potentialResult.isPresent()) {
