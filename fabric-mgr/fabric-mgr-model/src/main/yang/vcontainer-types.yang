@@ -252,17 +252,17 @@ module vcontainer-types {
               type boolean;
         }
         list vfabric {
-            key "vfabric-ref";
-            leaf vfabric-ref {
-                type vfabric-ref;
+            key "vfabric-id";
+            leaf vfabric-id {
+                type vfabric-id;
                 description "Reference to a child vfabric in the vcontainer.";
             }
         }
         list appliance {
             description "The list of logical appliances owned by this vcontainer.";
-            key "appliance-ref";
-            leaf appliance-ref {
-                type appliance-ref;
+            key "appliance-id";
+            leaf appliance-id {
+                type appliance-id;
                 description "Reference to an appliance which belongs to this vcontainer.";
             }
         }

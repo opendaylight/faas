@@ -85,13 +85,11 @@
     <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
     <feature version='${sfc.version}'>odl-sfcofl2</feature>
     <feature version='${sfc.version}'>odl-sfc-ui</feature>
+    <feature version="${project.version}">odl-faas-fabricmgr</feature>
 
     <bundle>mvn:org.opendaylight.controller.model/model-inventory/${inventory.model.version}</bundle>
 
     <bundle>mvn:org.opendaylight.faas/uln-mapper-model/${project.version}</bundle>
-    <!-- TODO:
-    <bundle>mvn:org.opendaylight.faas/uln-mapper/${project.version}</bundle>
-    -->
 
     <configfile finalname="${config.configfile.directory}/uln-mapper.xml">mvn:org.opendaylight.faas/uln-mapper-config/${project.version}/xml/config</configfile>
   </feature>

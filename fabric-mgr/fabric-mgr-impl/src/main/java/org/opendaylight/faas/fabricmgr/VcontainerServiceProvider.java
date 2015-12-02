@@ -8,13 +8,22 @@
 
 package org.opendaylight.faas.fabricmgr;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
+import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VfabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VfabricRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.vc.ld.node.attributes.Vfabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.CreateVcontainerInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.CreateVcontainerOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.CreateVcontainerOutputBuilder;
@@ -24,6 +33,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.re
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.create.vcontainer.input.VcontainerConfig;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.vcontainer.topology.type.VcontainerTopology;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.vcontainer.topology.type.VcontainerTopologyBuilder;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
@@ -51,7 +61,7 @@ public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopol
         this.threadPool = executor;
     }
 
-    public void registerRpc() {
+    public void initialize() {
         this.rpcRegistration =
                 FabMgrDatastoreDependency.getRpcRegistry().addRpcImplementation(VcontainerTopologyService.class, this);
     }
@@ -73,6 +83,17 @@ public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopol
         TenantId tenantId = input.getTenantId();
         TopologyId vcTopologyId = createVcTopology(tenantId, vcConfig);
         outputBuilder.setVcTopologyRef(vcTopologyId);
+
+        List<Vfabric> vfabricList = vcConfig.getVfabric();
+        List<NodeId> vfabricIdList = new ArrayList<NodeId>();
+        if (vfabricList != null && vfabricList.isEmpty() == false)
+        {
+            for(Vfabric vfab : vfabricList){
+                VfabricId vfabId = vfab.getVfabricId();
+                vfabricIdList.add(vfabId);
+            }
+        }
+        VcontainerServiceProviderAPI.getFabricMgrProvider().addVfabricsToResourceStore(tenantId, vfabricIdList);
 
         return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
     }
