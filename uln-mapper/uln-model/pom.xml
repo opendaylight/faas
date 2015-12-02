@@ -48,6 +48,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>fabric-mgr-impl</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.opendaylight.controller</groupId>
       <artifactId>config-api</artifactId>
     </dependency>

@@ -27,6 +27,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2OutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Output;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3OutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RemovedChildNetNodeInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmApplianceFromNetNodeInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmLneLayer1Input;
@@ -40,6 +41,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.UpdateNetNodeLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
@@ -53,9 +56,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Futures;
 
-public class VcNetNodeServiceApiProvider implements AutoCloseable, VcNetNodeService {
+public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(VcNetNodeServiceApiProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VcNetNodeServiceProvider.class);
     private static final LogicalDatastoreType OPERATIONAL = LogicalDatastoreType.OPERATIONAL;
 
     private RpcRegistration<VcNetNodeService> rpcRegistration;
@@ -63,7 +66,7 @@ public class VcNetNodeServiceApiProvider implements AutoCloseable, VcNetNodeServ
     private FabricService fabService;
     private FabricServiceService fabServiceService;
 
-    public VcNetNodeServiceApiProvider(ExecutorService executor) {
+    public VcNetNodeServiceProvider(ExecutorService executor) {
         this.threadPool = executor;
     }
 
@@ -94,7 +97,6 @@ public class VcNetNodeServiceApiProvider implements AutoCloseable, VcNetNodeServ
         Integer vni = new Integer(100);
         lswInputBuilder.setVni(vni);
 
-        RpcResult<CreateLneLayer2Output> value;
         Future<RpcResult<CreateLogicSwitchOutput>> result = this.fabServiceService.createLogicSwitch(lswInputBuilder.build());
         try {
             RpcResult<CreateLogicSwitchOutput> output = result.get();
@@ -115,109 +117,115 @@ public class VcNetNodeServiceApiProvider implements AutoCloseable, VcNetNodeServ
 
     @Override
     public Future<RpcResult<Void>> addPortsToLneLayer2(AddPortsToLneLayer2Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<CreateLneLayer3Output>> createLneLayer3(CreateLneLayer3Input input) {
-        // TODO Auto-generated method stub
-        return null;
+        NodeId vfabricId = input.getVfabricId();
+        String lrName = input.getName();
+
+        CreateLogicRouterInputBuilder lrInputBuilder = new CreateLogicRouterInputBuilder();
+
+        FabricId fabricId = new FabricId(vfabricId);
+        lrInputBuilder.setFabricId(fabricId);
+        lrInputBuilder.setName(lrName);
+
+        Future<RpcResult<CreateLogicRouterOutput>> result = this.fabServiceService.createLogicRouter(lrInputBuilder.build());
+        try {
+            RpcResult<CreateLogicRouterOutput> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: createLneLayer3: createLogicRouter RPC success");
+                CreateLneLayer3OutputBuilder builder = new CreateLneLayer3OutputBuilder();
+                CreateLogicRouterOutput createLrOutput = output.getResult();
+                NodeId nodeId = createLrOutput.getNodeId();
+                VcLneRef lrRef = new VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
+                builder.setLrRef(lrRef);
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed: {}", e);
+        }
+
+        return Futures.immediateFailedFuture(new IllegalArgumentException("createLogicRouter RPC failed"));
     }
 
     @Override
     public Future<RpcResult<Void>> addPortsToLneLayer3(AddPortsToLneLayer3Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<CreateLneLayer1Output>> createLneLayer1(CreateLneLayer1Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<CreateChildNetNodeOutput>> createChildNetNode(CreateChildNetNodeInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> addVfabricToNetNode(AddVfabricToNetNodeInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> removedChildNetNode(RemovedChildNetNodeInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> updateNetNodeLogicalPort(UpdateNetNodeLogicalPortInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmPortsFromLneLayer2(RmPortsFromLneLayer2Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmPortsFromLneLayer3(RmPortsFromLneLayer3Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmVfabricFromNetNode(RmVfabricFromNetNodeInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmLneLayer2(RmLneLayer2Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmLneLayer3(RmLneLayer3Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmNetNodeLogicalPort(RmNetNodeLogicalPortInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmLneLayer1(RmLneLayer1Input input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> updateLneLayer3Routingtable(UpdateLneLayer3RoutingtableInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> addApplianceToNetNode(AddApplianceToNetNodeInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Future<RpcResult<Void>> rmApplianceFromNetNode(RmApplianceFromNetNodeInput input) {
-        // TODO Auto-generated method stub
         return null;
     }
 
