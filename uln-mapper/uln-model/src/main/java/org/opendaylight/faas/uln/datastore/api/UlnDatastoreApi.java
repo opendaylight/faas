@@ -53,64 +53,6 @@ public class UlnDatastoreApi {
     private static final LogicalDatastoreType logicalDatastoreType = LogicalDatastoreType.OPERATIONAL;
 
     /*
-     * This convenience method is to submit all (or part of) a logical network elements topology to
-     * datastore.
-     */
-    public static void submitlogicalTopologyToDs(List<DataObject> nodes, List<Pair<Port, Port>> portLinks) {
-        WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
-        for (DataObject dao : nodes) {
-            if (dao instanceof Subnet) {
-                Subnet subnet = (Subnet) dao;
-                t.put(logicalDatastoreType, UlnIidFactory.subnetIid(subnet.getTenantId(), subnet.getUuid()), subnet,
-                        true);
-            } else if (dao instanceof LogicalRouter) {
-                LogicalRouter lRouter = (LogicalRouter) dao;
-                t.put(logicalDatastoreType, UlnIidFactory.logicalRouterIid(lRouter.getTenantId(), lRouter.getUuid()),
-                        lRouter, true);
-            } else if (dao instanceof LogicalSwitch) {
-                LogicalSwitch lSwitch = (LogicalSwitch) dao;
-                t.put(logicalDatastoreType, UlnIidFactory.logicalSwitchIid(lSwitch.getTenantId(), lSwitch.getUuid()),
-                        lSwitch, true);
-            } else if (dao instanceof SecurityRuleGroups) {
-                SecurityRuleGroups securityRuleGroups = (SecurityRuleGroups) dao;
-                t.put(logicalDatastoreType,
-                        UlnIidFactory.securityGroupsIid(securityRuleGroups.getTenantId(), securityRuleGroups.getUuid()),
-                        securityRuleGroups, true);
-            } else if (dao instanceof EndpointLocation) {
-                EndpointLocation endpointLocation = (EndpointLocation) dao;
-                t.put(logicalDatastoreType,
-                        UlnIidFactory.endpointLocationIid(endpointLocation.getTenantId(), endpointLocation.getUuid()),
-                        endpointLocation, true);
-            } else {
-                LOG.error("submitlogicalNetworkTopologyToDs method doesn't support object of type {}", dao.getClass()
-                    .getName());
-            }
-        }
-        if (portLinks != null) {
-            for (Pair<Port, Port> portLink : portLinks) {
-                EdgeBuilder edgeb = new EdgeBuilder();
-                Uuid edgeId = new Uuid(UUID.randomUUID().toString());
-                edgeb.setUuid(edgeId);
-                edgeb.setLeftPortId(portLink.getFirst().getUuid());
-                edgeb.setRightPortId(portLink.getSecond().getUuid());
-                edgeb.setTenantId(portLink.getFirst().getTenantId());
-                t.put(logicalDatastoreType, UlnIidFactory.edgeIid(edgeb.getTenantId(), edgeId), edgeb.build(), true);
-
-                PortBuilder lportb = new PortBuilder(portLink.getFirst());
-                lportb.setEdgeId(edgeId);
-                t.put(logicalDatastoreType, UlnIidFactory.portIid(lportb.getTenantId(), lportb.getUuid()),
-                        lportb.build(), true);
-                PortBuilder rportb = new PortBuilder(portLink.getSecond());
-                rportb.setEdgeId(edgeId);
-                t.put(logicalDatastoreType, UlnIidFactory.portIid(rportb.getTenantId(), rportb.getUuid()),
-                        rportb.build(), true);
-            }
-        }
-
-        submitToDs(t);
-    }
-
-    /*
      * Subnet related methods
      */
     public static void submitSubnetToDs(Subnet subnet) {
@@ -614,52 +556,6 @@ public class UlnDatastoreApi {
     /*
      * EndpointLocation Methods
      */
-
-    public static void attachEndpointToSubnet(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
-            MacAddress macAddress, List<PrivateIps> privateIpAddresses, List<IpAddress> publicIpAddresses) {
-        synchronized (UlnDatastoreApi.class) {
-            // remove endpoint location, if exists, to handle the case of moving endpoints
-            removeEndpointLocationFromDsIfExists(epLocBuilder.getTenantId(), epLocBuilder.getUuid());
-            Uuid epLocPortId = new Uuid(UUID.randomUUID().toString());
-            epLocBuilder.setPort(epLocPortId);
-            PortBuilder epLocPortbuilder = new PortBuilder();
-            epLocPortbuilder.setUuid(epLocPortId);
-            epLocPortbuilder.setAdminStateUp(true);
-            epLocPortbuilder.setLocationId(epLocBuilder.getUuid());
-            epLocPortbuilder.setLocationType(LocationType.EndpointType);
-            epLocPortbuilder.setTenantId(epLocBuilder.getTenantId());
-            epLocPortbuilder.setMacAddress(macAddress);
-            epLocPortbuilder.setPrivateIps(privateIpAddresses);
-            epLocPortbuilder.setPublicIps(publicIpAddresses);
-
-            Uuid subnetPortId = new Uuid(UUID.randomUUID().toString());
-            PortBuilder subnetPortbuilder = new PortBuilder();
-            subnetPortbuilder.setUuid(subnetPortId);
-            subnetPortbuilder.setAdminStateUp(true);
-            subnetPortbuilder.setLocationId(faasSubnetId);
-            subnetPortbuilder.setLocationType(LocationType.SubnetType);
-            subnetPortbuilder.setTenantId(epLocBuilder.getTenantId());
-
-            Subnet subnet = readSubnetFromDs(epLocBuilder.getTenantId(), faasSubnetId);
-            if (subnet == null) {
-                LOG.error("Failed to attach endpoint -- unable to find subnet {} in tenant {}", faasSubnetId,
-                        epLocBuilder.getTenantId());
-                return;
-            }
-            SubnetBuilder subnetBuilder = new SubnetBuilder(subnet);
-            List<Uuid> ports = new ArrayList<>();
-            ports.add(subnetPortId);
-            subnetBuilder.setPort(merge(subnetBuilder.getPort(), ports));
-
-            List<DataObject> nodes = new ArrayList<>();
-            nodes.add(epLocBuilder.build());
-            nodes.add(subnetBuilder.build());
-            List<Pair<Port, Port>> portLinks = new ArrayList<>();
-            portLinks.add(new Pair<>(epLocPortbuilder.build(), subnetPortbuilder.build()));
-            submitlogicalTopologyToDs(nodes, portLinks);
-        }
-    }
-
     public static void submitEndpointLocationToDs(EndpointLocation endpointLocation) {
         submitEndpointLocationToDs(endpointLocation, true);
     }
@@ -739,7 +635,295 @@ public class UlnDatastoreApi {
     }
 
     /*
-     * Common helper methods
+     * Methods to join logical network elements together
+     */
+
+    public static boolean attachEndpointToSubnetAndSubmitToDs(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
+            MacAddress macAddress, List<PrivateIps> privateIpAddresses, List<IpAddress> publicIpAddresses) {
+        synchronized (UlnDatastoreApi.class) {
+            // remove endpoint location, if exists, to handle the case of moving endpoints
+            removeEndpointLocationFromDsIfExists(epLocBuilder.getTenantId(), epLocBuilder.getUuid());
+            Uuid epLocPortId = new Uuid(UUID.randomUUID().toString());
+            epLocBuilder.setPort(epLocPortId);
+            PortBuilder epLocPortbuilder = new PortBuilder();
+            epLocPortbuilder.setUuid(epLocPortId);
+            epLocPortbuilder.setAdminStateUp(true);
+            epLocPortbuilder.setLocationId(epLocBuilder.getUuid());
+            epLocPortbuilder.setLocationType(LocationType.EndpointType);
+            epLocPortbuilder.setTenantId(epLocBuilder.getTenantId());
+            epLocPortbuilder.setMacAddress(macAddress);
+            epLocPortbuilder.setPrivateIps(privateIpAddresses);
+            epLocPortbuilder.setPublicIps(publicIpAddresses);
+
+            Uuid subnetPortId = new Uuid(UUID.randomUUID().toString());
+            PortBuilder subnetPortbuilder = new PortBuilder();
+            subnetPortbuilder.setUuid(subnetPortId);
+            subnetPortbuilder.setAdminStateUp(true);
+            subnetPortbuilder.setLocationId(faasSubnetId);
+            subnetPortbuilder.setLocationType(LocationType.SubnetType);
+            subnetPortbuilder.setTenantId(epLocBuilder.getTenantId());
+
+            Subnet subnet = readSubnetFromDs(epLocBuilder.getTenantId(), faasSubnetId);
+            if (subnet == null) {
+                LOG.error("Failed to attach endpoint -- unable to find subnet {} in tenant {}", faasSubnetId,
+                        epLocBuilder.getTenantId());
+                return false;
+            }
+
+            SubnetBuilder subnetBuilder = new SubnetBuilder(subnet);
+            List<Uuid> ports = new ArrayList<>();
+            ports.add(subnetPortId);
+            subnetBuilder.setPort(merge(subnetBuilder.getPort(), ports));
+
+            List<Pair<Port, Port>> portLinks = new ArrayList<>();
+            portLinks.add(new Pair<>(epLocPortbuilder.build(), subnetPortbuilder.build()));
+
+            WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+            wTx.put(logicalDatastoreType,
+                    UlnIidFactory.subnetIid(subnetBuilder.getTenantId(), subnetBuilder.getUuid()),
+                    subnetBuilder.build(), true);
+            wTx.put(logicalDatastoreType,
+                    UlnIidFactory.endpointLocationIid(epLocBuilder.getTenantId(), epLocBuilder.getUuid()),
+                    epLocBuilder.build(), true);
+
+            attachPorts(portLinks, wTx);
+
+            return submitToDs(wTx);
+        }
+    }
+
+    public static boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
+            Pair<LocationType, LocationType> nodeTypes) {
+        return attachAndSubmitToDs(firstId, secondId, tenantId, nodeTypes, null);
+    }
+
+    public static boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
+            Pair<LocationType, LocationType> nodeTypes, Pair<Uuid, Uuid> secGroupRules) {
+        if (firstId == null || secondId == null || nodeTypes == null || tenantId == null
+                || nodeTypes.getFirst() == null || nodeTypes.getSecond() == null) {
+            LOG.error("Couldn't join logical Network entities -- Missing required info. Nothing Submitted to DS");
+            return false;
+        }
+        synchronized (UlnDatastoreApi.class) {
+            DataObject first = null;
+            DataObject second = null;
+            if (nodeTypes.getFirst() == LocationType.SubnetType) {
+                first = readSubnetFromDs(tenantId, firstId);
+            } else if (nodeTypes.getFirst() == LocationType.RouterType) {
+                first = readLogicalRouterFromDs(tenantId, firstId);
+            } else if (nodeTypes.getFirst() == LocationType.SwitchType) {
+                first = readLogicalSwitchFromDs(tenantId, firstId);
+            }
+            if (nodeTypes.getSecond() == LocationType.SubnetType) {
+                second = readSubnetFromDs(tenantId, secondId);
+            } else if (nodeTypes.getSecond() == LocationType.RouterType) {
+                second = readLogicalRouterFromDs(tenantId, secondId);
+            } else if (nodeTypes.getSecond() == LocationType.SwitchType) {
+                second = readLogicalSwitchFromDs(tenantId, secondId);
+            }
+            return attachAndSubmitToDs(first, second, secGroupRules);
+        }
+    }
+
+    public static boolean attachAndSubmitToDs(Object first, Object second) {
+        return attachAndSubmitToDs(first, second, null);
+    }
+
+    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> secGroupRules) {
+        SubnetBuilder subnetBuilder = null;
+        Pair<LogicalSwitchBuilder, LogicalSwitchBuilder> lSwitchPair = new Pair<LogicalSwitchBuilder, LogicalSwitchBuilder>(
+                null, null);
+        Pair<LogicalRouterBuilder, LogicalRouterBuilder> lRouterPair = new Pair<LogicalRouterBuilder, LogicalRouterBuilder>(
+                null, null);
+        Pair<SecurityRuleGroupsBuilder, SecurityRuleGroupsBuilder> secGroupsPair = new Pair<SecurityRuleGroupsBuilder, SecurityRuleGroupsBuilder>(
+                null, null);
+
+        if (first == null || second == null) {
+            LOG.error("Not Allowed to attach NULL Entity -- Nothing Submitted to DS.");
+            return false;
+        }
+        if (first instanceof Subnet) {
+            subnetBuilder = new SubnetBuilder((Subnet) first);
+        } else if (first instanceof SubnetBuilder) {
+            subnetBuilder = (SubnetBuilder) first;
+        } else if (first instanceof LogicalSwitch) {
+            lSwitchPair.setFirst(new LogicalSwitchBuilder((LogicalSwitch) first));
+        } else if (first instanceof LogicalSwitchBuilder) {
+            lSwitchPair.setFirst((LogicalSwitchBuilder) first);
+        } else if (first instanceof LogicalRouter) {
+            lRouterPair.setFirst(new LogicalRouterBuilder((LogicalRouter) first));
+        } else if (first instanceof LogicalRouterBuilder) {
+            lRouterPair.setFirst((LogicalRouterBuilder) first);
+        } else {
+            LOG.error("Couldn't join an Object of type {} -- Nothing submitted to DS.", first.getClass().getName());
+            return false;
+        }
+        if (second instanceof Subnet) {
+            if (subnetBuilder != null) {
+                LOG.error("Not Allowed to join two subnets in a logical network -- Not Submitted to DS");
+                return false;
+            }
+            subnetBuilder = new SubnetBuilder((Subnet) second);
+        } else if (second instanceof SubnetBuilder) {
+            if (subnetBuilder != null) {
+                LOG.error("Not Allowed to join two subnets in a logical network -- Not Submitted to DS");
+                return false;
+            }
+            subnetBuilder = (SubnetBuilder) second;
+        } else if (second instanceof LogicalSwitch) {
+            lSwitchPair.setSecond(new LogicalSwitchBuilder((LogicalSwitch) second));
+        } else if (second instanceof LogicalSwitchBuilder) {
+            lSwitchPair.setSecond((LogicalSwitchBuilder) second);
+        } else if (second instanceof LogicalRouter) {
+            lRouterPair.setSecond(new LogicalRouterBuilder((LogicalRouter) second));
+        } else if (second instanceof LogicalRouterBuilder) {
+            lRouterPair.setSecond((LogicalRouterBuilder) second);
+        } else {
+            LOG.error("Couldn't join an Object of type {} -- Nothing submitted to DS.", second.getClass().getName());
+            return false;
+        }
+
+        synchronized (UlnDatastoreApi.class) {
+            Uuid firstSecurityGroupId = null;
+            if (secGroupRules != null && secGroupRules.getFirst() != null) {
+                firstSecurityGroupId = secGroupRules.getFirst();
+            }
+            PortBuilder firstPortbuilder = buildPort(subnetBuilder, firstSecurityGroupId, lSwitchPair.getFirst(),
+                    lRouterPair.getFirst());
+            if (firstSecurityGroupId != null) {
+                SecurityRuleGroups dsSecurityGroups = readSecurityGroupsFromDs(firstPortbuilder.getTenantId(),
+                        firstSecurityGroupId);
+                if (dsSecurityGroups == null) {
+                    LOG.error("Couldn't Find Security Rules {} in DS -- Didn't Join Logical Network Elements.",
+                            firstSecurityGroupId);
+                    return false;
+                }
+                SecurityRuleGroupsBuilder firstSecRulesGrpbuilder = new SecurityRuleGroupsBuilder(dsSecurityGroups);
+                List<Uuid> firstSecRulesPorts = new ArrayList<>();
+                firstSecRulesPorts.add(firstPortbuilder.getUuid());
+                firstSecRulesGrpbuilder.setPorts(merge(firstSecRulesGrpbuilder.getPorts(), firstSecRulesPorts));
+                secGroupsPair.setFirst(firstSecRulesGrpbuilder);
+            }
+
+            Uuid secondSecurityGroupId = null;
+            if (secGroupRules != null && secGroupRules.getSecond() != null) {
+                secondSecurityGroupId = secGroupRules.getSecond();
+            }
+            PortBuilder secondPortbuilder = buildPort(subnetBuilder, secondSecurityGroupId, lSwitchPair.getSecond(),
+                    lRouterPair.getSecond());
+            if (secondSecurityGroupId != null) {
+                SecurityRuleGroups dsSecurityGroups = readSecurityGroupsFromDs(secondPortbuilder.getTenantId(),
+                        secondSecurityGroupId);
+                if (dsSecurityGroups == null) {
+                    LOG.error("Couldn't Find Security Rules {} in DS -- Didn't Join Logical Network Elements.",
+                            secondSecurityGroupId);
+                    return false;
+                }
+                SecurityRuleGroupsBuilder secondSecRulesGrpbuilder = new SecurityRuleGroupsBuilder(dsSecurityGroups);
+                List<Uuid> secondSecRulesPorts = new ArrayList<>();
+                secondSecRulesPorts.add(secondPortbuilder.getUuid());
+                secondSecRulesGrpbuilder.setPorts(merge(secondSecRulesGrpbuilder.getPorts(), secondSecRulesPorts));
+                secGroupsPair.setSecond(secondSecRulesGrpbuilder);
+            }
+
+            WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+            if (lRouterPair.getFirst() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.logicalRouterIid(lRouterPair.getFirst().getTenantId(),
+                        lRouterPair.getFirst().getUuid()), lRouterPair.getFirst().build(), true);
+            }
+            if (lRouterPair.getSecond() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.logicalRouterIid(lRouterPair.getSecond().getTenantId(),
+                        lRouterPair.getSecond().getUuid()), lRouterPair.getSecond().build(), true);
+            }
+            if (lSwitchPair.getFirst() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.logicalSwitchIid(lSwitchPair.getFirst().getTenantId(),
+                        lSwitchPair.getFirst().getUuid()), lSwitchPair.getFirst().build(), true);
+            }
+            if (lSwitchPair.getSecond() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.logicalSwitchIid(lSwitchPair.getSecond().getTenantId(),
+                        lSwitchPair.getSecond().getUuid()), lSwitchPair.getSecond().build(), true);
+            }
+            if (subnetBuilder != null) {
+                wTx.put(logicalDatastoreType,
+                        UlnIidFactory.subnetIid(subnetBuilder.getTenantId(), subnetBuilder.getUuid()),
+                        subnetBuilder.build(), true);
+            }
+            if (secGroupsPair.getFirst() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.securityGroupsIid(secGroupsPair.getFirst().getTenantId(),
+                        secGroupsPair.getFirst().getUuid()), secGroupsPair.getFirst().build(), true);
+            }
+            if (secGroupsPair.getSecond() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.securityGroupsIid(secGroupsPair.getSecond().getTenantId(),
+                        secGroupsPair.getSecond().getUuid()), secGroupsPair.getSecond().build(), true);
+            }
+
+            List<Pair<Port, Port>> portLinks = new ArrayList<>();
+            portLinks.add(new Pair<>(firstPortbuilder.build(), secondPortbuilder.build()));
+
+            attachPorts(portLinks, wTx);
+
+            return submitToDs(wTx);
+        }
+    }
+
+    private static PortBuilder buildPort(SubnetBuilder subnetBuilder, Uuid securityGroupId,
+            LogicalSwitchBuilder lSwitchBuilder, LogicalRouterBuilder lRouterBuilder) {
+        PortBuilder portbuilder = new PortBuilder();
+        portbuilder.setUuid(new Uuid(UUID.randomUUID().toString()));
+        portbuilder.setAdminStateUp(true);
+        if (securityGroupId != null) {
+            ArrayList<Uuid> firstNodeSecGrps = new ArrayList<>();
+            firstNodeSecGrps.add(securityGroupId);
+            portbuilder.setSecurityRulesGroups(firstNodeSecGrps);
+        }
+        List<Uuid> firstNodePorts = new ArrayList<>();
+        firstNodePorts.add(portbuilder.getUuid());
+        if (subnetBuilder != null) {
+            portbuilder.setLocationId(subnetBuilder.getUuid());
+            portbuilder.setLocationType(LocationType.SubnetType);
+            portbuilder.setTenantId(subnetBuilder.getTenantId());
+            subnetBuilder.setPort(merge(subnetBuilder.getPort(), firstNodePorts));
+        } else if (lSwitchBuilder != null) {
+            portbuilder.setLocationId(lSwitchBuilder.getUuid());
+            portbuilder.setLocationType(LocationType.SwitchType);
+            portbuilder.setTenantId(lSwitchBuilder.getTenantId());
+            lSwitchBuilder.setPort(merge(lSwitchBuilder.getPort(), firstNodePorts));
+        } else if (lRouterBuilder != null) {
+            portbuilder.setLocationId(lRouterBuilder.getUuid());
+            portbuilder.setLocationType(LocationType.RouterType);
+            portbuilder.setTenantId(lRouterBuilder.getTenantId());
+            lRouterBuilder.setPort(merge(lRouterBuilder.getPort(), firstNodePorts));
+        }
+
+        return portbuilder;
+    }
+
+    private static void attachPorts(List<Pair<Port, Port>> portLinks, WriteTransaction t) {
+        if (portLinks == null) {
+            return;
+        }
+        for (Pair<Port, Port> portLink : portLinks) {
+            EdgeBuilder edgeb = new EdgeBuilder();
+            Uuid edgeId = new Uuid(UUID.randomUUID().toString());
+            edgeb.setUuid(edgeId);
+            edgeb.setLeftPortId(portLink.getFirst().getUuid());
+            edgeb.setRightPortId(portLink.getSecond().getUuid());
+            edgeb.setTenantId(portLink.getFirst().getTenantId());
+            t.put(logicalDatastoreType, UlnIidFactory.edgeIid(edgeb.getTenantId(), edgeId), edgeb.build(), true);
+
+            PortBuilder lportb = new PortBuilder(portLink.getFirst());
+            lportb.setEdgeId(edgeId);
+            t.put(logicalDatastoreType, UlnIidFactory.portIid(lportb.getTenantId(), lportb.getUuid()), lportb.build(),
+                    true);
+            PortBuilder rportb = new PortBuilder(portLink.getSecond());
+            rportb.setEdgeId(edgeId);
+            t.put(logicalDatastoreType, UlnIidFactory.portIid(rportb.getTenantId(), rportb.getUuid()), rportb.build(),
+                    true);
+        }
+    }
+
+    /*
+     * General & Common helper methods
      */
     public static <T extends DataObject> Optional<T> readFromDs(InstanceIdentifier<T> path, ReadTransaction rTx) {
         CheckedFuture<Optional<T>, ReadFailedException> resultFuture = rTx.read(logicalDatastoreType, path);
