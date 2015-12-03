@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5aaae553_3ff9c4c8",
+        "filename": "eclipse-java-clean-code-style.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-12-03T17:58:50Z",
+      "side": 1,
+      "message": "This file is already created in commons/codingSytle.",
+      "revId": "a54b202af962ff2ed5d5d2200f78fe9b1545dabc",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
