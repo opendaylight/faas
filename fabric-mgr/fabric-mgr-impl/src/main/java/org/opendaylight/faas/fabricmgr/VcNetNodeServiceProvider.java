@@ -13,6 +13,13 @@ import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddPortsToLneLayer2Input;
@@ -41,15 +48,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.UpdateNetNodeLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
-import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +57,6 @@ import com.google.common.util.concurrent.Futures;
 public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService {
 
     private static final Logger LOG = LoggerFactory.getLogger(VcNetNodeServiceProvider.class);
-    private static final LogicalDatastoreType OPERATIONAL = LogicalDatastoreType.OPERATIONAL;
 
     private RpcRegistration<VcNetNodeService> rpcRegistration;
     private final ExecutorService threadPool;
@@ -97,7 +94,8 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         Integer vni = new Integer(100);
         lswInputBuilder.setVni(vni);
 
-        Future<RpcResult<CreateLogicSwitchOutput>> result = this.fabServiceService.createLogicSwitch(lswInputBuilder.build());
+        Future<RpcResult<CreateLogicSwitchOutput>> result =
+                this.fabServiceService.createLogicSwitch(lswInputBuilder.build());
         try {
             RpcResult<CreateLogicSwitchOutput> output = result.get();
             if (output.isSuccessful()) {
@@ -131,7 +129,8 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         lrInputBuilder.setFabricId(fabricId);
         lrInputBuilder.setName(lrName);
 
-        Future<RpcResult<CreateLogicRouterOutput>> result = this.fabServiceService.createLogicRouter(lrInputBuilder.build());
+        Future<RpcResult<CreateLogicRouterOutput>> result =
+                this.fabServiceService.createLogicRouter(lrInputBuilder.build());
         try {
             RpcResult<CreateLogicRouterOutput> output = result.get();
             if (output.isSuccessful()) {

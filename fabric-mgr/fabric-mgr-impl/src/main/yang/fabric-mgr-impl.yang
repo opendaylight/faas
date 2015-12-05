@@ -50,7 +50,7 @@ module fabric-mgr-impl {
                 }
             }
 
-            container notification-service {
+            container notification-adapter {
                 uses config:service-ref {
                     refine type {
                         mandatory true;

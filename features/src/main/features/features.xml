@@ -42,6 +42,11 @@
     <bundle>mvn:org.opendaylight.faas/base/${faas.base.version}</bundle>
   </feature>
 
+<!-- TODO: odl-faas-all takes long time for SingleFeatureTest to run, which duplicates
+           the its testing effort since it tests all the features listed here.
+           so, temporarily diable this feature until the end of this release         
+-->
+<!--
   <feature name='odl-faas-all' version='${project.version}' description='OpenDaylight :: faas :: Starts All Faas features'>
     <feature version="${project.version}">odl-faas-base</feature>
     <feature version="${project.version}">odl-faas-uln-mapper</feature>
@@ -49,6 +54,7 @@
     <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
     <feature version="${project.version}">odl-faas-vxlan-ovs-adapter</feature>
   </feature>
+-->
 
   <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
        <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
@@ -98,6 +104,8 @@
     <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
     <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
     <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
+
+    <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
 
     <bundle>mvn:org.opendaylight.faas/fabric-model/${project.version}</bundle>
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-model/${project.version}</bundle>

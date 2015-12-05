@@ -28,9 +28,9 @@ public class FabricMgrModule extends org.opendaylight.controller.config.yang.con
 
     @Override
     public java.lang.AutoCloseable createInstance() {
-        DataBroker databroker = this.getDataBrokerDependency();
-        NotificationService notificationService = this.getNotificationServiceDependency();
-        RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
+        DataBroker databroker = getDataBrokerDependency();
+        NotificationService notificationService = getNotificationAdapterDependency();
+        RpcProviderRegistry rpcRegistry = getRpcRegistryDependency();
 
         return new FabricMgrProvider(databroker, rpcRegistry, notificationService);
     }
