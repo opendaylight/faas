@@ -200,8 +200,8 @@ module vcontainer-topology {
             }
         }
         output {
-            leaf vc-topology-ref {
-                type nt:topology-ref;
+            leaf vc-topology-id {
+                type nt:topology-id;
             }
         }
     }

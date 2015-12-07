@@ -33,6 +33,7 @@ public class UserLogicalNetworkManager implements AutoCloseable {
     private final SecurityRuleGroupsListener securityGroupListener;
     private final SubnetListener subnetListener;
     private final SwitchListener switchListener;
+    private static final UlnMappingEngine ulnMapper = new UlnMappingEngine();
 
     public UserLogicalNetworkManager() {
         LOG.debug("Starting Uln-mapper...");
@@ -46,6 +47,10 @@ public class UserLogicalNetworkManager implements AutoCloseable {
         subnetListener = new SubnetListener(executor);
         switchListener = new SwitchListener(executor);
         LOG.info("Uln-mapper has Started");
+    }
+
+    public static UlnMappingEngine getUlnMapper() {
+        return ulnMapper;
     }
 
     @Override

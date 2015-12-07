@@ -78,7 +78,7 @@ public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopol
         VcontainerConfig vcConfig = input.getVcontainerConfig();
         TenantId tenantId = input.getTenantId();
         TopologyId vcTopologyId = createVcTopology(tenantId, vcConfig);
-        outputBuilder.setVcTopologyRef(vcTopologyId);
+        outputBuilder.setVcTopologyId(vcTopologyId);
 
         // TODO: This should be implemented as datastore listener event.
         VcontainerServiceProviderAPI.getFabricMgrProvider().listenerActionOnVcCreate(tenantId);

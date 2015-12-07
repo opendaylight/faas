@@ -17,7 +17,9 @@ import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
+import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -34,13 +36,15 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
 
     public EndpointLocationListener(ScheduledExecutorService executor) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, UlnIidFactory.endpointLocationIid(),
-                this, AsyncDataBroker.DataChangeScope.SUBTREE);
+        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.endpointLocationIid(), this,
+                AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
         executor.execute(new Runnable() {
+
             public void run() {
                 executeEvent(change);
             }
@@ -51,14 +55,15 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof EndpointLocation) {
-                LOG.debug("Created EndpointLocation {}", (EndpointLocation) dao);
+                LOG.debug("ULN: Created EndpointLocation {}", (EndpointLocation) dao);
+                UserLogicalNetworkManager.getUlnMapper().handleEndpointLocationCreateEvent((EndpointLocation) dao);
             }
         }
         // Update
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof EndpointLocation) {
-                LOG.debug("Updated EndpointLocation {}", (EndpointLocation) dao);
+                LOG.debug("ULN: Updated EndpointLocation {}", (EndpointLocation) dao);
             }
         }
         // Remove
@@ -68,7 +73,7 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
                 continue;
             }
             if (old instanceof EndpointLocation) {
-                LOG.debug("Removed EndpointLocation {}", (EndpointLocation) old);
+                LOG.debug("ULN: Removed EndpointLocation {}", (EndpointLocation) old);
             }
         }
     }

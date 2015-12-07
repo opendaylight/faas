@@ -94,9 +94,9 @@ module vc-net-node {
     }
 
     grouping logical-ne-attributes {
-    	leaf logical-ne-type {
-    		type vctype:vc-logical-ne-type;
-    	}
+        leaf logical-ne-type {
+            type vctype:vc-logical-ne-type;
+        }
     }
 
     /******************************* AUGMENT ***********************************/
@@ -137,6 +137,9 @@ module vc-net-node {
 
     rpc create-child-net-node {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf parent-net-node-id {
                 type vctype:vc-net-node-id;
             }
@@ -153,86 +156,107 @@ module vc-net-node {
 
     rpc removed-child-net-node {
         input {
-            leaf child-net-node-ref {
-                type vctype:vc-net-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
+            leaf child-net-node-id {
+                type vctype:vc-net-node-id;
             }
         }
     }
 
     rpc add-vfabric-to-net-node {
         input {
-            leaf net-node-ref {
-                type vctype:vc-net-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf vfabric-ref {
-                type vctype:vfabric-ref;
+            leaf net-node-id {
+                type vctype:vc-net-node-id;
+            }
+            leaf vfabric-id {
+                type vctype:vfabric-id;
             }
         }
     }
 
     rpc rm-vfabric-from-net-node {
         input {
-            leaf net-node-ref {
-                type vctype:vc-net-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf vfabric-ref {
-                type vctype:vfabric-ref;
+            leaf net-node-id {
+                type vctype:vc-net-node-id;
+            }
+            leaf vfabric-id {
+                type vctype:vfabric-id;
             }
         }
     }
 
     rpc add-appliance-to-net-node {
         input {
-            leaf net-node-ref {
-                type vctype:vc-net-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf appliance-ref {
-                type vctype:appliance-ref;
+            leaf net-node-id {
+                type vctype:vc-net-node-id;
+            }
+            leaf appliance-id {
+                type vctype:appliance-id;
             }
         }
     }
 
     rpc rm-appliance-from-net-node {
         input {
-            leaf net-node-ref {
-                type vctype:vc-net-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf appliance-ref {
-                type vctype:appliance-ref;
+            leaf net-node-id {
+                type vctype:vc-net-node-id;
+            }
+            leaf appliance-id {
+                type vctype:appliance-id;
             }
         }
     }
 
     rpc create-lne-layer2 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
             uses vctype:vf-lsw-attributes;
             list ports {
-                leaf port-ref {
-                    type vctype:vfabric-port-ref;
+                leaf port-id {
+                    type vctype:vfabric-port-id;
                 }
             }
         }
         output {
-            leaf lne-ref {
-                type vctype:vc-lne-ref;
+            leaf lne-id {
+                type vctype:vc-lne-id;
             }
         }
     }
 
     rpc add-ports-to-lne-layer2 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lne-ref {
-                type vctype:vc-lne-ref;
+            leaf lne-id {
+                type vctype:vc-lne-id;
             }
             list ports {
-                leaf port-ref {
-                    type vctype:vfabric-port-ref;
+                leaf port-id {
+                    type vctype:vfabric-port-id;
                 }
             }
         }
@@ -240,15 +264,18 @@ module vc-net-node {
 
     rpc rm-ports-from-lne-layer2 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lne-ref {
-                type vctype:vc-lne-ref;
+            leaf lne-id {
+                type vctype:vc-lne-id;
             }
             list ports {
-                leaf port-ref {
-                    type vctype:vfabric-port-ref;
+                leaf port-id {
+                    type vctype:vfabric-port-id;
                 }
             }
         }
@@ -256,52 +283,64 @@ module vc-net-node {
 
     rpc rm-lne-layer2 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lne-ref {
-                type vctype:vc-lne-ref;
+            leaf lne-id {
+                type vctype:vc-lne-id;
             }
         }
     }
 
     rpc create-lne-layer3 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
             uses vctype:vf-lr-attributes;
             list ports {
-                leaf port-ref {
-                    type vctype:vfabric-port-ref;
+                leaf port-id {
+                    type vctype:vfabric-port-id;
                 }
             }
         }
         output {
-            leaf lr-ref {
-                type vctype:vc-lne-ref;
+            leaf lr-id {
+                type vctype:vc-lne-id;
             }
         }
     }
 
     rpc rm-lne-layer3 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-ref {
-                type vctype:vc-lne-ref;
+            leaf lr-id {
+                type vctype:vc-lne-id;
             }
         }
     }
 
     rpc update-lne-layer3-routingtable {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-ref {
-                type vctype:vc-lne-ref;
+            leaf lr-id {
+                type vctype:vc-lne-id;
             }
             list routingtable {
                 uses vctype:routing-table-entry;
@@ -311,15 +350,18 @@ module vc-net-node {
 
     rpc add-ports-to-lne-layer3 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-ref {
-                type vctype:vc-lne-ref;
+            leaf lr-id {
+                type vctype:vc-lne-id;
             }
             list ports {
-                leaf port-ref {
-                    type vctype:vfabric-port-ref;
+                leaf port-id {
+                    type vctype:vfabric-port-id;
                 }
             }
         }
@@ -327,15 +369,18 @@ module vc-net-node {
 
     rpc rm-ports-from-lne-layer3 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-ref {
-                type vctype:vc-lne-ref;
+            leaf lr-id {
+                type vctype:vc-lne-id;
             }
             list ports {
-                leaf port-ref {
-                    type vctype:vfabric-port-ref;
+                leaf port-id {
+                    type vctype:vfabric-port-id;
                 }
             }
         }
@@ -343,11 +388,14 @@ module vc-net-node {
 
     rpc update-net-node-logical-port {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf tp-ref {
-                type nt:tp-ref;
+            leaf tp-id {
+                type nt:tp-id;
             }
             uses vctype:logical-port-attributes;
         }
@@ -355,17 +403,23 @@ module vc-net-node {
 
     rpc rm-net-node-logical-port {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
             leaf tp-id {
-                type nt:tp-ref;
+                type nt:tp-id;
             }
         }
     }
 
     rpc create-lne-layer1 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }
@@ -373,14 +427,17 @@ module vc-net-node {
             uses vctype:logical-connection-attributes;
         }
         output {
-            leaf connection-ref {
-                type vctype:logical-connection-ref;
+            leaf connection-id {
+                type vctype:logical-connection-id;
             }
         }
     }
 
     rpc rm-lne-layer1 {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf vfabric-id {
                 type nt:node-id;
             }

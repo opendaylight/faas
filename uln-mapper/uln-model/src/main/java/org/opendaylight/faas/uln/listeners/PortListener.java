@@ -17,6 +17,7 @@ import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
+import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -34,13 +35,15 @@ public class PortListener implements DataChangeListener, AutoCloseable {
 
     public PortListener(ScheduledExecutorService executor) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, UlnIidFactory.portIid(), this,
+        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.portIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
         executor.execute(new Runnable() {
+
             public void run() {
                 executeEvent(change);
             }
@@ -51,14 +54,15 @@ public class PortListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof Port) {
-                LOG.debug("Created Port {}", (Port) dao);
+                LOG.debug("ULN: Created Port {}", (Port) dao);
+                UserLogicalNetworkManager.getUlnMapper().handlePortCreateEvent((Port) dao);
             }
         }
         // Update
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof Port) {
-                LOG.debug("Updated Port {}", (Port) dao);
+                LOG.debug("ULN: Updated Port {}", (Port) dao);
             }
         }
         // Remove
@@ -68,7 +72,7 @@ public class PortListener implements DataChangeListener, AutoCloseable {
                 continue;
             }
             if (old instanceof Port) {
-                LOG.debug("Removed Port {}", (Port) old);
+                LOG.debug("ULN: Removed Port {}", (Port) old);
             }
         }
     }

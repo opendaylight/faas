@@ -48,7 +48,7 @@ public class VcConfigDataMgr {
     }
 
     public NodeId getAvailabeVfabricResource() {
-        return this.ldNodeConfigDataMgr.getAvailableVfabricResurce();
+        return this.ldNodeConfigDataMgr.getAvailableVfabricId();
     }
 
 }

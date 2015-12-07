@@ -15,14 +15,10 @@ import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
+import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -39,13 +35,15 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
 
     public RouterListener(ScheduledExecutorService executor) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, UlnIidFactory.logicalRouterIid(), this,
+        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.logicalRouterIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
         executor.execute(new Runnable() {
+
             @Override
             public void run() {
                 executeEvent(change);
@@ -58,7 +56,7 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof LogicalRouter) {
                 LOG.debug("ULN: Create Logical Router {}", dao);
-                this.createLogicalRouter((LogicalRouter)dao);
+                UserLogicalNetworkManager.getUlnMapper().handleLrCreateEvent((LogicalRouter) dao);
             }
         }
         // Update
@@ -78,15 +76,6 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
                 LOG.debug("Removed Logical Router {}", old);
             }
         }
-    }
-
-    private void createLogicalRouter(LogicalRouter lr) {
-        Uuid tenantId = lr.getTenantId();
-        CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(lr);
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid tenant =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
-                        tenantId.getValue());
-        VcontainerServiceProviderAPI.createLneLayer3(tenant, input);
     }
 
     @Override

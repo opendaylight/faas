@@ -49,6 +49,9 @@ module vc-ld-node {
 
     rpc create-child-ld-node {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf parent-ld-node-id {
                 type vctype:vc-ld-node-id;
             }
@@ -65,6 +68,9 @@ module vc-ld-node {
 
     rpc removed-child-ld-node {
         input {
+            leaf tenant-id {
+                type vctype:tenant-id;
+            }
             leaf child-ld-node-ref {
                 type vctype:vc-ld-node-ref;
             }
@@ -73,44 +79,56 @@ module vc-ld-node {
 
     rpc add-vfabric-to-ld-node {
         input {
-            leaf ld-node-ref {
-                type vctype:vc-ld-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf vfabric-ref {
-                type vctype:vfabric-ref;
+            leaf ld-node-id {
+                type vctype:vc-ld-node-id;
+            }
+            leaf vfabric-id {
+                type vctype:vfabric-id;
             }
         }
     }
 
     rpc rm-vfabric-from-ld-node {
         input {
-            leaf ld-node-ref {
-                type vctype:vc-ld-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf vfabric-ref {
-                type vctype:vfabric-ref;
+            leaf ld-node-id {
+                type vctype:vc-ld-node-id;
+            }
+            leaf vfabric-id {
+                type vctype:vfabric-id;
             }
         }
     }
 
     rpc add-appliance-to-ld-node {
         input {
-            leaf ld-node-ref {
-                type vctype:vc-ld-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf appliance-ref {
-                type vctype:appliance-ref;
+            leaf ld-node-id {
+                type vctype:vc-ld-node-id;
+            }
+            leaf appliance-id {
+                type vctype:appliance-id;
             }
         }
     }
 
     rpc rm-appliance-from-ld-node {
         input {
-            leaf ld-node-ref {
-                type vctype:vc-ld-node-ref;
+            leaf tenant-id {
+                type vctype:tenant-id;
             }
-            leaf appliance-ref {
-                type vctype:appliance-ref;
+            leaf ld-node-id {
+                type vctype:vc-ld-node-id;
+            }
+            leaf appliance-id {
+                type vctype:appliance-id;
             }
         }
     }

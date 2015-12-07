@@ -17,6 +17,7 @@ import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
+import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -34,13 +35,15 @@ public class EdgeListener implements DataChangeListener, AutoCloseable {
 
     public EdgeListener(ScheduledExecutorService executor) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, UlnIidFactory.edgeIid(), this,
+        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.edgeIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
         executor.execute(new Runnable() {
+
             public void run() {
                 executeEvent(change);
             }
@@ -51,7 +54,8 @@ public class EdgeListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof Edge) {
-                LOG.debug("Created Edge {}", (Edge) dao);
+                LOG.debug("ULN: Created Edge {}", (Edge) dao);
+                UserLogicalNetworkManager.getUlnMapper().handleEdgeCreateEvent((Edge) dao);
             }
         }
         // Update
