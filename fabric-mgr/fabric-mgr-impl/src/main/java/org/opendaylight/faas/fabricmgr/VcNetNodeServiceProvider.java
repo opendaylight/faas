@@ -108,10 +108,12 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 LOG.debug("FABMGR: createLneLayer2: createLogicSwitch RPC success");
                 CreateLneLayer2OutputBuilder builder = new CreateLneLayer2OutputBuilder();
                 CreateLogicSwitchOutput createLswOutput = output.getResult();
-                NodeId nodeId = createLswOutput.getNodeRef();
+
+                NodeId nodeId = createLswOutput.getNodeId();
                 // VcLneRef lswRef = new
                 // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
                 builder.setLneId((VcLneId) nodeId);
+
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLneLayer2: createLogicSwitch RPC failed: {}", e);

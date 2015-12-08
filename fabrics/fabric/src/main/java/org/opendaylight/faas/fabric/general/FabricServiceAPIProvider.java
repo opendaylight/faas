@@ -347,6 +347,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
                 outputBuilder.setLswUuid(new Uuid(uuid));
                 outputBuilder.setName(input.getName());
+                outputBuilder.setNodeId(newNodeId);
                 fabricObj.notifyLogicSwitchCreated(newNodeId, lsw);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }}, executor);
@@ -451,6 +452,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
                 outputBuilder.setLrUuid(new Uuid(uuid));
                 outputBuilder.setName(input.getName());
+                outputBuilder.setNodeId(newNodeId);
                 fabricObj.notifyLogicRouterCreated(newNodeId, lr);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }}, executor);

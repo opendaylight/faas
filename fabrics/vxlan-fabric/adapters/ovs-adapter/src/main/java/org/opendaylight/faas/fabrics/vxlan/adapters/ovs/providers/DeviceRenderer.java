@@ -530,9 +530,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
     private void onAclsCreate(Acls newRec) {
         Long dpidLong = ctx.getDpid();
+        Long segmentationId = newRec.getVni();
 
         for (FabricAcl acl : newRec.getFabricAcl()) {
-            openflow13Provider.updateAclsInDevice(dpidLong, acl, true);
+            openflow13Provider.updateAclsInDevice(dpidLong, segmentationId, acl, true);
         }
 
     }

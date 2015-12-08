@@ -174,15 +174,15 @@ public class Openflow13Provider {
         aclHandler.programTrafficBehaviorRule(dpidLong, trafficBehavior, writeFlow);
     }
 
-    public void updateAclsInDevice(Long dpidLong, FabricAcl fabricAcl, boolean writeFlow) {
+    public void updateAclsInDevice(Long dpidLong, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
         InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName));
 
-        Acl acl = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, aclIID, databroker);
+        Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)
             return;
 
-        aclHandler.programAclEntry(dpidLong, acl, writeFlow);
+        aclHandler.programAclEntry(dpidLong, segmentationId, acl, writeFlow);
     }
 
     public static NodeBuilder createNodeBuilder(String nodeId) {

@@ -14,6 +14,7 @@ import java.util.List;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.ActionUtils;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.InstructionUtils;
+import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.Acl;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.AccessListEntries;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.Ace;
@@ -130,7 +131,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         }
     }
 
-    public void programAclEntry(Long dpidLong, Acl acl, boolean writeFlow) {
+    public void programAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
         //MatchBuilder matchBuilder = new MatchBuilder();
@@ -148,18 +149,20 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, (AceEth)aceType, writeFlow, aclActions);
+                aceEthAcl(nodeName, flowId, segmentationId, (AceEth)aceType, writeFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, (AceIp)aceType, writeFlow, aclActions);
+                aceIpAcl(nodeName, flowId, segmentationId, (AceIp)aceType, writeFlow, aclActions);
             }
 
         }
     }
 
     //Match Ethernet source/dest mac, macmask
-    private void aceEthAcl(String nodeName, String flowId, AceEth aceEth, boolean writeFlow, Actions aclActions) {
+    private void aceEthAcl(String nodeName, String flowId, Long segmentationId, AceEth aceEth, boolean writeFlow, Actions aclActions) {
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+
+        matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
 
         String srcMacAddress = aceEth.getSourceMacAddress().getValue();
         String srcMacAddressMask = aceEth.getSourceMacAddressMask().getValue();
@@ -192,9 +195,11 @@ public class PipelineAclHandler extends AbstractServiceInstance{
     }
 
     //Match IP protocol(TCP/UDP/ICMP), IPv4 source/des Address
-    private void aceIpAcl(String nodeName, String flowId, AceIp aceIp, boolean writeFlow, Actions aclActions) {
+    private void aceIpAcl(String nodeName, String flowId, Long segmentationId, AceIp aceIp, boolean writeFlow, Actions aclActions) {
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+
+        matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
 
         if (aceIp.getAceIpVersion() instanceof AceIpv6) {
             /*TODO IPv6 Support*/

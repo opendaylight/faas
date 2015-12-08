@@ -66,8 +66,8 @@ module fabric-service {
             }
         }
         output {
-            leaf node-ref {
-                type topo:node-ref;
+            leaf node-id {
+                type topo:node-id;
             }
             uses fabrictype:logic-switch;
         }
@@ -192,7 +192,7 @@ module fabric-service {
                 type topo:tp-id;
             }
             leaf acl-name {
-                type acl:access-control-list-ref;
+                type string;
             }
         }
     }
