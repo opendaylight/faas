@@ -139,6 +139,10 @@ public class Openflow13Provider {
 
     }
 
+    public void updateSfcTunnelInDevice(Long dpidLong, Long gpeTunnelOfPort, Long segmentationId, boolean writeFlow) {
+        aclHandler.programGpeTunnelInEntry(dpidLong, segmentationId, gpeTunnelOfPort, writeFlow);
+    }
+
 
     public void updateBdifInDevice(Long dpidLong, List<AdapterBdIf> bdIfs, AdapterBdIf newBdIf, boolean writeFlow) {
 

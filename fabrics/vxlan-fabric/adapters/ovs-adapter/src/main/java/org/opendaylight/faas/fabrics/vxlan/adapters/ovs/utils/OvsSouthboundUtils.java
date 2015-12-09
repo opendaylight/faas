@@ -250,6 +250,13 @@ public class OvsSouthboundUtils {
         return deletePort(node, tunnelBridgeName, portName, databroker);
     }
 
+    public static boolean deleteVxlanGpeTunnelPort(Node node, DataBroker databroker) {
+        String tunnelType = "vxlan";
+        String tunnelBridgeName = getBridgeName(node);
+        String portName = generateTpName(tunnelBridgeName, tunnelType, "gpe");
+        return deletePort(node, tunnelBridgeName, portName, databroker);
+    }
+
     private static List<TerminationPoint> extractTerminationPoints(Node node) {
         List<TerminationPoint> terminationPoints = new ArrayList<TerminationPoint>();
         OvsdbBridgeAugmentation ovsdbBridgeAugmentation = node.getAugmentation(OvsdbBridgeAugmentation.class);

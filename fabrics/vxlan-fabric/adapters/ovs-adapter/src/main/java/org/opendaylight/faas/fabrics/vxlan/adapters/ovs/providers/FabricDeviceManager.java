@@ -8,6 +8,7 @@
 package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -160,6 +161,17 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
                 OvsdbBridgeAugmentation ovsdbData = (OvsdbBridgeAugmentation) newBridges.get(bridgeIId);
                 readPredefinedVtepIp(bridgeIId, ovsdbData);
             }
+        }
+
+        Set<InstanceIdentifier<?>> deletedBridges = change.getRemovedPaths();
+        if (deletedBridges != null) {
+        	for (InstanceIdentifier<?> nodeIId : deletedBridges) {
+                @SuppressWarnings("unchecked")
+				InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
+                InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
+
+                this.rpcRegistration.unregisterPath(FabricCapableDeviceContext.class, targetIId);
+        	}
         }
     }
 
