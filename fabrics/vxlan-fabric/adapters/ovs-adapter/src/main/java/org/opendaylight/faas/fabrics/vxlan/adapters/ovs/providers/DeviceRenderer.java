@@ -458,39 +458,52 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
     private void onBridgeDomainCreate(BridgeDomain newRec) {
         Long dpidLong = ctx.getDpid();
+        Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
+
         Long tunnelOfPort = ctx.getVtep_ofPort();
         if (tunnelOfPort == 0l) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
-
-            if (tunnelOfPort != 0l) {
-                ctx.setVtep_ofPort(tunnelOfPort);
-            } else {
-                return;
-            }
+        }
+        if (tunnelOfPort != 0l) {
+            ctx.setVtep_ofPort(tunnelOfPort);
+            openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, true);
         }
 
-        Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
-
-        openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, true);
+        Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
+        if (gpeTunnelOfPort == 0l) {
+            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
+        }
+        if (gpeTunnelOfPort != 0l) {
+            ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
+            openflow13Provider.updateBridgeDomainInDevice(dpidLong, gpeTunnelOfPort, segmentationId, true);
+            openflow13Provider.updateSfcTunnelInDevice(dpidLong, gpeTunnelOfPort, segmentationId, true);
+        }
 
     }
 
     private void onBridgeDomainDelete(BridgeDomain newRec) {
         Long dpidLong = ctx.getDpid();
+        Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
+
         Long tunnelOfPort = ctx.getVtep_ofPort();
         if (tunnelOfPort == 0l) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
-
-            if (tunnelOfPort != 0l) {
-                ctx.setVtep_ofPort(tunnelOfPort);
-            } else {
-                return;
-            }
+        }
+        if (tunnelOfPort != 0l) {
+            ctx.setVtep_ofPort(tunnelOfPort);
+            openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, false);
         }
 
-        Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
+        Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
+        if (gpeTunnelOfPort == 0l) {
+            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
+        }
+        if (gpeTunnelOfPort != 0l) {
+            ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
+            openflow13Provider.updateBridgeDomainInDevice(dpidLong, gpeTunnelOfPort, segmentationId, false);
+            openflow13Provider.updateSfcTunnelInDevice(dpidLong, gpeTunnelOfPort, segmentationId, false);
+        }
 
-        openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, false);
     }
 
     private void onBridgeDomainModified(BridgeDomain newRec) {

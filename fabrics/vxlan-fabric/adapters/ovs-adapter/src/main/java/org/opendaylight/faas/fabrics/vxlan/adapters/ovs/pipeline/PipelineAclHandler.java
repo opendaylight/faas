@@ -29,7 +29,6 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.cont
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.PortNumber;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
@@ -48,8 +47,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.EtherType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.ethernet.match.fields.EthernetDestinationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.ethernet.match.fields.EthernetSourceBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.ethernet.match.fields.EthernetTypeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.EthernetMatchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.IpMatchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._3.match.Ipv4MatchBuilder;
@@ -62,7 +63,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.ni
 import com.google.common.collect.Lists;
 
 public class PipelineAclHandler extends AbstractServiceInstance{
-    public static final Integer MATCH_PRIORITY = 61000;
+    private static final Integer ACL_MATCH_PRIORITY = 60000;
+    private static final Integer GPE_TUNNEL_IN_PRIORITY = 61001;
+    private static final Integer TRAFFIC_BEHAVIOR_RULE_PRIORITY = 1;
+
     public static final short PROTOCOL_ICMP = 1;
     public static final short PROTOCOL_TCP = 6;
     public static final short PROTOCOL_UDP = 17;
@@ -115,7 +119,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
         flowBuilder.setMatch(matchBuilder.build());
-        flowBuilder.setPriority(0);
+        flowBuilder.setPriority(TRAFFIC_BEHAVIOR_RULE_PRIORITY);
         flowBuilder.setBarrier(true);
         flowBuilder.setTableId(getTable());
         flowBuilder.setKey(key);
@@ -131,12 +135,63 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         }
     }
 
-    public void programAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
+    // For Traffic from GPE Tunnel, allow it go to next table by default
+    public void programGpeTunnelInEntry(Long dpidLong, Long segmentationId, Long gpeTunnelOfPort, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
-        //MatchBuilder matchBuilder = new MatchBuilder();
-        //NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
-        //FlowBuilder flowBuilder = new FlowBuilder();
+        BigInteger tunnelId = BigInteger.valueOf(segmentationId.longValue());
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        // Create Match(es) and Set them in the FlowBuilder Object
+        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build());
+        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, gpeTunnelOfPort).build());
+
+        if (writeFlow) {
+            // Create the OF Actions and Instructions
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+
+            // Instructions List Stores Individual Instructions
+            List<Instruction> instructions = Lists.newArrayList();
+
+            // Append the default pipeline after the first classification
+            ib = this.getMutablePipelineInstructionBuilder();
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+            instructions.add(ib.build());
+
+            // Add InstructionBuilder to the Instruction(s)Builder List
+            isb.setInstruction(instructions);
+
+            // Add InstructionsBuilder to FlowBuilder
+            flowBuilder.setInstructions(isb.build());
+        }
+
+        String flowId = "GpeTunnelIn_"+segmentationId+"_"+gpeTunnelOfPort;
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setPriority(GPE_TUNNEL_IN_PRIORITY);
+        flowBuilder.setStrict(true);
+        flowBuilder.setBarrier(false);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (writeFlow) {
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+
+    }
+
+    public void programAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
+        String nodeName = OPENFLOW + dpidLong;
 
         String flowId = "PipelineAcl_";
 
@@ -164,37 +219,35 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
         matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
 
-        String srcMacAddress = aceEth.getSourceMacAddress().getValue();
-        String srcMacAddressMask = aceEth.getSourceMacAddressMask().getValue();
-        String dstMacAddress = aceEth.getDestinationMacAddress().getValue();
-        String dstMacAddressMask = aceEth.getDestinationMacAddressMask().getValue();
-
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
 
-        if (srcMacAddress != null) {
+        EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
+        ethTypeBuilder.setType(new EtherType(0x0800L));
+        ethernetMatch.setEthernetType(ethTypeBuilder.build());
+
+        if (aceEth.getSourceMacAddress() != null) {
             EthernetSourceBuilder ethSourceBuilder = new EthernetSourceBuilder();
-            ethSourceBuilder.setAddress(new MacAddress(srcMacAddress));
-            if (srcMacAddressMask != null) {
-                ethSourceBuilder.setMask(new MacAddress(srcMacAddressMask));
+            ethSourceBuilder.setAddress(aceEth.getSourceMacAddress());
+            if (aceEth.getSourceMacAddressMask() != null) {
+                ethSourceBuilder.setMask(aceEth.getSourceMacAddressMask());
             }
             ethernetMatch.setEthernetSource(ethSourceBuilder.build());
         }
 
-        if (dstMacAddress != null) {
+        if (aceEth.getDestinationMacAddress() != null) {
             EthernetDestinationBuilder ethDestinationBuilder = new EthernetDestinationBuilder();
-            ethDestinationBuilder.setAddress(new MacAddress(dstMacAddress));
-            if (dstMacAddressMask != null) {
-                ethDestinationBuilder.setMask(new MacAddress(dstMacAddressMask));
+            ethDestinationBuilder.setAddress(aceEth.getDestinationMacAddress());
+            if (aceEth.getDestinationMacAddressMask() != null) {
+                ethDestinationBuilder.setMask(aceEth.getDestinationMacAddressMask());
             }
             ethernetMatch.setEthernetDestination(ethDestinationBuilder.build());
         }
 
         matchBuilder.setEthernetMatch(ethernetMatch.build());
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, MATCH_PRIORITY, writeFlow, aclActions);
+        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
     }
 
-    //Match IP protocol(TCP/UDP/ICMP), IPv4 source/des Address
     private void aceIpAcl(String nodeName, String flowId, Long segmentationId, AceIp aceIp, boolean writeFlow, Actions aclActions) {
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
@@ -208,37 +261,53 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
         if (aceIp.getAceIpVersion() instanceof AceIpv4) {
             //Match IPv4 protocol and IP Address
+            EthernetMatchBuilder eth = new EthernetMatchBuilder();
+            EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
+            ethTypeBuilder.setType(new EtherType(0x0800L));
+            eth.setEthernetType(ethTypeBuilder.build());
+            matchBuilder.setEthernetMatch(eth.build());
+
+            createIpAddressMatch(matchBuilder, aceIp);
 
             //Match IP protocol, Now, support TCP, UDP, ICMP
-            matchBuilder = createIpProtocolMatch(matchBuilder, aceIp.getProtocol());
+            short aceIpProtocol = aceIp.getProtocol();
+            if (aceIpProtocol != 0) {
+                matchBuilder = createIpProtocolMatch(matchBuilder, aceIpProtocol);
 
-            AceIpv4 aceIpv4 = (AceIpv4)aceIp.getAceIpVersion();
-            Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
+                if (PROTOCOL_TCP == aceIpProtocol) {
+                    //Set TCP Port
+                    matchBuilder = createTcpMatch(matchBuilder, aceIp);
+                }
 
-            Ipv4Prefix ipv4SourcePrefix = aceIpv4.getSourceIpv4Network();
-            if (ipv4SourcePrefix != null) {
-                ipv4match.setIpv4Source(ipv4SourcePrefix);
+                if (PROTOCOL_UDP == aceIpProtocol) {
+                    //Set UDP Port
+                    matchBuilder = createUdpMatch(matchBuilder, aceIp);
+                }
             }
 
-            Ipv4Prefix ipv4DestinationPrefix = aceIpv4.getSourceIpv4Network();
-            if (ipv4DestinationPrefix != null) {
-                ipv4match.setIpv4Destination(ipv4DestinationPrefix);
-            }
 
-            matchBuilder.setLayer3Match(ipv4match.build());
         }
 
-        if (PROTOCOL_TCP == aceIp.getProtocol()) {
-            //Set TCP Port
-            matchBuilder = createTcpMatch(matchBuilder, aceIp);
+        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
+    }
+
+    private MatchBuilder createIpAddressMatch(MatchBuilder matchBuilder, AceIp aceIp) {
+        AceIpv4 aceIpv4 = (AceIpv4)aceIp.getAceIpVersion();
+        Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
+
+        Ipv4Prefix ipv4SourcePrefix = aceIpv4.getSourceIpv4Network();
+        if (ipv4SourcePrefix != null) {
+            ipv4match.setIpv4Source(ipv4SourcePrefix);
+            //MatchUtils.createSrcL3IPv4Match(matchBuilder, ipv4SourcePrefix);
         }
 
-        if (PROTOCOL_UDP == aceIp.getProtocol()) {
-            //Set UDP Port
-            matchBuilder = createUdpMatch(matchBuilder, aceIp);
+        Ipv4Prefix ipv4DestinationPrefix = aceIpv4.getDestinationIpv4Network();
+        if (ipv4DestinationPrefix != null) {
+            ipv4match.setIpv4Destination(ipv4DestinationPrefix);
         }
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, MATCH_PRIORITY, writeFlow, aclActions);
+        matchBuilder.setLayer3Match(ipv4match.build());
+        return matchBuilder;
     }
 
     private MatchBuilder createIpProtocolMatch(MatchBuilder matchBuilder, short ipProtocol) {
@@ -262,13 +331,13 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         PortNumber tcpSourcePortLower = aceIp.getSourcePortRange().getLowerPort();
         PortNumber tcpDestinationPortLower = aceIp.getDestinationPortRange().getLowerPort();
 
-        if ( (null != tcpSourcePortLower) && tcpSourcePortLower.equals(aceIp.getSourcePortRange().getUpperPort())) {
+        if (null != tcpSourcePortLower) {
             tcpmatch.setTcpSourcePort(tcpSourcePortLower);
         } else {
             /*TODO TCP PortRange Match*/
         }
 
-        if ( (null != tcpDestinationPortLower) && tcpDestinationPortLower.equals(aceIp.getDestinationPortRange().getUpperPort())) {
+        if (null != tcpDestinationPortLower) {
             tcpmatch.setTcpDestinationPort(tcpDestinationPortLower);
         } else {
             /*TODO TCP PortRange Match*/
@@ -284,17 +353,19 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         PortNumber udpSourcePortLower = aceIp.getSourcePortRange().getLowerPort();
         PortNumber udpDestinationPortLower = aceIp.getDestinationPortRange().getLowerPort();
 
-        if ( (null != udpSourcePortLower) && udpSourcePortLower.equals(aceIp.getSourcePortRange().getUpperPort())) {
+        if (null != udpSourcePortLower) {
             udpmatch.setUdpSourcePort(udpSourcePortLower);
         } else {
             /*TODO UDP PortRange Match*/
         }
 
-        if ( (null != udpDestinationPortLower) && udpDestinationPortLower.equals(aceIp.getDestinationPortRange().getUpperPort())) {
+        if (null != udpDestinationPortLower) {
             udpmatch.setUdpDestinationPort(udpDestinationPortLower);
         } else {
             /*TODO UDP PortRange Match*/
         }
+
+        matchBuilder.setLayer4Match(udpmatch.build());
 
         return matchBuilder;
     }
@@ -306,9 +377,9 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         flowBuilder.setMatch(matchBuilder.build());
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
-        flowBuilder.setStrict(false);
+        flowBuilder.setStrict(true);
         flowBuilder.setPriority(priority);
-        flowBuilder.setBarrier(true);
+        flowBuilder.setBarrier(false);
         flowBuilder.setTableId(this.getTable());
         flowBuilder.setKey(key);
         flowBuilder.setFlowName(flowId);
@@ -322,9 +393,10 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
             if (aclActions.getPacketHandling() instanceof Permit) {
                 ib = this.getMutablePipelineInstructionBuilder();
+                ib.setOrder(0);
+                ib.setKey(new InstructionKey(0));
+                instructionsList.add(ib.build());
             } else if (aclActions.getPacketHandling() instanceof Redirect) {
-                //yzy: here for faas Redirect augment, WARNING: not implement now!!
-
                 Nsh nsh = getNsh(aclActions);
 
                 if (nsh != null) {
@@ -368,14 +440,18 @@ public class PipelineAclHandler extends AbstractServiceInstance{
                 }
 
                 ib = this.getMutablePipelineInstructionBuilder();
+                ib.setOrder(1);
+                ib.setKey(new InstructionKey(1));
+                instructionsList.add(ib.build());
             } else {
                 //Default Action for ACL is DENY
-                InstructionUtils.createDropInstructions(ib);
+                ib = InstructionUtils.createDropInstructions(ib);
+                ib.setOrder(0);
+                ib.setKey(new InstructionKey(0));
+                instructionsList.add(ib.build());
             }
 
-            ib.setOrder(1);
-            ib.setKey(new InstructionKey(1));
-            instructionsList.add(ib.build());
+
             isb.setInstruction(instructionsList);
             flowBuilder.setInstructions(isb.build());
             writeFlow(flowBuilder, nodeBuilder);

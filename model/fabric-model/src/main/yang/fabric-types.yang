@@ -100,7 +100,7 @@ module fabric-types {
         list fabric-acl {
             key fabric-acl-name;
             leaf fabric-acl-name {
-                type acl:access-control-list-ref;
+                type string;
             }
         }
     }
