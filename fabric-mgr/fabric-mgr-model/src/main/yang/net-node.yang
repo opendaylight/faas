@@ -311,7 +311,7 @@ module vc-net-node {
             }
         }
         output {
-            leaf lr-id {
+            leaf lne-id {
                 type vctype:vc-lne-id;
             }
         }
@@ -325,7 +325,7 @@ module vc-net-node {
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-id {
+            leaf lne-id {
                 type vctype:vc-lne-id;
             }
         }
@@ -339,7 +339,7 @@ module vc-net-node {
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-id {
+            leaf lne-id {
                 type vctype:vc-lne-id;
             }
             list routingtable {
@@ -356,7 +356,7 @@ module vc-net-node {
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-id {
+            leaf lne-id {
                 type vctype:vc-lne-id;
             }
             list ports {
@@ -375,7 +375,7 @@ module vc-net-node {
             leaf vfabric-id {
                 type nt:node-id;
             }
-            leaf lr-id {
+            leaf lne-id {
                 type vctype:vc-lne-id;
             }
             list ports {

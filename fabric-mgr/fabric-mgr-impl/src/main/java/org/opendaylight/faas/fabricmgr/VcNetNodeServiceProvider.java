@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
@@ -50,6 +51,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yangtools.yang.common.RpcResult;
+import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +102,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         Integer vni = new Integer(l2Resource);
         lswInputBuilder.setVni(vni);
 
+        final RpcResultBuilder<CreateLneLayer2Output> resultBuilder = RpcResultBuilder.<CreateLneLayer2Output>success();
         Future<RpcResult<CreateLogicSwitchOutput>> result =
                 this.fabServiceService.createLogicSwitch(lswInputBuilder.build());
         try {
@@ -113,7 +116,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 // VcLneRef lswRef = new
                 // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
                 builder.setLneId((VcLneId) nodeId);
-
+                return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLneLayer2: createLogicSwitch RPC failed: {}", e);
@@ -138,6 +141,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         lrInputBuilder.setFabricId(fabricId);
         lrInputBuilder.setName(lrName);
 
+        final RpcResultBuilder<CreateLneLayer3Output> resultBuilder = RpcResultBuilder.<CreateLneLayer3Output>success();
         Future<RpcResult<CreateLogicRouterOutput>> result =
                 this.fabServiceService.createLogicRouter(lrInputBuilder.build());
         try {
@@ -149,7 +153,8 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 NodeId nodeId = createLrOutput.getNodeId();
                 // VcLneRef lrRef = new
                 // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
-                builder.setLrId((VcLneId) nodeId);
+                builder.setLneId((VcLneId) nodeId);
+                return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed: {}", e);

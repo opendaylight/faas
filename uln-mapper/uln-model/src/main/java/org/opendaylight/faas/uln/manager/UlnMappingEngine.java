@@ -46,6 +46,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,10 +85,8 @@ public class UlnMappingEngine {
             return;
         }
 
-        this.renderLogicalSwitch(lsw);
-
-        uln.markLswAsRendered(lsw);
-
+        uln.cacheLsw(lsw);
+        this.renderLogicalSwitch(tenantId, uln, lsw);
     }
 
     public void handleLrCreateEvent(LogicalRouter lr) {
@@ -105,9 +104,8 @@ public class UlnMappingEngine {
             return;
         }
 
-        this.renderLogicalRouter(lr);
-
-        uln.markLrAsRendered(lr);
+        uln.cacheLr(lr);
+        this.renderLogicalRouter(tenantId, uln, lr);
     }
 
     public void handleSubnetCreateEvent(Subnet subnet) {
@@ -121,26 +119,69 @@ public class UlnMappingEngine {
             return;
         }
         if (uln.isSubnetAlreadyCached(subnet) == true) {
-            LOG.error("FABMGR: ERROR: handleSubnetCreateEvent: lr already exist");
+            LOG.error("FABMGR: ERROR: handleSubnetCreateEvent: subnet already exist");
             return;
         }
 
-
+        uln.cacheSubnet(subnet);
+        this.renderSubnet(tenantId, uln, subnet);
     }
 
-    public void handlePortCreateEvent(Port dao) {
-        // TODO Auto-generated method stub
+    public void handlePortCreateEvent(Port port) {
+        Uuid tenantId = port.getTenantId();
 
+        this.createUlnCacheIfNotExist(tenantId);
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handlePortCreateEvent: uln is null");
+            return;
+        }
+        if (uln.isPortAlreadyCached(port) == true) {
+            LOG.error("FABMGR: ERROR: handlePortCreateEvent: port already exist");
+            return;
+        }
+
+        uln.cachePort(port);
+        this.renderPort(tenantId, uln, port);
     }
 
-    public void handleEndpointLocationCreateEvent(EndpointLocation dao) {
-        // TODO Auto-generated method stub
+    public void handleEndpointLocationCreateEvent(EndpointLocation epLocation) {
+        Uuid tenantId = epLocation.getTenantId();
 
+        this.createUlnCacheIfNotExist(tenantId);
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEndpointCreateEvent: uln is null");
+            return;
+        }
+        if (uln.isEpLocationAlreadyCached(epLocation) == true) {
+            LOG.error("FABMGR: ERROR: handleEndpointLocationCreateEvent: epLocation already exist");
+            return;
+        }
+
+        uln.cacheEpLocation(epLocation);
+        this.renderEpRegistration(tenantId, uln, epLocation);
     }
 
-    public void handleEdgeCreateEvent(Edge dao) {
-        // TODO Auto-generated method stub
+    public void handleEdgeCreateEvent(Edge edge) {
+        Uuid tenantId = edge.getTenantId();
 
+        this.createUlnCacheIfNotExist(tenantId);
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: uln is null");
+            return;
+        }
+        if (uln.isEdgeAlreadyCached(edge) == true) {
+            LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: edge already exist");
+            return;
+        }
+
+        uln.cacheEdge(edge);
+        this.renderEdge(tenantId, uln, edge);
     }
 
     public void handleSecurityRuleGroupsCreateEvent(SecurityRuleGroups ruleGroups) {
@@ -157,25 +198,129 @@ public class UlnMappingEngine {
             return;
         }
 
-        this.addNewRules(ruleGroups);
+        uln.cacheSecurityRuleGroups(ruleGroups);
+        this.renderSecurityRuleGroups(tenantId, uln, ruleGroups);
     }
 
-    private void renderLogicalSwitch(LogicalSwitch lsw) {
-        Uuid tenantId = lsw.getTenantId();
+    private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+        /*
+         * For LSW, we can directly render it on Fabric.
+         */
         CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(lsw);
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid tenant =
                 new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
                         tenantId.getValue());
-        VcontainerServiceProviderAPI.createLneLayer2(tenant, input);
+        NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(tenant, input);
+        uln.markLswAsRendered(lsw, renderedLswId);
+
+        /*
+         * After we render LSW, we can render all the logical ports that
+         * belong to this LSW.
+         */
     }
 
-    private void renderLogicalRouter(LogicalRouter lr) {
-        Uuid tenantId = lr.getTenantId();
+    private void renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
+        /*
+         * For LR, we can directly render it on Fabric.
+         */
         CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(lr);
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid tenant =
                 new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
                         tenantId.getValue());
-        VcontainerServiceProviderAPI.createLneLayer3(tenant, input);
+        NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(tenant, input);
+        uln.markLrAsRendered(lr, renderedLrId);
+
+
+    }
+
+    private void renderEpRegistration(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
+        /*
+         * When an endpoint is online, we call Fabric's registerEndpoint(). However, before
+         * we do that, we need to make sure that LogicalSwitch and Logical Port are created
+         * (rendered) on Fabric. Not only that, we must also have to have the Subnet information
+         * ready, because Fabric's registerEndpoint() need the information in Subnet.
+         */
+
+        EdgeMappingInfo epEdge = uln.findEpLocationSubnetEdge(epLocation);
+        if (epEdge == null) {
+            LOG.debug("FABMGR: renderEpRegistration: epEdge not in cache");
+            return;
+        }
+
+        Uuid epPortId = epLocation.getPort();
+        PortMappingInfo subnetPort = uln.findOtherPortInEdge(epEdge, epPortId);
+        if (subnetPort == null) {
+            LOG.debug("FABMGR: renderEpRegistration: subnetPort not in cache");
+            return;
+        }
+
+        SubnetMappingInfo subnet = uln.findSubnetFromItsPort(subnetPort);
+        if (subnet == null) {
+            LOG.debug("FABMGR: renderEpRegistration: subnet not in cache");
+            return;
+        }
+
+        EdgeMappingInfo subnetLswEdge = uln.findSubnetLswEdge(subnet);
+        if (subnetLswEdge == null) {
+            LOG.debug("FABMGR: renderEpRegistration: subnetLswEdge not in cache");
+            return;
+        }
+
+        PortMappingInfo subnetPort2 = uln.findSubnetPortOnEdge(subnetLswEdge);
+        if (subnetPort2 == null) {
+            LOG.debug("FABMGR: renderEpRegistration: subnetLswPort not in cache");
+            return;
+        }
+
+        PortMappingInfo lswPort = uln.findOtherPortInEdge(subnetLswEdge, subnetPort2.getPort().getUuid());
+        if (lswPort == null) {
+            LOG.debug("FABMGR: renderEpRegistration: lswPort not in cache");
+            return;
+        }
+
+        LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(lswPort);
+        if (lsw == null) {
+            LOG.debug("FABMGR: renderEpRegistration: lsw not in cache");
+            return;
+        }
+
+        /*
+         * If we get here, then we get have received all the
+         * information that we need in order to do
+         * EP registration. The steps are:
+         * 1. create LSW
+         * 2. create logical port on LSW
+         * 3. register EP
+         */
+
+        if (lsw.hasServiceBeenRendered() == false ) {
+            this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+        }
+
+        if (lswPort.hasServiceBeenRendered() == false ) {
+            this.renderPort(tenantId, uln, lswPort.getPort());
+        }
+
+        //org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid upUuid;
+    }
+
+    private void renderSubnet(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void renderPort(Uuid tenantId, UserLogicalNetworkCache uln, Port port) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void renderEdge(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void renderSecurityRuleGroups(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
+        this.addNewRules(ruleGroups);
     }
 
     private void addNewRules(SecurityRuleGroups ruleGroups) {
