@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- *
+ * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
@@ -39,6 +39,19 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.r
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public class UlnIidFactory {
+
+    /*
+     * Logical Network
+     */
+    public static InstanceIdentifier<TenantLogicalNetwork> tenantLogicalNetworkIid(Uuid tenantId) {
+        return InstanceIdentifier.builder(TenantLogicalNetworks.class)
+            .child(TenantLogicalNetwork.class, new TenantLogicalNetworkKey(tenantId))
+            .build();
+    }
+
+    public static InstanceIdentifier<TenantLogicalNetwork> tenantsLogicalNetworksIid() {
+        return InstanceIdentifier.builder(TenantLogicalNetworks.class).child(TenantLogicalNetwork.class).build();
+    }
 
     /*
      * Subnet
@@ -232,7 +245,6 @@ public class UlnIidFactory {
     public static InstanceIdentifier<RenderedServicePath> rspIid(RspName rspName) {
 
         RenderedServicePathKey rspKey = new RenderedServicePathKey(rspName);
-        return InstanceIdentifier.builder(RenderedServicePaths.class)
-                .child(RenderedServicePath.class, rspKey).build();
+        return InstanceIdentifier.builder(RenderedServicePaths.class).child(RenderedServicePath.class, rspKey).build();
     }
 }
