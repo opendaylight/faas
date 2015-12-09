@@ -95,6 +95,10 @@ module faas-security-rules {
                                     }
                                 }
                             }
+                            leaf additional-info {
+                                description "Additional info about action";
+                                type faas-common:text;
+                            }
                             uses parameter-values-grouping;
                         }
 
@@ -104,6 +108,16 @@ module faas-security-rules {
                                 description "A user-visible name for the action";
                                 type faas-common:name;
                                 mandatory true;
+                            }
+                            leaf additional-info {
+                                description "Additional info about action";
+                                type faas-common:text;
+                            }
+                            leaf order {
+                                description "Action order";
+                                type int32 {
+                                    range "0..max";
+                                }
                             }
                             uses parameter-values-grouping;
                         }
