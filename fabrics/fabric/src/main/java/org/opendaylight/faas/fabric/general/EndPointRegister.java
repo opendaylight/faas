@@ -9,13 +9,10 @@ package org.opendaylight.faas.fabric.general;
 
 import java.util.List;
 import java.util.UUID;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
@@ -26,18 +23,13 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.LocateEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.UnregisterEndpointInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
-import org.opendaylight.yangtools.yang.common.RpcResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.UnregisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.EndpointBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.EndpointKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
@@ -77,6 +69,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
             return Futures.immediateFailedCheckedFuture(new IllegalArgumentException("endpoint can not be empty!"));
         }
         final List<Uuid> toBeDeletedList = input.getIds();
+        final FabricId fabricid = input.getFabricId();
 
         if ( toBeDeletedList == null || toBeDeletedList.isEmpty()) {
             return Futures.immediateFuture(result);
@@ -104,7 +97,8 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         final RpcResultBuilder<RegisterEndpointOutput> resultBuilder = RpcResultBuilder.<RegisterEndpointOutput>success();
         final RegisterEndpointOutputBuilder outputBuilder = new RegisterEndpointOutputBuilder();
 
-        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(input.getFabricId());
+        final FabricId fabricid = input.getFabricId();
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
         if (fabricObj == null) {
             return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
         }
@@ -128,7 +122,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         epBuilder.setLogicLocation(input.getLogicLocation());
         epBuilder.setMacAddress(input.getMacAddress());
         epBuilder.setPublicIp(input.getPublicIp());
-        epBuilder.setKey(new EndpointKey(newepId));
+        epBuilder.setOwnFabric(fabricid);
 
         trans.put(LogicalDatastoreType.OPERATIONAL, eppath, epBuilder.build(), true);
 
@@ -157,7 +151,8 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         if ( epId == null ) {
             return Futures.immediateFailedCheckedFuture(new IllegalArgumentException("endpoint can not be empty!"));
         }
-        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(input.getFabricId());
+        final FabricId fabricid = input.getFabricId();
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
         if (fabricObj == null) {
             return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
         }

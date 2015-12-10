@@ -14,6 +14,7 @@ import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
+import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
@@ -64,12 +65,8 @@ public class EndPointManager implements AutoCloseable {
             public void onSuccess(Optional<Endpoint> result) {
                 if (result.isPresent()) {
                     Endpoint ep = result.get();
-                    FabricId fabricid = null;
-                    if (ep.getLogicLocation() != null) {
-                        @SuppressWarnings("unchecked")
-                        InstanceIdentifier<Node> nodeIId = (InstanceIdentifier<Node>) ep.getLogicLocation().getNodeRef().getValue();
-                        fabricid = new FabricId(nodeIId.firstKeyOf(Topology.class).getTopologyId().getValue());
-                    }
+                    FabricId fabricid = ep.getOwnFabric();
+
                     if (ep.getLocation() != null) {
                         if (fabricid != null) {
                             rendererEndpoint(fabricid, ep);
@@ -90,9 +87,8 @@ public class EndPointManager implements AutoCloseable {
         MacAddress mac = ep.getMacAddress();
 
         // VNI
-        @SuppressWarnings("unchecked")
-        InstanceIdentifier<Node> logicNodeIId = (InstanceIdentifier<Node>) ep.getLogicLocation().getNodeRef().getValue();
-        NodeId logicNode = logicNodeIId.firstKeyOf(Node.class).getNodeId();
+        NodeId logicNode = ep.getLogicLocation().getNodeId();
+        
         LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
         if (switchCtx == null) {
             LOG.warn("There are no such switch's context.({})", logicNode.getValue());

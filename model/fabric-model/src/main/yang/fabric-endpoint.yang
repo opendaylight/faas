@@ -44,6 +44,10 @@ module fabric-endpoint {
             type yang:uuid;
         }
 
+		leaf own-fabric {
+			type fabric:fabric-id; 
+		}
+
         leaf mac-address {
             type yang:mac-address;
         }
@@ -67,12 +71,12 @@ module fabric-endpoint {
         container logic-location {
             description "The location for this endpoint in the logical network.";
 
-            leaf node-ref {
-                type fabrictype:node-ref;
+            leaf node-id {
+                type topo:node-id;
             }
 
-            leaf tp-ref {
-                type fabrictype:tp-ref;
+            leaf tp-id {
+                type topo:tp-id;
             }
         }
     }
@@ -83,7 +87,7 @@ module fabric-endpoint {
         config false;
 
         list endpoint {
-            key endpoint-uuid;
+            key "endpoint-uuid";
             uses endpoint-attributes;
         }
     }
