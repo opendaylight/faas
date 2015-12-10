@@ -13,9 +13,14 @@ import java.util.concurrent.Future;
 
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricOutput;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
@@ -50,6 +55,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.UpdateNetNodeLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
@@ -63,7 +69,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
 
     private RpcRegistration<VcNetNodeService> rpcRegistration;
     private final ExecutorService threadPool;
-    private FabricService fabService;
+    private FabricEndpointService epService;
     private FabricServiceService fabServiceService;
 
     public VcNetNodeServiceProvider(ExecutorService executor) {
@@ -73,7 +79,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
     public void initialize() {
         this.rpcRegistration =
                 FabMgrDatastoreDependency.getRpcRegistry().addRpcImplementation(VcNetNodeService.class, this);
-        this.fabService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricService.class);
+        this.epService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricEndpointService.class);
         this.fabServiceService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricServiceService.class);
     }
 
@@ -241,6 +247,50 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
     @Override
     public Future<RpcResult<Void>> rmApplianceFromNetNode(RmApplianceFromNetNodeInput input) {
         return null;
+    }
+
+    public TpId createLogicalPortOnLsw(Uuid tenantId, NodeId vfabricId, NodeId lswId) {
+        TpId tpId = null;
+        CreateLogicPortInputBuilder inputBuilder = new CreateLogicPortInputBuilder();
+
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setLogicDevice(lswId);
+        inputBuilder.setName("LswLogicalPort");
+
+        Future<RpcResult<CreateLogicPortOutput>> result = this.fabServiceService.createLogicPort(inputBuilder.build());
+        try {
+            RpcResult<CreateLogicPortOutput> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: createLogicalPortOnLsw: createLogicPort RPC success");
+                CreateLogicPortOutput createLogicPortOutput = output.getResult();
+                tpId = createLogicPortOutput.getTpId();
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: createLogicalPortOnLsw: createLogicPort RPC failed: {}", e);
+        }
+
+        return tpId;
+    }
+
+    public Uuid registerEndpoint(Uuid tenantId, NodeId vfabricId, RegisterEndpointInput epInput) {
+        Uuid epId = null;
+
+        RegisterEndpointInputBuilder inputBuilder = new RegisterEndpointInputBuilder(epInput);
+
+        Future<RpcResult<RegisterEndpointOutput>> result = this.epService.registerEndpoint(inputBuilder.build());
+        try {
+            RpcResult<RegisterEndpointOutput> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: registerEndpoint: registerEndpoint RPC success");
+                RegisterEndpointOutput epOutput = output.getResult();
+                epId = epOutput.getEndpointId();
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: registerEndpoint: registerEndpoint RPC failed: {}", e);
+        }
+
+        return epId;
     }
 
 }

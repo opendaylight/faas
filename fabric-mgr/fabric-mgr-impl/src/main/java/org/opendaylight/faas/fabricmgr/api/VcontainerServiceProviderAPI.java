@@ -29,6 +29,10 @@ public class VcontainerServiceProviderAPI {
         return VcontainerServiceProviderAPI.fabricMgrProvider.createLneLayer3(tenantId, lne3Input);
     }
 
+    public static Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, EndpointAttachInfo endpoint) {
+        return VcontainerServiceProviderAPI.fabricMgrProvider.attachEpToLneLayer2(tenantId, lswId, endpoint);
+    }
+
     public static void setFabricMgrProvider(FabricMgrProvider fabricMgrProvider) {
         VcontainerServiceProviderAPI.fabricMgrProvider = fabricMgrProvider;
     }

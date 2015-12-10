@@ -16,8 +16,12 @@ import java.util.concurrent.Future;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicLocationBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
@@ -29,6 +33,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Output;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3OutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,6 +139,70 @@ public class FabricMgrProvider implements AutoCloseable {
         return nodeId;
     }
 
+    public Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, EndpointAttachInfo endpoint) {
+        /*
+         * First we need to create logical port on the lsw, and then
+         * call EP registration RPC.
+         */
+
+        TpId logicalPortId = this.createLogicalPortOnLsw(tenantId, lswId);
+        Uuid epId = this.attachEndpointToLsw(tenantId, logicalPortId, lswId, endpoint);
+
+        return epId;
+    }
+
+    private Uuid attachEndpointToLsw(Uuid tenantId, TpId logicalPortId, NodeId lswId, EndpointAttachInfo endpoint) {
+        VcConfigDataMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: tenantId={}", tenantId.getValue());
+            return null; // ----->
+        }
+
+        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        if (vfabricId == null) {
+            LOG.error("FABMGR: ERROR: createLogicalPortOnLsw: vfabricId is null: {}", tenantId.getValue());
+            return null; // ---->
+        }
+
+        RegisterEndpointInputBuilder epInputBuilder = new RegisterEndpointInputBuilder();
+        epInputBuilder.setEndpointUuid(endpoint.getEpYangUuid());
+        FabricId fabricId = new FabricId(vfabricId);
+        epInputBuilder.setFabricId(fabricId);
+        epInputBuilder.setGateway(endpoint.getGatewayIpAddr());
+        epInputBuilder.setIpAddress(endpoint.getIpAddress());
+        epInputBuilder.setLocation(endpoint.getPhyLocation());
+        epInputBuilder.setMacAddress(endpoint.getMacAddress());
+
+        LogicLocationBuilder llb = new LogicLocationBuilder();
+        //TODO: incomplete
+        //llb.setNodeRef(lswId);
+        //llb.setTpRef(logicalPortId);
+
+        epInputBuilder.setLogicLocation(llb.build());
+
+        Uuid epId = this.netNodeServiceProvider.registerEndpoint(tenantId, vfabricId, epInputBuilder.build());
+
+        return epId;
+    }
+
+    private TpId createLogicalPortOnLsw(Uuid tenantId, NodeId lswId) {
+        VcConfigDataMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: tenantId={}", tenantId.getValue());
+            return null; // ----->
+        }
+
+        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        if (vfabricId == null) {
+            LOG.error("FABMGR: ERROR: createLogicalPortOnLsw: vfabricId is null: {}", tenantId.getValue());
+            return null; // ---->
+        }
+
+        TpId logicalPortId = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantId, vfabricId, lswId);
+
+        return logicalPortId;
+    }
+
     public Map<Uuid, VcConfigDataMgr> getVcConfigDataMgrList() {
         return vcConfigDataMgrList;
     }
@@ -150,4 +219,6 @@ public class FabricMgrProvider implements AutoCloseable {
         VcConfigDataMgr vc = new VcConfigDataMgr(tenantId);
         this.vcConfigDataMgrList.put(tenantId, vc);
     }
+
+
 }

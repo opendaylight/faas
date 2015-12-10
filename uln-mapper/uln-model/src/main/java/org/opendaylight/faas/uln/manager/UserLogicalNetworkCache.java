@@ -10,12 +10,14 @@ package org.opendaylight.faas.uln.manager;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.PortLocationAttributes.LocationType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
@@ -86,7 +88,7 @@ public class UserLogicalNetworkCache {
 
     public void markLrAsRendered(LogicalRouter lr, NodeId renderedLrId) {
         Uuid lrId = lr.getUuid();
-        this.lswStore.get(lrId).markAsRendered(renderedLrId);
+        this.lrStore.get(lrId).markAsRendered(renderedLrId);
     }
 
     public boolean isSecurityRuleGroupsAlreadyCached(SecurityRuleGroups ruleGroups) {
@@ -102,7 +104,7 @@ public class UserLogicalNetworkCache {
 
     public void markSecurityRuleGroupsAsRendered(SecurityRuleGroups ruleGroups) {
         Uuid ruleGroupsId = ruleGroups.getUuid();
-        this.lswStore.get(ruleGroupsId).setServiceHasBeenRendered(true);
+        this.securityRuleGroupsStore.get(ruleGroupsId).setServiceHasBeenRendered(true);
     }
 
     public boolean isSubnetAlreadyCached(Subnet subnet) {
@@ -118,7 +120,7 @@ public class UserLogicalNetworkCache {
 
     public void markSubnetAsRendered(Subnet subnet) {
         Uuid subnetId = subnet.getUuid();
-        this.lswStore.get(subnetId).setServiceHasBeenRendered(true);
+        this.subnetStore.get(subnetId).setServiceHasBeenRendered(true);
     }
 
     public boolean isPortAlreadyCached(Port port) {
@@ -134,7 +136,7 @@ public class UserLogicalNetworkCache {
 
     public void markPortAsRendered(Port port) {
         Uuid portId = port.getUuid();
-        this.lswStore.get(portId).setServiceHasBeenRendered(true);
+        this.portStore.get(portId).setServiceHasBeenRendered(true);
     }
 
     public boolean isEdgeAlreadyCached(Edge edge) {
@@ -150,7 +152,7 @@ public class UserLogicalNetworkCache {
 
     public void markEdgeAsRendered(Edge edge) {
         Uuid edgeId = edge.getUuid();
-        this.lswStore.get(edgeId).setServiceHasBeenRendered(true);
+        this.edgeStore.get(edgeId).setServiceHasBeenRendered(true);
     }
 
     public boolean isEpLocationAlreadyCached(EndpointLocation epLocation) {
@@ -165,9 +167,11 @@ public class UserLogicalNetworkCache {
 
     }
 
-    public void markEpLocationAsRendered(EndpointLocation epLocation) {
+    public void markEpLocationAsRendered(EndpointLocation epLocation,
+            org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderedEpId) {
         Uuid epLocationId = epLocation.getUuid();
-        this.lswStore.get(epLocationId).setServiceHasBeenRendered(true);
+        this.epLocationStore.get(epLocationId).setRenderedDeviceId(renderedEpId);
+        this.epLocationStore.get(epLocationId).setServiceHasBeenRendered(true);
     }
 
     public void cacheLsw(LogicalSwitch lsw) {
@@ -275,34 +279,177 @@ public class UserLogicalNetworkCache {
         return this.epLocationStore.get(epLocation.getUuid()).hasServiceBeenRendered();
     }
 
+    /*
+     * Find edge that connects the given EP with its belonging subnet
+     */
     public EdgeMappingInfo findEpLocationSubnetEdge(EndpointLocation epLocation) {
-        // TODO Auto-generated method stub
-        return null;
+        EdgeMappingInfo edge = null;
+
+        Uuid epPortId = epLocation.getPort();
+        PortMappingInfo epPort = this.portStore.get(epPortId);
+        if (epPort == null) {
+            return null;
+        }
+
+        Uuid edgeId = epPort.getPort().getEdgeId();
+        edge = this.edgeStore.get(edgeId);
+
+        return edge;
     }
 
+    /*
+     * Given an edge and one port, find the other port.
+     */
     public PortMappingInfo findOtherPortInEdge(EdgeMappingInfo epEdge, Uuid epPortId) {
-        // TODO Auto-generated method stub
-        return null;
+        Uuid leftPortId = epEdge.getEdge().getLeftPortId();
+        Uuid rightPortId = epEdge.getEdge().getRightPortId();
+
+        Uuid otherPortId;
+        if (leftPortId.equals(epPortId) == true) {
+            otherPortId = rightPortId;
+        } else if (rightPortId.equals(epPortId) == true) {
+            otherPortId = leftPortId;
+        } else {
+            LOG.error("FABMGR: ERROR: findOtherPortInEdge: port id is wrong: ep={}, left={}, right={}",
+                    epPortId.getValue(), leftPortId.getValue(), rightPortId.getValue());
+            return null;
+        }
+
+        PortMappingInfo otherPort = this.portStore.get(otherPortId);
+
+        return otherPort;
     }
 
+    /*
+     * Given a port, find the subnet to which this port belongs.
+     */
     public SubnetMappingInfo findSubnetFromItsPort(PortMappingInfo subnetPort) {
-        // TODO Auto-generated method stub
-        return null;
+        LocationType portLocationType = subnetPort.getPort().getLocationType();
+
+        if (portLocationType != LocationType.SubnetType) {
+            LOG.error("FABMGR: ERROR: wrong port type: {}", portLocationType.name());
+            return null;
+        }
+
+        Uuid subnetId = subnetPort.getPort().getLocationId();
+        SubnetMappingInfo subnet = this.subnetStore.get(subnetId);
+
+        return subnet;
     }
 
+    /*
+     * Given a subnet, find the edge that connects this subnet with
+     * a logical switch.
+     */
     public EdgeMappingInfo findSubnetLswEdge(SubnetMappingInfo subnet) {
-        // TODO Auto-generated method stub
+        EdgeMappingInfo subnetLswEdge = null;
+
+        Uuid subnetId = subnet.getSubnet().getUuid();
+
+        for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
+            EdgeMappingInfo edge = entry.getValue();
+            PortMappingInfo subnetPort = this.edgeHasSubnetPort(edge, subnetId);
+            if (subnetPort != null) {
+                PortMappingInfo otherPort = this.findOtherPortInEdge(edge, subnetPort.getPort().getUuid());
+                if (otherPort != null) {
+                    LocationType portType = otherPort.getPort().getLocationType();
+                    if (portType == LocationType.SwitchType) {
+                        subnetLswEdge = edge;
+                    }
+                }
+            }
+        }
+
+        return subnetLswEdge;
+    }
+
+    public PortMappingInfo edgeHasSubnetPort(EdgeMappingInfo edge, Uuid subnetId) {
+        PortMappingInfo subnetPort = null;
+        Uuid leftPortId = edge.getEdge().getLeftPortId();
+        Uuid rightPortId = edge.getEdge().getRightPortId();
+
+        if (this.portBelongsToSubnet(leftPortId, subnetId) == true) {
+            subnetPort = this.portStore.get(leftPortId);
+        } else if (this.portBelongsToSubnet(rightPortId, subnetId) == true) {
+            subnetPort = this.portStore.get(rightPortId);
+        }
+
+        return subnetPort;
+
+    }
+
+    public boolean portBelongsToSubnet(Uuid portId, Uuid subnetId) {
+        PortMappingInfo port = this.portStore.get(portId);
+
+        if (this.portIsSubnetType(portId) == false) {
+            return false;
+        }
+
+        if (port.getPort().getLocationId().equals(subnetId) == false) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /*
+     * Given an edge which connects a subnet and a LSW, find the subnet port
+     * on edge.
+     */
+    public PortMappingInfo findSubnetPortOnEdge(EdgeMappingInfo edge) {
+        Uuid leftPortId = edge.getEdge().getLeftPortId();
+        if (this.portIsSubnetType(leftPortId) == true) {
+            return this.portStore.get(leftPortId);
+        }
+
+        Uuid rightPortId = edge.getEdge().getRightPortId();
+        if (this.portIsSubnetType(rightPortId) == true) {
+            return this.portStore.get(rightPortId);
+        }
+
         return null;
     }
 
-    public PortMappingInfo findSubnetPortOnEdge(EdgeMappingInfo subnetLswEdge) {
-        // TODO Auto-generated method stub
-        return null;
+    public boolean portIsSubnetType(Uuid portId) {
+        return this.portIsType(portId, LocationType.SubnetType);
     }
 
-    public LogicalSwitchMappingInfo findLswFromItsPort(PortMappingInfo lswPort) {
-        // TODO Auto-generated method stub
-        return null;
+    public boolean portIsLswType(Uuid portId) {
+        return this.portIsType(portId, LocationType.SwitchType);
+    }
+
+    public boolean portIsType(Uuid portId, LocationType portType) {
+        PortMappingInfo port = this.portStore.get(portId);
+
+        if (port == null) {
+            return false;
+        }
+
+        LocationType myType = port.getPort().getLocationType();
+        if (myType == portType) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /*
+     * Given an port on LSW, find the LSW.
+     */
+    public LogicalSwitchMappingInfo findLswFromItsPort(PortMappingInfo port) {
+        Uuid portId = port.getPort().getUuid();
+        if (this.portIsLswType(portId) == false) {
+            return null;
+        }
+
+        Uuid lswId = port.getPort().getLocationId();
+
+        return this.lswStore.get(lswId);
+    }
+
+    public PortMappingInfo findEpPortFromEpLocation(EndpointLocation epLocation) {
+        Uuid epPortId = epLocation.getPort();
+        return this.portStore.get(epPortId);
     }
 
 }

@@ -8,13 +8,14 @@
 
 package org.opendaylight.faas.uln.manager;
 
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 public class EndpointLocationMappingInfo {
 
     private EndpointLocation epLocation;
-    private NodeId renderedDeviceId;
+    private Uuid renderedDeviceId;
     private boolean serviceHasBeenRendered;
 
     public EndpointLocationMappingInfo(EndpointLocation epLocation) {
@@ -23,18 +24,18 @@ public class EndpointLocationMappingInfo {
         this.serviceHasBeenRendered = false;
     }
 
-    public void markAsRendered(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
+    public void markAsRendered(Uuid renderedEpId) {
+        this.renderedDeviceId = renderedEpId;
         this.serviceHasBeenRendered = true;
 
     }
 
-    public NodeId getRenderedDeviceId() {
+    public Uuid getRenderedDeviceId() {
         return renderedDeviceId;
     }
 
-    public void setRenderedDeviceId(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
+    public void setRenderedDeviceId(Uuid renderedEpId) {
+        this.renderedDeviceId = renderedEpId;
     }
 
     public boolean hasServiceBeenRendered() {

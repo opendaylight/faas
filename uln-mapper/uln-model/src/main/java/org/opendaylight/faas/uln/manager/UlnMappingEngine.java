@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
+import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.faas.uln.datastore.api.UlnDatastoreApi;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
@@ -207,10 +208,7 @@ public class UlnMappingEngine {
          * For LSW, we can directly render it on Fabric.
          */
         CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(lsw);
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid tenant =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
-                        tenantId.getValue());
-        NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(tenant, input);
+        NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLswAsRendered(lsw, renderedLswId);
 
         /*
@@ -224,12 +222,8 @@ public class UlnMappingEngine {
          * For LR, we can directly render it on Fabric.
          */
         CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(lr);
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid tenant =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
-                        tenantId.getValue());
-        NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(tenant, input);
+        NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLrAsRendered(lr, renderedLrId);
-
 
     }
 
@@ -241,13 +235,19 @@ public class UlnMappingEngine {
          * ready, because Fabric's registerEndpoint() need the information in Subnet.
          */
 
+        PortMappingInfo epPort = uln.findEpPortFromEpLocation(epLocation);
+        if (epPort == null) {
+            LOG.debug("FABMGR: renderEpRegistration: epPort not in cache");
+            return;
+        }
+
         EdgeMappingInfo epEdge = uln.findEpLocationSubnetEdge(epLocation);
         if (epEdge == null) {
             LOG.debug("FABMGR: renderEpRegistration: epEdge not in cache");
             return;
         }
 
-        Uuid epPortId = epLocation.getPort();
+        Uuid epPortId = epPort.getPort().getUuid();
         PortMappingInfo subnetPort = uln.findOtherPortInEdge(epEdge, epPortId);
         if (subnetPort == null) {
             LOG.debug("FABMGR: renderEpRegistration: subnetPort not in cache");
@@ -293,15 +293,29 @@ public class UlnMappingEngine {
          * 3. register EP
          */
 
-        if (lsw.hasServiceBeenRendered() == false ) {
+        if (lsw.hasServiceBeenRendered() == false) {
             this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
         }
 
-        if (lswPort.hasServiceBeenRendered() == false ) {
-            this.renderPort(tenantId, uln, lswPort.getPort());
-        }
+        /*
+         * Render LSW port is done by attachEpToLneLayer2()
+         * if (lswPort.hasServiceBeenRendered() == false) {
+         * this.renderPort(tenantId, uln, lswPort.getPort());
+         * }
+         */
 
-        //org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid upUuid;
+        EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
+        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderedEpId =
+                VcontainerServiceProviderAPI.attachEpToLneLayer2(UlnUtil.convertToYangUuid(tenantId),
+                        lsw.getRenderedDeviceId(), endpoint);
+        uln.markEpLocationAsRendered(epLocation, renderedEpId);
+        uln.markPortAsRendered(epPort.getPort());
+        uln.markEdgeAsRendered(epEdge.getEdge());
+        uln.markPortAsRendered(lswPort.getPort());
+        uln.markPortAsRendered(subnetPort.getPort());
+        uln.markPortAsRendered(subnetPort2.getPort());
+        uln.markEdgeAsRendered(subnetLswEdge.getEdge());
+        uln.markPortAsRendered(lswPort.getPort());
     }
 
     private void renderSubnet(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
