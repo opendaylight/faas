@@ -502,8 +502,7 @@ public class UlnDatastoreApi {
      * Logical Network and individual elements Remove Methods
      */
     public static void removeTenantFromDsIfExists(Uuid tenantId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<TenantLogicalNetwork> tenantULnOp = removeIfExists(UlnIidFactory.tenantLogicalNetworkIid(tenantId), t);
+        Optional<TenantLogicalNetwork> tenantULnOp = removeIfExists(UlnIidFactory.tenantLogicalNetworkIid(tenantId));
         if (tenantULnOp.isPresent()) {
             LOG.info("Removed Tenant {}", tenantId.getValue());
         } else {
@@ -512,8 +511,7 @@ public class UlnDatastoreApi {
     }
 
     public static void removeSubnetFromDsIfExists(Uuid tenantId, Uuid subnetId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<Subnet> oldOptional = removeIfExists(UlnIidFactory.subnetIid(tenantId, subnetId), t);
+        Optional<Subnet> oldOptional = removeIfExists(UlnIidFactory.subnetIid(tenantId, subnetId));
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -528,8 +526,7 @@ public class UlnDatastoreApi {
     }
 
     public static void removeLogicalRouterFromDsIfExists(Uuid tenantId, Uuid routerId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<LogicalRouter> oldOptional = removeIfExists(UlnIidFactory.logicalRouterIid(tenantId, routerId), t);
+        Optional<LogicalRouter> oldOptional = removeIfExists(UlnIidFactory.logicalRouterIid(tenantId, routerId));
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -544,8 +541,7 @@ public class UlnDatastoreApi {
     }
 
     public static void removeLogicalSwitchFromDsIfExists(Uuid tenantId, Uuid switchId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<LogicalSwitch> oldOptional = removeIfExists(UlnIidFactory.logicalSwitchIid(tenantId, switchId), t);
+        Optional<LogicalSwitch> oldOptional = removeIfExists(UlnIidFactory.logicalSwitchIid(tenantId, switchId));
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -565,9 +561,8 @@ public class UlnDatastoreApi {
 
     private static void removeSecurityGroupsFromDsIfExists(Uuid tenantId, Uuid securityGroupId,
             boolean updateExistingRefs) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<SecurityRuleGroups> oldOption = removeIfExists(
-                UlnIidFactory.securityGroupsIid(tenantId, securityGroupId), t);
+        Optional<SecurityRuleGroups> oldOption = removeIfExists(UlnIidFactory.securityGroupsIid(tenantId,
+                securityGroupId));
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -590,8 +585,7 @@ public class UlnDatastoreApi {
     }
 
     public static void removePortFromDsIfExists(Uuid tenantId, Uuid portId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<Port> oldOption = removeIfExists(UlnIidFactory.portIid(tenantId, portId), t);
+        Optional<Port> oldOption = removeIfExists(UlnIidFactory.portIid(tenantId, portId));
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -624,8 +618,7 @@ public class UlnDatastoreApi {
     }
 
     public static void removeEdgeFromDsIfExists(Uuid tenantId, Uuid edgeId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
-        Optional<Edge> oldOptional = removeIfExists(UlnIidFactory.edgeIid(tenantId, edgeId), t);
+        Optional<Edge> oldOptional = removeIfExists(UlnIidFactory.edgeIid(tenantId, edgeId));
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -641,12 +634,11 @@ public class UlnDatastoreApi {
     }
 
     public static void removeEndpointLocationFromDsIfExists(Uuid tenantId, Uuid endpointLocationId) {
-        ReadWriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
         /*
          * Make sure other logical network nodes links are updated as well
          */
-        Optional<EndpointLocation> oldOptional = removeIfExists(
-                UlnIidFactory.endpointLocationIid(tenantId, endpointLocationId), t);
+        Optional<EndpointLocation> oldOptional = removeIfExists(UlnIidFactory.endpointLocationIid(tenantId,
+                endpointLocationId));
         if (oldOptional.isPresent()) {
             EndpointLocation epLoc = oldOptional.get();
             if (epLoc.getPort() != null) {
@@ -967,11 +959,12 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path,
-            ReadWriteTransaction rwTx) {
+    public static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path) {
+        ReadWriteTransaction rwTx = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
         Optional<T> potentialResult = readFromDs(path, rwTx);
         if (potentialResult.isPresent()) {
             rwTx.delete(logicalDatastoreType, path);
+            submitToDs(rwTx);
             LOG.debug("Removed present path {}", path);
         } else {
             LOG.debug("No need to remove Path {} -- it is NOT present", path);
