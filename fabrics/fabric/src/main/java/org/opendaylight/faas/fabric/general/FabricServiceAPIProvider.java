@@ -582,7 +582,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-            	fabricObj.notifyAclUpdate(tgtAclIId, false);
+            	fabricObj.notifyAclUpdate(tgtAclIId, true);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
 	}

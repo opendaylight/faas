@@ -129,14 +129,16 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
 
-                Node fabric = optional.get();
-                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricDeleted(fabric);
-
-                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-                wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
-                MdSalUtils.wrapperSubmit(wt, executor);
-
-                FabricInstanceCache.INSTANCE.removeFabric(fabricId);
+            	if (optional.isPresent()) {
+	                Node fabric = optional.get();
+	                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricDeleted(fabric);
+	
+	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+	                wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
+	                MdSalUtils.wrapperSubmit(wt, executor);
+	
+	                FabricInstanceCache.INSTANCE.removeFabric(fabricId);
+            	}
 
                 return Futures.immediateFuture(result);
             }});
@@ -250,7 +252,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         InstanceIdentifier<FabricsSetting> fabricImplPath = InstanceIdentifier.create(FabricsSetting.class);
-        ListenableFuture<Optional<FabricsSetting>> readFuture = trans.read(LogicalDatastoreType.OPERATIONAL, fabricImplPath);
+        ListenableFuture<Optional<FabricsSetting>> readFuture = trans.read(LogicalDatastoreType.CONFIGURATION, fabricImplPath);
         Optional<FabricsSetting> optional;
         try {
             optional = readFuture.get();
@@ -262,7 +264,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         }
 
         settingBuilder.setNextFabricNum(ret + 1);
-        trans.put(LogicalDatastoreType.OPERATIONAL, fabricImplPath, settingBuilder.build());
+        trans.put(LogicalDatastoreType.CONFIGURATION, fabricImplPath, settingBuilder.build());
         MdSalUtils.wrapperSubmit(trans, executor);
 
         return ret;

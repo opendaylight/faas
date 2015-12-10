@@ -209,7 +209,7 @@ module fabric-service {
                 type topo:tp-id;
             }
             leaf acl-name {
-                type acl:access-control-list-ref;
+                type string;
             }
         }
     }

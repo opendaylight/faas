@@ -62,7 +62,6 @@ module fabric-impl {
     }
 
     container fabrics-setting {
-        config false;
         leaf next-fabric-num {
             type uint32;
             default 1;

@@ -10,6 +10,7 @@ package org.opendaylight.faas.fabric.general;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.sal.binding.api.NotificationProviderService;
@@ -25,6 +26,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
@@ -56,7 +58,8 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
             final RpcProviderRegistry rpcRegistry,
             final NotificationProviderService notificationService) {
 
-        executor = Executors.newFixedThreadPool(1);
+    	ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("fabric-factory-%d").build();
+    	executor = Executors.newSingleThreadExecutor(threadFact);
 
         manageAPI = new FabricManagementAPIProvider(dataProvider, rpcRegistry, executor, this);
         manageAPI.start();
