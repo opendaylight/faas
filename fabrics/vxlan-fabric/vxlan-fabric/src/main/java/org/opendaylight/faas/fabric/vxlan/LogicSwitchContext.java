@@ -22,15 +22,16 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.VniMembers;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.VniMembersBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.VniMembersKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.vni.members.Members;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.vni.members.MembersBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.vni.members.MembersKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class LogicSwitchContext {
+public class LogicSwitchContext implements AutoCloseable {
     private final long vni;
 
     private Map<NodeId, IpAddress> members = Maps.newConcurrentMap();
@@ -57,10 +58,17 @@ public class LogicSwitchContext {
     public boolean checkAndSetNewMember(NodeId nodeid, IpAddress vtepIp) {
     	if (!members.containsKey(nodeid)) {
     		members.put(nodeid, vtepIp);
-    		writeToDom();
+    		writeToDom(vtepIp);
     		return true;
     	} else {
     		return false;
+    	}
+    }
+
+    public void removeMember(NodeId nodeid) {
+    	IpAddress vtep = null;
+    	if ((vtep = members.remove(nodeid)) != null) {
+    		deleteFromDom(vtep);
     	}
     }
 
@@ -77,20 +85,43 @@ public class LogicSwitchContext {
     	return members.keySet();
     }
 
-    private void writeToDom() {
-    	InstanceIdentifier<VniMembers> vniMembersIId = createVniMembersIId(fabricid, vni);
+	@Override
+	public void close() {
+    	InstanceIdentifier<VniMembers> vniMembersIId = createVniMemberIId(fabricid, vni);
 
-    	VniMembersBuilder builder = new VniMembersBuilder();
-		builder.setVni(vni);
-		builder.setKey(new VniMembersKey(vni));
-		builder.setVteps(Lists.newArrayList(members.values()));
+		WriteTransaction trans = databroker.newWriteOnlyTransaction();
+		trans.delete(LogicalDatastoreType.OPERATIONAL, vniMembersIId);
+		MdSalUtils.wrapperSubmit(trans, executor);
+		
+	}
+
+    private void writeToDom(IpAddress vtepIp) {
+    	InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
+
+    	MembersBuilder builder = new MembersBuilder();
+		builder.setVtep(vtepIp);
+		builder.setKey(new MembersKey(vtepIp));
 
 		WriteTransaction trans = databroker.newWriteOnlyTransaction();
 		trans.merge(LogicalDatastoreType.OPERATIONAL, vniMembersIId, builder.build(), true);
 		MdSalUtils.wrapperSubmit(trans, executor);
     }
 
-    private InstanceIdentifier<VniMembers> createVniMembersIId(FabricId fabricId, long vni) {
+    private void deleteFromDom(IpAddress vtepIp) {
+    	InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
+
+		WriteTransaction trans = databroker.newWriteOnlyTransaction();
+		trans.delete(LogicalDatastoreType.OPERATIONAL, vniMembersIId);
+		MdSalUtils.wrapperSubmit(trans, executor);
+    }
+
+    private InstanceIdentifier<Members> createVniVtepIId(FabricId fabricId, long vni, IpAddress vtep) {
+        return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
+                .child(VniMembers.class, new VniMembersKey(vni))
+        		.child(Members.class, new MembersKey(vtep));
+    }
+
+    private InstanceIdentifier<VniMembers> createVniMemberIId(FabricId fabricId, long vni) {
         return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
                 .child(VniMembers.class, new VniMembersKey(vni));
     }

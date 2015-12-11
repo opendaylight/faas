@@ -23,6 +23,7 @@ import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.FabricVxlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.RmFromVxlanFabricInputBuilder;
@@ -152,6 +153,8 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     @Override
     public void deviceRemoved(InstanceIdentifier<Node> deviceIId) {
 
+    	NodeId deviceId = deviceIId.firstKeyOf(Node.class).getNodeId();
+    	
         RmFromVxlanFabricInputBuilder builder = new RmFromVxlanFabricInputBuilder();
         builder.setNodeId(deviceIId);
         builder.setFabricId(fabricIId.firstKeyOf(Node.class).getNodeId());
@@ -162,7 +165,14 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.delete(LogicalDatastoreType.OPERATIONAL, devicepath);
+        trans.delete(LogicalDatastoreType.OPERATIONAL, deviceIId.augmentation(FabricCapableDevice.class).child(Config.class));
         MdSalUtils.wrapperSubmit(trans, executor);
+
+        fabricCtx.removeDeviceSwitch(deviceId);
+        Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
+        for (LogicSwitchContext lswCtx : lswCtxs) {
+     	   lswCtx.removeMember(deviceId);
+        }
     }
 
     @Override
@@ -178,7 +188,11 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     @Override
     public void fabricDeleted(Node node) {
         FabricNode fabric = node.getAugmentation(FabricNode.class);
+        FabricId fabricid = new FabricId(node.getNodeId());
         List<DeviceNodes> devices = fabric.getFabricAttribute().getDeviceNodes();
+        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+        wt.delete(LogicalDatastoreType.OPERATIONAL, InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricid)));
+
         if (devices != null) {
             for (DeviceNodes deviceNode : devices) {
                 @SuppressWarnings("unchecked")
@@ -188,8 +202,11 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
                 builder.setNodeId(deviceIId);
                 builder.setFabricId(node.getNodeId());
                 getVlanDeviceAdapter().rmFromVxlanFabric(builder.build());
+
+                wt.delete(LogicalDatastoreType.OPERATIONAL, deviceIId.augmentation(FabricCapableDevice.class).child(Config.class));
             }
         }
+        MdSalUtils.wrapperSubmit(wt, executor);
 
         ResourceManager.freeResourceManager(new FabricId(node.getNodeId()));
     }
@@ -255,6 +272,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 			}
 		}
 		fabricCtx.removeLogicSwitch(lsw.getNodeId());
+		lswCtx.close();
 	}
 
 	@Override

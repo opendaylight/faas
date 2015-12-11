@@ -123,20 +123,11 @@ public class Openflow13Provider {
         }
 
         l2Forwarding.programTunnelOut(dpidLong, segmentationId, tunnelOfPort, macAddress, dstTunIp, writeFlow);
-
-        //Because in Device context, it is difficult to find the peer's vtep ip, so add flood to tunnel port function here
-        // 20151125 remove: l2Forwarding.programLocalBcastToTunnelPort(dpidLong, segmentationId, tunnelOfPort, dstTunIp, true);
-
     }
 
     //For the condition: Add a new vni in a fabric capable device
     public void updateBridgeDomainInDevice(Long dpidLong, Long tunnelOfPort, Long segmentationId, boolean writeFlow) {
         trafficClassifier.programTunnelIn(dpidLong, segmentationId, tunnelOfPort, writeFlow);
-
-//        if (dstTunIpAddress != null)
-//            l2Forwarding.programLocalBcastToTunnelPort(dpidLong, segmentationId, tunnelOfPort, dstTunIpAddress, true);
-
-
     }
 
     public void updateSfcTunnelInDevice(Long dpidLong, Long gpeTunnelOfPort, Long segmentationId, boolean writeFlow) {

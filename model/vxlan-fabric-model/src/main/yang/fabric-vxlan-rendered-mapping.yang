@@ -31,8 +31,11 @@ module fabric-vxlan-rendered-mapping {
                 leaf vni {
                     type uint32;
                 }
-                leaf-list vteps {
-                    type inet:ip-address;
+                list members {
+                	key vtep;
+                	leaf vtep {
+                    	type inet:ip-address;
+                    }
                 }
             }
 

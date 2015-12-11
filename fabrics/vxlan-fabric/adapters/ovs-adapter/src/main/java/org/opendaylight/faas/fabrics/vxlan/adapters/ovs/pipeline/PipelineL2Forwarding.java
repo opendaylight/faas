@@ -778,21 +778,13 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
     }
 
     /*
-<<<<<<< HEAD
      * Used for flood to local port
      * groupId is segment id
      * bucketId is always 1, all local port in this flood domain use one bucket ID
-=======
-     * Used for flood to local port groupId is segment id bucketId is always 1,
-     * all local port in this flood domain use one bucket ID
->>>>>>> Fix some openflow problems
      */
     protected InstructionBuilder createOutputGroupInstructionsToLocalPort(NodeBuilder nodeBuilder,
             InstructionBuilder ib, Long dpidLong, Long port, long groupId, List<Instruction> instructions) {
         NodeConnectorId ncid = new NodeConnectorId(Constants.OPENFLOW_NODE_PREFIX + dpidLong + ":" + port);
-        LOG.warn(
-                "yzy: createOutputGroupInstructionsToLocalPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
-                dpidLong, port, instructions);
         LOG.debug(
                 "createOutputGroupInstructionsToLocalPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
                 dpidLong, port, instructions);
@@ -980,9 +972,6 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             InstructionBuilder ib, Long dpidLong, Long port, Long groupId, IpAddress destTunnelIp,
             List<Instruction> instructions) {
         NodeConnectorId ncid = new NodeConnectorId(Constants.OPENFLOW_NODE_PREFIX + dpidLong + ":" + port);
-        LOG.warn(
-                "yzy: createOutputGroupInstructionsToTunnelPort() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
-                dpidLong, port, instructions);
         // LOG.debug("createOutputGroupInstructionsToTunnelPort() Node Connector
         // ID is - Type=openflow: DPID={} port={} existingInstructions={}",
         // dpidLong, port, instructions);

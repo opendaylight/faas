@@ -37,6 +37,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.network.topology.topology.node.attributes.VtepBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowCapableNode;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.Tables;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.OvsdbBridgeAugmentation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.ovsdb.bridge.attributes.BridgeExternalIds;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
@@ -218,16 +221,29 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         @SuppressWarnings("unchecked")
 		final InstanceIdentifier<Node> deviceIId = (InstanceIdentifier<Node>) input.getNodeId();
-
-        final Node bridgeNode = OvsSouthboundUtils.getOvsdbBridgeNode(deviceIId, databroker);
-
         DeviceRenderer renderer = renderers.remove(deviceIId);
         if (renderer != null) {
             renderer.close();
         }
 
+        final Node bridgeNode = OvsSouthboundUtils.getOvsdbBridgeNode(deviceIId, databroker);
+
         OvsSouthboundUtils.deleteVxlanTunnelPort(bridgeNode, databroker);
 
+        // clear all flows
+        String dpId = OvsSouthboundUtils.getDatapathId(bridgeNode);
+        org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId inventoryNodeId 
+        	= new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId("openflow:" + dpId);
+        
+        InstanceIdentifier<FlowCapableNode> path = InstanceIdentifier.create(Nodes.class)
+        		.child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class
+        				, new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey(inventoryNodeId))
+        		.augmentation(FlowCapableNode.class);
+
+        WriteTransaction wt = databroker.newWriteOnlyTransaction();
+        wt.delete(LogicalDatastoreType.CONFIGURATION, path);
+        wt.submit();
+        
         return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
     }
 }

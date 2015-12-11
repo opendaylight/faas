@@ -55,8 +55,8 @@ public class FabricContext {
         return lswCtx;
     }
 
-    public void removeLogicSwitch(NodeId nodeId) {
-    	logicSwitches.remove(nodeId);
+    public LogicSwitchContext removeLogicSwitch(NodeId nodeId) {
+    	return logicSwitches.remove(nodeId);
     }
     
     public DeviceContext addDeviceSwitch(InstanceIdentifier<Node> deviceIId, IpAddress vtep) {
@@ -65,6 +65,10 @@ public class FabricContext {
         return devCtx;
     }
 
+    public DeviceContext removeDeviceSwitch(NodeId nodeid) {
+    	return devices.remove(nodeid);
+    }
+    
     public LogicSwitchContext getLogicSwitchCtx(NodeId nodeId) {
         return logicSwitches.get(nodeId);
     }
