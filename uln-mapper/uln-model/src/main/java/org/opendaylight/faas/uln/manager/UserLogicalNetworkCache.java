@@ -27,6 +27,10 @@ import org.slf4j.LoggerFactory;
 
 public class UserLogicalNetworkCache {
 
+    public enum EdgeType {
+        unknownType, LrToLr, LswToLsw, LrToLsw, LswToSubnet, SubnetToEpLocation
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(UserLogicalNetworkCache.class);
 
     private Uuid tenantId;
@@ -320,6 +324,16 @@ public class UserLogicalNetworkCache {
         return otherPort;
     }
 
+    public PortMappingInfo findLeftPortOnEdge(Edge edge) {
+        Uuid leftPortId = edge.getLeftPortId();
+        return this.portStore.get(leftPortId);
+    }
+
+    public PortMappingInfo findRightPortOnEdge(Edge edge) {
+        Uuid rightPortId = edge.getRightPortId();
+        return this.portStore.get(rightPortId);
+    }
+
     /*
      * Given a port, find the subnet to which this port belongs.
      */
@@ -338,6 +352,26 @@ public class UserLogicalNetworkCache {
     }
 
     /*
+     * Given a LSW, find its associated subnet. The ULN model allows a LSW
+     * to have more than one subnet. However, this function only returns the
+     * first one that it finds.
+     */
+    public SubnetMappingInfo findSubnetFromLsw(LogicalSwitchMappingInfo lsw) {
+
+        EdgeMappingInfo edge = this.findSubnetLswEdge(lsw);
+        if (edge == null) {
+            return null;
+        }
+
+        PortMappingInfo subnetPort = this.findSubnetPortOnEdge(edge);
+        if (subnetPort == null) {
+            return null;
+        }
+
+        return this.findSubnetFromItsPort(subnetPort);
+    }
+
+    /*
      * Given a subnet, find the edge that connects this subnet with
      * a logical switch.
      */
@@ -348,14 +382,40 @@ public class UserLogicalNetworkCache {
 
         for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
             EdgeMappingInfo edge = entry.getValue();
-            PortMappingInfo subnetPort = this.edgeHasSubnetPort(edge, subnetId);
-            if (subnetPort != null) {
-                PortMappingInfo otherPort = this.findOtherPortInEdge(edge, subnetPort.getPort().getUuid());
-                if (otherPort != null) {
-                    LocationType portType = otherPort.getPort().getLocationType();
-                    if (portType == LocationType.SwitchType) {
-                        subnetLswEdge = edge;
+            if (this.findEdgeType(edge) == EdgeType.LswToSubnet) {
+                PortMappingInfo subnetPort = this.edgeHasSubnetPort(edge, subnetId);
+                if (subnetPort != null) {
+                    PortMappingInfo otherPort = this.findOtherPortInEdge(edge, subnetPort.getPort().getUuid());
+                    if (otherPort != null) {
+                        LocationType portType = otherPort.getPort().getLocationType();
+                        if (portType == LocationType.SwitchType) {
+                            subnetLswEdge = edge;
+                            break;
+                        }
                     }
+                }
+            }
+        }
+
+        return subnetLswEdge;
+    }
+
+    public EdgeMappingInfo findSubnetLswEdge(LogicalSwitchMappingInfo lsw) {
+        EdgeMappingInfo subnetLswEdge = null;
+
+        Uuid lswId = lsw.getLsw().getUuid();
+        for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
+            EdgeMappingInfo edge = entry.getValue();
+            if (this.findEdgeType(edge) == EdgeType.LswToSubnet) {
+                PortMappingInfo lswPort = this.findLswPortOnEdge(edge);
+                if (lswPort != null && lswPort.getPort().getLocationId() == lswId) {
+                    PortMappingInfo otherPort = this.findOtherPortInEdge(edge, lswPort.getPort().getUuid());
+                    if (otherPort != null && otherPort.getPort().getLocationType() == LocationType.SwitchType) {
+                        subnetLswEdge = edge;
+                    } else {
+                        LOG.error("FABMGR: ERROR: findSubnetLswEdge: otherPort is not subnet type");
+                    }
+                    break;
                 }
             }
         }
@@ -381,7 +441,7 @@ public class UserLogicalNetworkCache {
     public boolean portBelongsToSubnet(Uuid portId, Uuid subnetId) {
         PortMappingInfo port = this.portStore.get(portId);
 
-        if (this.portIsSubnetType(portId) == false) {
+        if (this.isPortSubnetType(portId) == false) {
             return false;
         }
 
@@ -393,29 +453,80 @@ public class UserLogicalNetworkCache {
     }
 
     /*
-     * Given an edge which connects a subnet and a LSW, find the subnet port
+     * Given an edge which connects a subnet to a LSW, find the subnet port
      * on edge.
      */
     public PortMappingInfo findSubnetPortOnEdge(EdgeMappingInfo edge) {
         Uuid leftPortId = edge.getEdge().getLeftPortId();
-        if (this.portIsSubnetType(leftPortId) == true) {
+        if (this.isPortSubnetType(leftPortId) == true) {
             return this.portStore.get(leftPortId);
         }
 
         Uuid rightPortId = edge.getEdge().getRightPortId();
-        if (this.portIsSubnetType(rightPortId) == true) {
+        if (this.isPortSubnetType(rightPortId) == true) {
             return this.portStore.get(rightPortId);
         }
 
         return null;
     }
 
-    public boolean portIsSubnetType(Uuid portId) {
+    /*
+     * Given an edge which connects a subnet and a LSW, find the LSW port
+     * on edge.
+     *
+     * Warning: this function does not work correctly if the input edge is lsw-to-lsw.
+     */
+    public PortMappingInfo findLswPortOnEdge(EdgeMappingInfo edge) {
+        Uuid leftPortId = edge.getEdge().getLeftPortId();
+        if (this.isPortLswType(leftPortId) == true) {
+            return this.portStore.get(leftPortId);
+        }
+
+        Uuid rightPortId = edge.getEdge().getRightPortId();
+        if (this.isPortLswType(rightPortId) == true) {
+            return this.portStore.get(rightPortId);
+        }
+
+        return null;
+    }
+
+    public EdgeType findEdgeType(EdgeMappingInfo edge) {
+        EdgeType edgeType = EdgeType.unknownType;
+
+        Uuid leftPortId = edge.getEdge().getLeftPortId();
+        Uuid rightPortId = edge.getEdge().getRightPortId();
+        if (this.isPortLrType(leftPortId) && this.isPortLrType(rightPortId)) {
+            edgeType = EdgeType.LrToLr;
+        } else if (this.isPortLswType(leftPortId) && this.isPortLswType(rightPortId)) {
+            edgeType = EdgeType.LswToLsw;
+        } else if ((this.isPortLswType(leftPortId) && this.isPortLrType(rightPortId))
+                || (this.isPortLrType(leftPortId) && this.isPortLswType(rightPortId))) {
+            edgeType = EdgeType.LrToLsw;
+        } else if ((this.isPortLswType(leftPortId) && this.isPortSubnetType(rightPortId))
+                || (this.isPortSubnetType(leftPortId) && this.isPortLswType(rightPortId))) {
+            edgeType = EdgeType.LswToSubnet;
+        } else if ((this.isPortSubnetType(leftPortId) && this.isPortEpLocationType(rightPortId))
+                || (this.isPortEpLocationType(leftPortId) && this.isPortSubnetType(rightPortId))) {
+            edgeType = EdgeType.SubnetToEpLocation;
+        }
+
+        return edgeType;
+    }
+
+    public boolean isPortSubnetType(Uuid portId) {
         return this.portIsType(portId, LocationType.SubnetType);
     }
 
-    public boolean portIsLswType(Uuid portId) {
+    public boolean isPortLswType(Uuid portId) {
         return this.portIsType(portId, LocationType.SwitchType);
+    }
+
+    public boolean isPortLrType(Uuid portId) {
+        return this.portIsType(portId, LocationType.RouterType);
+    }
+
+    public boolean isPortEpLocationType(Uuid portId) {
+        return this.portIsType(portId, LocationType.EndpointType);
     }
 
     public boolean portIsType(Uuid portId, LocationType portType) {
@@ -436,15 +547,29 @@ public class UserLogicalNetworkCache {
     /*
      * Given an port on LSW, find the LSW.
      */
-    public LogicalSwitchMappingInfo findLswFromItsPort(PortMappingInfo port) {
-        Uuid portId = port.getPort().getUuid();
-        if (this.portIsLswType(portId) == false) {
+    public LogicalSwitchMappingInfo findLswFromItsPort(Port port) {
+        Uuid portId = port.getUuid();
+        if (this.isPortLswType(portId) == false) {
             return null;
         }
 
-        Uuid lswId = port.getPort().getLocationId();
+        Uuid lswId = port.getLocationId();
 
         return this.lswStore.get(lswId);
+    }
+
+    /*
+     * Given an port on LR, find the LR.
+     */
+    public LogicalRouterMappingInfo findLrFromItsPort(Port port) {
+        Uuid portId = port.getUuid();
+        if (this.isPortLrType(portId) == false) {
+            return null;
+        }
+
+        Uuid lrId = port.getLocationId();
+
+        return this.lrStore.get(lrId);
     }
 
     public PortMappingInfo findEpPortFromEpLocation(EndpointLocation epLocation) {
@@ -452,4 +577,30 @@ public class UserLogicalNetworkCache {
         return this.portStore.get(epPortId);
     }
 
+    public PortMappingInfo getPortMappingInfo(Port port) {
+        return this.portStore.get(port.getUuid());
+    }
+
+    public boolean edgeIsLswToLrType(Edge edge) {
+        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
+        if (edgeInfo == null) {
+            // edge should already be cached when this function is called.
+            LOG.error("FABMGR: ERROR: edgeIsLswToLRType: edge not in cache: {}", edge.getUuid().getValue());
+            return false;
+        }
+
+        Uuid leftPortId = edgeInfo.getEdge().getLeftPortId();
+        Uuid rightPortId = edgeInfo.getEdge().getRightPortId();
+        if (this.isPortLrType(leftPortId)) {
+            if (this.isPortLswType(rightPortId)) {
+                return true;
+            }
+        } else if (this.isPortLswType(leftPortId)) {
+            if (this.isPortLrType(rightPortId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

@@ -9,10 +9,13 @@
 package org.opendaylight.faas.fabricmgr.api;
 
 import org.opendaylight.faas.fabricmgr.FabricMgrProvider;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +32,14 @@ public class VcontainerServiceProviderAPI {
         return VcontainerServiceProviderAPI.fabricMgrProvider.createLneLayer3(tenantId, lne3Input);
     }
 
-    public static Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, EndpointAttachInfo endpoint) {
-        return VcontainerServiceProviderAPI.fabricMgrProvider.attachEpToLneLayer2(tenantId, lswId, endpoint);
+    public static TpId createLogicalPortOnLneLayer2(Uuid tenantId, NodeId lswId) {
+        return VcontainerServiceProviderAPI.fabricMgrProvider.createLogicalPortOnLneLayer2(tenantId, lswId);
+    }
+
+    public static Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, TpId lswLogicalPortId,
+            EndpointAttachInfo endpoint) {
+        return VcontainerServiceProviderAPI.fabricMgrProvider.attachEpToLneLayer2(tenantId, lswId, lswLogicalPortId,
+                endpoint);
     }
 
     public static void setFabricMgrProvider(FabricMgrProvider fabricMgrProvider) {
@@ -39,5 +48,11 @@ public class VcontainerServiceProviderAPI {
 
     public static FabricMgrProvider getFabricMgrProvider() {
         return VcontainerServiceProviderAPI.fabricMgrProvider;
+    }
+
+    public static void createLrLswGateway(Uuid tenantId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+            IpPrefix ipPrefix) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.createLrLswGateway(tenantId, lrId, lswId, gatewayIpAddr,
+                ipPrefix);
     }
 }

@@ -18,20 +18,19 @@ import org.opendaylight.controller.md.sal.binding.api.NotificationService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicLocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Output;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Output;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3OutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -139,19 +138,7 @@ public class FabricMgrProvider implements AutoCloseable {
         return nodeId;
     }
 
-    public Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, EndpointAttachInfo endpoint) {
-        /*
-         * First we need to create logical port on the lsw, and then
-         * call EP registration RPC.
-         */
-
-        TpId logicalPortId = this.createLogicalPortOnLsw(tenantId, lswId);
-        Uuid epId = this.attachEndpointToLsw(tenantId, logicalPortId, lswId, endpoint);
-
-        return epId;
-    }
-
-    private Uuid attachEndpointToLsw(Uuid tenantId, TpId logicalPortId, NodeId lswId, EndpointAttachInfo endpoint) {
+    public Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, TpId lswLogicalPortId, EndpointAttachInfo endpoint) {
         VcConfigDataMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: tenantId={}", tenantId.getValue());
@@ -172,11 +159,11 @@ public class FabricMgrProvider implements AutoCloseable {
         epInputBuilder.setIpAddress(endpoint.getIpAddress());
         epInputBuilder.setLocation(endpoint.getPhyLocation());
         epInputBuilder.setMacAddress(endpoint.getMacAddress());
+        epInputBuilder.setOwnFabric(fabricId);
 
         LogicLocationBuilder llb = new LogicLocationBuilder();
-        //TODO: incomplete
-        //llb.setNodeRef(lswId);
-        //llb.setTpRef(logicalPortId);
+        llb.setNodeId(lswId);
+        llb.setTpId(lswLogicalPortId);
 
         epInputBuilder.setLogicLocation(llb.build());
 
@@ -185,7 +172,7 @@ public class FabricMgrProvider implements AutoCloseable {
         return epId;
     }
 
-    private TpId createLogicalPortOnLsw(Uuid tenantId, NodeId lswId) {
+    public TpId createLogicalPortOnLneLayer2(Uuid tenantId, NodeId lswId) {
         VcConfigDataMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: tenantId={}", tenantId.getValue());
@@ -201,6 +188,23 @@ public class FabricMgrProvider implements AutoCloseable {
         TpId logicalPortId = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantId, vfabricId, lswId);
 
         return logicalPortId;
+    }
+
+    public void createLrLswGateway(Uuid tenantId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+            IpPrefix ipPrefix) {
+        VcConfigDataMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: createLrLswGateway: vcMgr is null: tenantId={}", tenantId.getValue());
+            return; // ----->
+        }
+
+        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        if (vfabricId == null) {
+            LOG.error("FABMGR: ERROR: createLrLswGateway: vfabricId is null: {}", tenantId.getValue());
+            return; // ---->
+        }
+
+        this.netNodeServiceProvider.createLrLswGateway(tenantId, vfabricId, lrId, lswId, gatewayIpAddr, ipPrefix);
     }
 
     public Map<Uuid, VcConfigDataMgr> getVcConfigDataMgrList() {
@@ -219,6 +223,4 @@ public class FabricMgrProvider implements AutoCloseable {
         VcConfigDataMgr vc = new VcConfigDataMgr(tenantId);
         this.vcConfigDataMgrList.put(tenantId, vc);
     }
-
-
 }

@@ -9,12 +9,12 @@
 package org.opendaylight.faas.uln.manager;
 
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 
 public class PortMappingInfo {
 
     private Port port;
-    private NodeId renderedDeviceId;
+    private TpId renderedDeviceId;
     private boolean serviceHasBeenRendered;
 
     public PortMappingInfo(Port port) {
@@ -23,18 +23,18 @@ public class PortMappingInfo {
         this.serviceHasBeenRendered = false;
     }
 
-    public void markAsRendered(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
+    public void markAsRendered(TpId renderedPortId) {
+        this.renderedDeviceId = renderedPortId;
         this.serviceHasBeenRendered = true;
 
     }
 
-    public NodeId getRenderedDeviceId() {
+    public TpId getRenderedDeviceId() {
         return renderedDeviceId;
     }
 
-    public void setRenderedDeviceId(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
+    public void setRenderedDeviceId(TpId renderedTpId) {
+        this.renderedDeviceId = renderedTpId;
     }
 
     public boolean hasServiceBeenRendered() {

@@ -13,12 +13,15 @@ import java.util.concurrent.Future;
 
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
@@ -291,6 +294,27 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         }
 
         return epId;
+    }
+
+    public void createLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+            IpPrefix ipPrefix) {
+        CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setLogicRouter(lrId);
+        inputBuilder.setLogicSwitch(lswId);
+        inputBuilder.setIpAddress(gatewayIpAddr);
+        inputBuilder.setNetwork(ipPrefix);
+
+        Future<RpcResult<Void>> result = this.fabServiceService.createGateway(inputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.info("FABMGR: createLrLswGateway: createGateway RPC success");
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed: {}", e);
+        }
     }
 
 }
