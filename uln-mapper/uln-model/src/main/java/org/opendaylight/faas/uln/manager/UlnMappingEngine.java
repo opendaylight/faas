@@ -48,6 +48,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.r
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +88,18 @@ public class UlnMappingEngine {
         }
 
         uln.cacheLsw(lsw);
+        this.doLogicalSwitchCreate(tenantId, uln, lsw);
+
+        /*
+         * Check to see if we can render more elements
+         */
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
+    }
+
+    private void doLogicalSwitchCreate(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+        /*
+         * For LSW, we can directly render it on Fabric.
+         */
         this.renderLogicalSwitch(tenantId, uln, lsw);
     }
 
@@ -106,6 +119,15 @@ public class UlnMappingEngine {
         }
 
         uln.cacheLr(lr);
+        this.doLogicalRouterCreate(tenantId, uln, lr);
+
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
+    }
+
+    private void doLogicalRouterCreate(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
+        /*
+         * For LR, we can directly render it on Fabric.
+         */
         this.renderLogicalRouter(tenantId, uln, lr);
     }
 
@@ -125,7 +147,15 @@ public class UlnMappingEngine {
         }
 
         uln.cacheSubnet(subnet);
-        this.renderSubnet(tenantId, uln, subnet);
+        this.doSubnetCreate(tenantId, uln, subnet);
+
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
+    }
+
+    private void doSubnetCreate(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
+        /*
+         * For subnet, we do not need to render it.
+         */
     }
 
     public void handlePortCreateEvent(Port port) {
@@ -144,7 +174,45 @@ public class UlnMappingEngine {
         }
 
         uln.cachePort(port);
-        this.renderPort(tenantId, uln, port);
+        this.doPortCreate(tenantId, uln, port);
+
+        /*
+         * Now check to see if we can render any other elements.
+         */
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
+    }
+
+    /*
+     * If this port belongs to a logical switch and the lsw
+     * is already received (note that the lsw should also have
+     * been rendered, because lsw is rendered upon reception),
+     * then we call renderPortOnLsw()
+     */
+    private void doPortCreate(Uuid tenantId, UserLogicalNetworkCache uln, Port port) {
+        port.getLocationType();
+
+        if (uln.isPortLswType(port.getUuid()) == false) {
+            // Only ports on LSW need to be rendered.
+            return;
+        }
+
+        LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port);
+        if (lsw == null) {
+            LOG.info("FABMGR: doPortCreate: lsw not in cache");
+            return;
+        }
+
+        if (lsw.hasServiceBeenRendered() == false) {
+            LOG.error("FABMGR: doPortCreate: lsw not rendered");
+            return;
+        }
+
+        PortMappingInfo lswPortInfo = uln.getPortMappingInfo(port);
+        if (lswPortInfo == null) {
+            LOG.error("FABMGR: ERROR: doPortCreate: port not found in cache");
+            return;
+        }
+        this.renderPortOnLsw(tenantId, uln, lsw, lswPortInfo);
     }
 
     public void handleEndpointLocationCreateEvent(EndpointLocation epLocation) {
@@ -163,71 +231,15 @@ public class UlnMappingEngine {
         }
 
         uln.cacheEpLocation(epLocation);
-        this.renderEpRegistration(tenantId, uln, epLocation);
-    }
-
-    public void handleEdgeCreateEvent(Edge edge) {
-        Uuid tenantId = edge.getTenantId();
-
-        this.createUlnCacheIfNotExist(tenantId);
-
-        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
-        if (uln == null) {
-            LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: uln is null");
-            return;
-        }
-        if (uln.isEdgeAlreadyCached(edge) == true) {
-            LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: edge already exist");
-            return;
-        }
-
-        uln.cacheEdge(edge);
-        this.renderEdge(tenantId, uln, edge);
-    }
-
-    public void handleSecurityRuleGroupsCreateEvent(SecurityRuleGroups ruleGroups) {
-        Uuid tenantId = ruleGroups.getTenantId();
-
-        this.createUlnCacheIfNotExist(tenantId);
-        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
-        if (uln == null) {
-            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsCreateEvent: uln is null");
-            return;
-        }
-        if (uln.isSecurityRuleGroupsAlreadyCached(ruleGroups) == true) {
-            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsCreateEvent: ruleGroups already exist");
-            return;
-        }
-
-        uln.cacheSecurityRuleGroups(ruleGroups);
-        this.renderSecurityRuleGroups(tenantId, uln, ruleGroups);
-    }
-
-    private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
-        /*
-         * For LSW, we can directly render it on Fabric.
-         */
-        CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(lsw);
-        NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
-        uln.markLswAsRendered(lsw, renderedLswId);
+        this.doEndpointLocationCreate(tenantId, uln, epLocation);
 
         /*
-         * After we render LSW, we can render all the logical ports that
-         * belong to this LSW.
+         * Now check to see if we can render any other elements.
          */
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
     }
 
-    private void renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
-        /*
-         * For LR, we can directly render it on Fabric.
-         */
-        CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(lr);
-        NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
-        uln.markLrAsRendered(lr, renderedLrId);
-
-    }
-
-    private void renderEpRegistration(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
+    private void doEndpointLocationCreate(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
         /*
          * When an endpoint is online, we call Fabric's registerEndpoint(). However, before
          * we do that, we need to make sure that LogicalSwitch and Logical Port are created
@@ -278,7 +290,7 @@ public class UlnMappingEngine {
             return;
         }
 
-        LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(lswPort);
+        LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(lswPort.getPort());
         if (lsw == null) {
             LOG.debug("FABMGR: renderEpRegistration: lsw not in cache");
             return;
@@ -297,40 +309,176 @@ public class UlnMappingEngine {
             this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
         }
 
-        /*
-         * Render LSW port is done by attachEpToLneLayer2()
-         * if (lswPort.hasServiceBeenRendered() == false) {
-         * this.renderPort(tenantId, uln, lswPort.getPort());
-         * }
-         */
+        if (lswPort.hasServiceBeenRendered() == false) {
+            this.renderPortOnLsw(tenantId, uln, lsw, lswPort);
+        }
 
         EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderedEpId =
-                VcontainerServiceProviderAPI.attachEpToLneLayer2(UlnUtil.convertToYangUuid(tenantId),
-                        lsw.getRenderedDeviceId(), endpoint);
-        uln.markEpLocationAsRendered(epLocation, renderedEpId);
-        uln.markPortAsRendered(epPort.getPort());
+
+        this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedDeviceId(), lswPort.getRenderedDeviceId(),
+                endpoint);
         uln.markEdgeAsRendered(epEdge.getEdge());
-        uln.markPortAsRendered(lswPort.getPort());
         uln.markPortAsRendered(subnetPort.getPort());
         uln.markPortAsRendered(subnetPort2.getPort());
         uln.markEdgeAsRendered(subnetLswEdge.getEdge());
-        uln.markPortAsRendered(lswPort.getPort());
     }
 
+    public void handleEdgeCreateEvent(Edge edge) {
+        Uuid tenantId = edge.getTenantId();
+
+        this.createUlnCacheIfNotExist(tenantId);
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: uln is null");
+            return;
+        }
+        if (uln.isEdgeAlreadyCached(edge) == true) {
+            LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: edge already exist");
+            return;
+        }
+
+        uln.cacheEdge(edge);
+        this.doEdgeCreate(tenantId, uln, edge);
+
+        /*
+         * Now check to see if we can render any other elements.
+         */
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
+    }
+
+    private void doEdgeCreate(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
+        /*
+         * An edge has the following type:
+         * LR to LR
+         * LSW to LSW
+         * LSW to LR
+         * LSW to Subnet
+         * Subnet to EndpointLocation
+         *
+         * On a single fabric, only LR-to-LSW type needs to be mapped to
+         * Fabric's createGateway() API. (Other types are applicable only to
+         * multi-fabric.)
+         */
+
+        boolean canRenderEdge = false;
+        LogicalSwitchMappingInfo lsw = null;
+        LogicalRouterMappingInfo lr = null;
+        SubnetMappingInfo subnet = null;
+
+        if (uln.edgeIsLswToLrType(edge) == true) {
+            PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
+            PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
+            if (leftPort != null && rightPort != null) {
+                if (uln.isPortLswType(leftPort.getPort().getUuid()) == true) {
+                    lsw = uln.findLswFromItsPort(leftPort.getPort());
+                    if (lsw != null && uln.isPortLrType(rightPort.getPort().getUuid()) == true) {
+                        subnet = uln.findSubnetFromLsw(lsw);
+                        lr = uln.findLrFromItsPort(rightPort.getPort());
+                        if (lr != null && subnet != null) {
+                            canRenderEdge = true;
+                        }
+                    }
+                } else if (uln.isPortLswType(rightPort.getPort().getUuid()) == true) {
+                    lsw = uln.findLswFromItsPort(rightPort.getPort());
+                    if (lsw != null && uln.isPortLrType(leftPort.getPort().getUuid()) == true) {
+                        subnet = uln.findSubnetFromLsw(lsw);
+                        lr = uln.findLrFromItsPort(leftPort.getPort());
+                        if (lr != null && subnet != null) {
+                            canRenderEdge = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (canRenderEdge == true) {
+            if (lsw.hasServiceBeenRendered() == false) {
+                this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+            }
+            if (lr.hasServiceBeenRendered() == false) {
+                this.renderLogicalRouter(tenantId, uln, lr.getLr());
+            }
+
+            this.renderLrLswEdge(tenantId, uln, lr, lsw, subnet, edge);
+        }
+    }
+
+    public void handleSecurityRuleGroupsCreateEvent(SecurityRuleGroups ruleGroups) {
+        Uuid tenantId = ruleGroups.getTenantId();
+
+        this.createUlnCacheIfNotExist(tenantId);
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsCreateEvent: uln is null");
+            return;
+        }
+        if (uln.isSecurityRuleGroupsAlreadyCached(ruleGroups) == true) {
+            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsCreateEvent: ruleGroups already exist");
+            return;
+        }
+
+        uln.cacheSecurityRuleGroups(ruleGroups);
+        this.doSecurityRuleGroupsCreate(tenantId, uln, ruleGroups);
+
+        /*
+         * Now check to see if we can render any other elements.
+         */
+        this.checkAndRenderPendingUlnElements(tenantId, uln);
+    }
+
+    private void doSecurityRuleGroupsCreate(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
+
+
+        this.renderSecurityRuleGroups(tenantId, uln, ruleGroups);
+        // TODO Auto-generated method stub
+
+    }
+
+    private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+        CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(lsw);
+        NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
+        uln.markLswAsRendered(lsw, renderedLswId);
+    }
+
+    private void renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
+        CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(lr);
+        NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
+        uln.markLrAsRendered(lr, renderedLrId);
+    }
+
+    private void renderEpRegistration(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation,
+            NodeId renderedLswId, TpId renderedLswPortId, EndpointAttachInfo endpoint) {
+        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderedEpId =
+                VcontainerServiceProviderAPI.attachEpToLneLayer2(UlnUtil.convertToYangUuid(tenantId), renderedLswId,
+                        renderedLswPortId, endpoint);
+        uln.markEpLocationAsRendered(epLocation, renderedEpId);
+    }
+
+    @SuppressWarnings("unused")
     private void renderSubnet(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
-        // TODO Auto-generated method stub
-
+        // subnet does not map to Fabric.
     }
 
-    private void renderPort(Uuid tenantId, UserLogicalNetworkCache uln, Port port) {
-        // TODO Auto-generated method stub
+    private void renderPortOnLsw(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitchMappingInfo lswInfo,
+            PortMappingInfo lswPortInfo) {
+        if (lswInfo.hasServiceBeenRendered() == false) {
+            LOG.error("FABMGR: ERROR: renderPortOnLsw: lsw not rendered yet");
+            return;
+        }
 
+        NodeId renderedLswId = lswInfo.getRenderedDeviceId();
+        TpId renderedPortId = VcontainerServiceProviderAPI
+            .createLogicalPortOnLneLayer2(UlnUtil.convertToYangUuid(tenantId), renderedLswId);
+        lswPortInfo.markAsRendered(renderedPortId);
     }
 
-    private void renderEdge(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
-        // TODO Auto-generated method stub
-
+    private void renderLrLswEdge(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr,
+            LogicalSwitchMappingInfo lsw, SubnetMappingInfo subnet, Edge edge) {
+        VcontainerServiceProviderAPI.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lr.getRenderedDeviceId(),
+                lsw.getRenderedDeviceId(), subnet.getSubnet().getExternalGateways().get(0).getExternalGateway(),
+                subnet.getSubnet().getIpPrefix());
+        uln.markEdgeAsRendered(edge);
     }
 
     private void renderSecurityRuleGroups(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
@@ -496,5 +644,17 @@ public class UlnMappingEngine {
 
     public void setUlnStore(Map<Uuid, UserLogicalNetworkCache> ulnStore) {
         this.ulnStore = ulnStore;
+    }
+
+    /*
+     * This function is called every time when a ULN element is cached and
+     * attempting to be rendered. This function is necessary because ULN elements
+     * depend on each other. when an new element is cached, it may not be able
+     * to be rendered immediately and thus may be cached. It can be rendered
+     * in the future when its dependencies are rendered.
+     */
+    private void checkAndRenderPendingUlnElements(Uuid tenantId, UserLogicalNetworkCache uln) {
+        // TODO Auto-generated method stub
+
     }
 }
