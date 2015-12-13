@@ -11,6 +11,7 @@ package org.opendaylight.faas.uln.manager;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
@@ -360,13 +361,16 @@ public class UlnMappingEngine {
          * Fabric's createGateway() API. (Other types are applicable only to
          * multi-fabric.)
          */
+        if (uln.isEdgeLrToLrType(edge) || uln.isEdgeLswToLswType(edge)) {
+            uln.markEdgeAsRendered(edge);
+        }
 
         boolean canRenderEdge = false;
         LogicalSwitchMappingInfo lsw = null;
         LogicalRouterMappingInfo lr = null;
         SubnetMappingInfo subnet = null;
 
-        if (uln.edgeIsLswToLrType(edge) == true) {
+        if (uln.isEdgeLrToLswType(edge) == true) {
             PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
             PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
             if (leftPort != null && rightPort != null) {
@@ -427,12 +431,51 @@ public class UlnMappingEngine {
         this.checkAndRenderPendingUlnElements(tenantId, uln);
     }
 
+    /*
+     * SecurityRuleGroups applies to LR or LSW. We need to find
+     * the port to which the rules apply. Then find the LSW or LR
+     * to which the port belongs.
+     */
     private void doSecurityRuleGroupsCreate(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
+        /*
+         * We check to see if the LSW or LR is rendered. If so, then we
+         * can go ahead and render the rules. The model supports the rules
+         * to be be applied on multiple ports, but in practice, GBP only use
+         * one port. So, we can just use port 0 to fin the LSW (or LR).
+         */
+        boolean readyToRender = false;
+        NodeId nodeId = null;
+        Uuid portId = ruleGroups.getPorts().get(0);
+        LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
+        if (lsw != null) {
+            if (lsw.hasServiceBeenRendered() == false) {
+                LOG.error("FABMGR: ERROR: doSecurityRuleGroupsCreate: lsw not rendered: {}",
+                        lsw.getLsw().getUuid().getValue());
+                this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+            }
+            nodeId = lsw.getRenderedDeviceId();
+            readyToRender = true;
+        } else {
+            LogicalRouterMappingInfo lr = uln.findLrFromPortId(portId);
+            if (lr != null) {
+                if (lr.hasServiceBeenRendered() == false) {
+                    LOG.error("FABMGR: ERROR: doSecurityRuleGroupsCreate: lr not rendered: {}",
+                            lr.getLr().getUuid().getValue());
+                    this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                }
+                nodeId = lr.getRenderedDeviceId();
+                readyToRender = true;
+            }
+        }
 
+        if (readyToRender == true) {
+            this.renderSecurityRuleGroups(tenantId, uln, nodeId, ruleGroups);
+        }
+    }
 
-        this.renderSecurityRuleGroups(tenantId, uln, ruleGroups);
+    private String createAclInDatastore(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
         // TODO Auto-generated method stub
-
+        return null;
     }
 
     private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
@@ -481,8 +524,16 @@ public class UlnMappingEngine {
         uln.markEdgeAsRendered(edge);
     }
 
-    private void renderSecurityRuleGroups(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
+    private void renderSecurityRuleGroups(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
+            SecurityRuleGroups ruleGroups) {
+
+        String aclName = this.createAclInDatastore(tenantId, uln, ruleGroups);
+
         this.addNewRules(ruleGroups);
+
+        VcontainerServiceProviderAPI.createAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
+
+        uln.markSecurityRuleGroupsAsRendered(ruleGroups);
     }
 
     private void addNewRules(SecurityRuleGroups ruleGroups) {
@@ -654,7 +705,48 @@ public class UlnMappingEngine {
      * in the future when its dependencies are rendered.
      */
     private void checkAndRenderPendingUlnElements(Uuid tenantId, UserLogicalNetworkCache uln) {
-        // TODO Auto-generated method stub
+        /*
+         * There are should be no pending LRs and LSWs, because they
+         * are directly rendered upon reception.
+         */
+        for (Entry<Uuid, LogicalRouterMappingInfo> lrEntry : uln.getLrStore().entrySet()) {
+            if (lrEntry.getValue().hasServiceBeenRendered() == false) {
+                LOG.error("FABMGR: ERROR: checkAndRenderPendingUlnElements: LR not renderred: {}",
+                        lrEntry.getValue().getLr().getUuid().getValue());
+                this.doLogicalRouterCreate(tenantId, uln, lrEntry.getValue().getLr());
+            }
+        }
 
+        for (Entry<Uuid, LogicalSwitchMappingInfo> lswEntry : uln.getLswStore().entrySet()) {
+            if (lswEntry.getValue().hasServiceBeenRendered() == false) {
+                LOG.error("FABMGR: ERROR: checkAndRenderPendingUlnElements: LSW not renderred: {}",
+                        lswEntry.getValue().getLsw().getUuid().getValue());
+                this.doLogicalSwitchCreate(tenantId, uln, lswEntry.getValue().getLsw());
+            }
+        }
+
+        for (Entry<Uuid, EndpointLocationMappingInfo> epEntry : uln.getEpLocationStore().entrySet()) {
+            if (epEntry.getValue().hasServiceBeenRendered() == false) {
+                LOG.info("FABMGR: checkAndRenderPendingUlnElements: found unrendered EP: {}",
+                        epEntry.getValue().getEpLocation().getUuid().getValue());
+                this.doEndpointLocationCreate(tenantId, uln, epEntry.getValue().getEpLocation());
+            }
+        }
+
+        for (Entry<Uuid, EdgeMappingInfo> edgeEntry : uln.getEdgeStore().entrySet()) {
+            if (edgeEntry.getValue().hasServiceBeenRendered() == false) {
+                LOG.info("FABMGR: checkAndRenderPendingUlnElements: found unrendered edge: {}",
+                        edgeEntry.getValue().getEdge().getUuid().getValue());
+                this.doEdgeCreate(tenantId, uln, edgeEntry.getValue().getEdge());
+            }
+        }
+
+        for (Entry<Uuid, SecurityRuleGroupsMappingInfo> rulesEntry : uln.getSecurityRuleGroupsStore().entrySet()) {
+            if (rulesEntry.getValue().hasServiceBeenRendered() == false) {
+                LOG.info("FABMGR: checkAndRenderPendingUlnElements: found unrendered rules: {}",
+                        rulesEntry.getValue().getSecurityRuleGroups().getUuid().getValue());
+                this.doSecurityRuleGroupsCreate(tenantId, uln, rulesEntry.getValue().getSecurityRuleGroups());
+            }
+        }
     }
 }

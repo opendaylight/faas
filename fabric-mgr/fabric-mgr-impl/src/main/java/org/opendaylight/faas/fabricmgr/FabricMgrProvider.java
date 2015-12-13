@@ -32,6 +32,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Output;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
@@ -157,7 +158,8 @@ public class FabricMgrProvider implements AutoCloseable {
         epInputBuilder.setFabricId(fabricId);
         epInputBuilder.setGateway(endpoint.getGatewayIpAddr());
         epInputBuilder.setIpAddress(endpoint.getIpAddress());
-        epInputBuilder.setLocation(endpoint.getPhyLocation());
+        epInputBuilder.setLocation(FabMgrYangDataUtil.getPhyLocation(new TopologyId(fabricId),
+                endpoint.getInventoryNodeIdStr(), endpoint.getInventoryNodeConnectorIdStr()));
         epInputBuilder.setMacAddress(endpoint.getMacAddress());
         epInputBuilder.setOwnFabric(fabricId);
 
@@ -222,5 +224,22 @@ public class FabricMgrProvider implements AutoCloseable {
     public void listenerActionOnVcCreate(TenantId tenantId) {
         VcConfigDataMgr vc = new VcConfigDataMgr(tenantId);
         this.vcConfigDataMgrList.put(tenantId, vc);
+    }
+
+    public void createAcl(Uuid tenantId, NodeId nodeId, String aclName) {
+        VcConfigDataMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: createAcl: vcMgr is null: tenantId={}", tenantId.getValue());
+            return; // ----->
+        }
+
+        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        if (vfabricId == null) {
+            LOG.error("FABMGR: ERROR: createAcl: vfabricId is null: {}", tenantId.getValue());
+            return; // ---->
+        }
+
+        this.netNodeServiceProvider.createAcl(tenantId, vfabricId, nodeId, aclName);
+
     }
 }

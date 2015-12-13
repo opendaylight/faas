@@ -55,4 +55,8 @@ public class VcontainerServiceProviderAPI {
         VcontainerServiceProviderAPI.fabricMgrProvider.createLrLswGateway(tenantId, lrId, lswId, gatewayIpAddr,
                 ipPrefix);
     }
+
+    public static void createAcl(Uuid tenantId, NodeId nodeId, String aclName) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.createAcl(tenantId, nodeId, aclName);
+    }
 }

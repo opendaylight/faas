@@ -20,7 +20,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortOutput;
@@ -29,6 +29,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
@@ -314,6 +315,24 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed: {}", e);
+        }
+    }
+
+    public void createAcl(Uuid tenantId, NodeId vfabricId, NodeId nodeId, String aclName) {
+        AddAclInputBuilder inputBuilder = new AddAclInputBuilder();
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setAclName(aclName);
+        inputBuilder.setLogicSwitch(nodeId);
+
+        Future<RpcResult<Void>> result = this.fabServiceService.addAcl(inputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.info("FABMGR: createAcl: addAcl RPC success");
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: createAcl: addAcl RPC failed: {}", e);
         }
     }
 

@@ -383,7 +383,7 @@ public class UserLogicalNetworkCache {
         for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
             EdgeMappingInfo edge = entry.getValue();
             if (this.findEdgeType(edge) == EdgeType.LswToSubnet) {
-                PortMappingInfo subnetPort = this.edgeHasSubnetPort(edge, subnetId);
+                PortMappingInfo subnetPort = this.findSubnetPortInEdge(edge, subnetId);
                 if (subnetPort != null) {
                     PortMappingInfo otherPort = this.findOtherPortInEdge(edge, subnetPort.getPort().getUuid());
                     if (otherPort != null) {
@@ -423,14 +423,18 @@ public class UserLogicalNetworkCache {
         return subnetLswEdge;
     }
 
-    public PortMappingInfo edgeHasSubnetPort(EdgeMappingInfo edge, Uuid subnetId) {
+    public PortMappingInfo findPortFromPortId(Uuid portId) {
+        return this.portStore.get(portId);
+    }
+
+    public PortMappingInfo findSubnetPortInEdge(EdgeMappingInfo edge, Uuid subnetId) {
         PortMappingInfo subnetPort = null;
         Uuid leftPortId = edge.getEdge().getLeftPortId();
         Uuid rightPortId = edge.getEdge().getRightPortId();
 
-        if (this.portBelongsToSubnet(leftPortId, subnetId) == true) {
+        if (this.isPortInSubnet(leftPortId, subnetId) == true) {
             subnetPort = this.portStore.get(leftPortId);
-        } else if (this.portBelongsToSubnet(rightPortId, subnetId) == true) {
+        } else if (this.isPortInSubnet(rightPortId, subnetId) == true) {
             subnetPort = this.portStore.get(rightPortId);
         }
 
@@ -438,7 +442,7 @@ public class UserLogicalNetworkCache {
 
     }
 
-    public boolean portBelongsToSubnet(Uuid portId, Uuid subnetId) {
+    public boolean isPortInSubnet(Uuid portId, Uuid subnetId) {
         PortMappingInfo port = this.portStore.get(portId);
 
         if (this.isPortSubnetType(portId) == false) {
@@ -513,6 +517,81 @@ public class UserLogicalNetworkCache {
         return edgeType;
     }
 
+    public boolean isEdgeLrToLrType(Edge edge) {
+        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
+        if (edgeInfo == null) {
+            // edge should already be cached when this function is called.
+            LOG.error("FABMGR: ERROR: isEdgeLrToLrType: edge not in cache: {}", edge.getUuid().getValue());
+            return false;
+        }
+
+        if (this.findEdgeType(edgeInfo) == EdgeType.LrToLr) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isEdgeLswToLswType(Edge edge) {
+        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
+        if (edgeInfo == null) {
+            // edge should already be cached when this function is called.
+            LOG.error("FABMGR: ERROR: edgeIsLswToLswType: edge not in cache: {}", edge.getUuid().getValue());
+            return false;
+        }
+
+        if (this.findEdgeType(edgeInfo) == EdgeType.LswToLsw) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isEdgeLrToLswType(Edge edge) {
+        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
+        if (edgeInfo == null) {
+            // edge should already be cached when this function is called.
+            LOG.error("FABMGR: ERROR: isEdgeLrToLswType: edge not in cache: {}", edge.getUuid().getValue());
+            return false;
+        }
+
+        if (this.findEdgeType(edgeInfo) == EdgeType.LrToLsw) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isEdgeLswToSubnetType(Edge edge) {
+        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
+        if (edgeInfo == null) {
+            // edge should already be cached when this function is called.
+            LOG.error("FABMGR: ERROR: edgeIsLswToSubnetType: edge not in cache: {}", edge.getUuid().getValue());
+            return false;
+        }
+
+        if (this.findEdgeType(edgeInfo) == EdgeType.LswToSubnet) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isEdgeSubnetToEpLocationType(Edge edge) {
+        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
+        if (edgeInfo == null) {
+            // edge should already be cached when this function is called.
+            LOG.error("FABMGR: ERROR: edgeIsSubnetToEpLocationType: edge not in cache: {}", edge.getUuid().getValue());
+            return false;
+        }
+
+        if (this.findEdgeType(edgeInfo) == EdgeType.SubnetToEpLocation) {
+            return true;
+        }
+
+        return false;
+    }
+
     public boolean isPortSubnetType(Uuid portId) {
         return this.portIsType(portId, LocationType.SubnetType);
     }
@@ -530,7 +609,7 @@ public class UserLogicalNetworkCache {
     }
 
     public boolean portIsType(Uuid portId, LocationType portType) {
-        PortMappingInfo port = this.portStore.get(portId);
+        PortMappingInfo port = this.findPortFromPortId(portId);
 
         if (port == null) {
             return false;
@@ -558,6 +637,15 @@ public class UserLogicalNetworkCache {
         return this.lswStore.get(lswId);
     }
 
+    public LogicalSwitchMappingInfo findLswFromPortId(Uuid portId) {
+        PortMappingInfo port = this.findPortFromPortId(portId);
+        if(port == null) {
+            return null;
+        }
+
+        return this.findLswFromItsPort(port.getPort());
+    }
+
     /*
      * Given an port on LR, find the LR.
      */
@@ -572,6 +660,15 @@ public class UserLogicalNetworkCache {
         return this.lrStore.get(lrId);
     }
 
+    public LogicalRouterMappingInfo findLrFromPortId(Uuid portId) {
+        PortMappingInfo port = this.findPortFromPortId(portId);
+        if(port == null) {
+            return null;
+        }
+
+        return this.findLrFromItsPort(port.getPort());
+    }
+
     public PortMappingInfo findEpPortFromEpLocation(EndpointLocation epLocation) {
         Uuid epPortId = epLocation.getPort();
         return this.portStore.get(epPortId);
@@ -581,26 +678,31 @@ public class UserLogicalNetworkCache {
         return this.portStore.get(port.getUuid());
     }
 
-    public boolean edgeIsLswToLrType(Edge edge) {
-        EdgeMappingInfo edgeInfo = this.edgeStore.get(edge.getUuid());
-        if (edgeInfo == null) {
-            // edge should already be cached when this function is called.
-            LOG.error("FABMGR: ERROR: edgeIsLswToLRType: edge not in cache: {}", edge.getUuid().getValue());
-            return false;
-        }
+    public Map<Uuid, LogicalSwitchMappingInfo> getLswStore() {
+        return lswStore;
+    }
 
-        Uuid leftPortId = edgeInfo.getEdge().getLeftPortId();
-        Uuid rightPortId = edgeInfo.getEdge().getRightPortId();
-        if (this.isPortLrType(leftPortId)) {
-            if (this.isPortLswType(rightPortId)) {
-                return true;
-            }
-        } else if (this.isPortLswType(leftPortId)) {
-            if (this.isPortLrType(rightPortId)) {
-                return true;
-            }
-        }
+    public Map<Uuid, LogicalRouterMappingInfo> getLrStore() {
+        return lrStore;
+    }
 
-        return false;
+    public Map<Uuid, SecurityRuleGroupsMappingInfo> getSecurityRuleGroupsStore() {
+        return securityRuleGroupsStore;
+    }
+
+    public Map<Uuid, SubnetMappingInfo> getSubnetStore() {
+        return subnetStore;
+    }
+
+    public Map<Uuid, PortMappingInfo> getPortStore() {
+        return portStore;
+    }
+
+    public Map<Uuid, EdgeMappingInfo> getEdgeStore() {
+        return edgeStore;
+    }
+
+    public Map<Uuid, EndpointLocationMappingInfo> getEpLocationStore() {
+        return epLocationStore;
     }
 }

@@ -11,12 +11,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.Location;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LocationBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.TpRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.vc.ld.node.attributes.Vfabric;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.VcLdNode;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.VcLdNodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.network.topology.topology.node.vc.node.attributes.LdNodeAttributes;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.network.topology.topology.node.vc.node.attributes.LdNodeAttributesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.network.topology.topology.node.vc.node.attributes.NetNodeAttributesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.FlagIdentity;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.TopologyTypes1;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.UndefinedFlag;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.VcNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.VcNodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.topology.rev151010.create.vcontainer.input.VcontainerConfig;
@@ -41,12 +49,8 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.TopologyTypes;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNode;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.vc.ld.node.attributes.Vfabric;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.VcLdNode;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.VcLdNodeBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.network.topology.topology.node.vc.node.attributes.LdNodeAttributes;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.ldnode.rev151010.network.topology.topology.node.vc.node.attributes.LdNodeAttributesBuilder;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier.InstanceIdentifierBuilder;
 
@@ -103,10 +107,26 @@ public class FabMgrYangDataUtil {
         return nodePath;
     }
 
-    public static InstanceIdentifier<Node> createNodePath(String topoId, NodeId nodeId) {
+    public static InstanceIdentifier<Node> createNodePath(TopologyId topoId, NodeId nodeId) {
         return InstanceIdentifier.create(NetworkTopology.class)
-            .child(Topology.class, new TopologyKey(new TopologyId(topoId)))
+            .child(Topology.class, new TopologyKey(topoId))
             .child(Node.class, new NodeKey(nodeId));
+    }
+
+    public static InstanceIdentifier<Node> createNodePath(String topoIdStr, String nodeIdStr) {
+        return createNodePath(new TopologyId(topoIdStr), new NodeId(nodeIdStr));
+    }
+
+    public static InstanceIdentifier<TerminationPoint> createTpPath(String topoIdStr, String nodeIdStr,
+            String tpIdStr) {
+        return createTpPath(new TopologyId(topoIdStr), new NodeId(nodeIdStr), new TpId(tpIdStr));
+    }
+
+    public static InstanceIdentifier<TerminationPoint> createTpPath(TopologyId topoId, NodeId nodeId, TpId tpId) {
+        return InstanceIdentifier.create(NetworkTopology.class)
+            .child(Topology.class, new TopologyKey(topoId))
+            .child(Node.class, new NodeKey(nodeId))
+            .child(TerminationPoint.class, new TerminationPointKey(tpId));
     }
 
     public static Node createBasicVcLdNode() {
@@ -266,5 +286,22 @@ public class FabMgrYangDataUtil {
         nodeBuilder.addAugmentation(VcNode.class, vcNodeBuilder.build());
 
         return nodeBuilder.build();
+    }
+
+    public static Location getPhyLocation(TopologyId fabricId, String inventoryNodeIdStr,
+            String inventoryNodeConnectorIdStr) {
+        LocationBuilder locBuilder = new LocationBuilder();
+
+        /*
+         * TODO: For now inventory nodeId and node connector id are directly mapped
+         * to topology. This is a kludge. A formal approach would involve an
+         * inventory-to-topology lookup.
+         */
+        NodeId nodeId = new NodeId(inventoryNodeIdStr);
+        TpId tpId = new TpId(inventoryNodeConnectorIdStr);
+        locBuilder.setNodeRef(new NodeRef(createNodePath(fabricId, nodeId)));
+        locBuilder.setTpRef(new TpRef(createTpPath(fabricId, nodeId, tpId)));
+
+        return locBuilder.build();
     }
 }

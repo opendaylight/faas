@@ -11,22 +11,18 @@ package org.opendaylight.faas.fabricmgr.api;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.Location;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicLocation;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 
 public class EndpointAttachInfo {
+
     private IpAddress gatewayIpAddr;
     private IpAddress ipAddress;
-    private Location phyLocation;
-    private LogicLocation logicalPort;
     private MacAddress macAddress;
     private IpAddress publicIpAddress;
     private Uuid epYangUuid;
-    private FabricId fabricId;
+    private String inventoryNodeIdStr;
+    private String inventoryNodeConnectorIdStr;
 
-    public EndpointAttachInfo() {
-    }
+    public EndpointAttachInfo() {}
 
     public IpAddress getGatewayIpAddr() {
         return gatewayIpAddr;
@@ -42,22 +38,6 @@ public class EndpointAttachInfo {
 
     public void setIpAddress(IpAddress ipAddress) {
         this.ipAddress = ipAddress;
-    }
-
-    public Location getPhyLocation() {
-        return phyLocation;
-    }
-
-    public void setPhyLocation(Location phyLocation) {
-        this.phyLocation = phyLocation;
-    }
-
-    public LogicLocation getLogicalPort() {
-        return logicalPort;
-    }
-
-    public void setLogicalPort(LogicLocation logicalPort) {
-        this.logicalPort = logicalPort;
     }
 
     public MacAddress getMacAddress() {
@@ -84,12 +64,19 @@ public class EndpointAttachInfo {
         this.epYangUuid = epYangUuid;
     }
 
-    public FabricId getFabricId() {
-        return fabricId;
+    public String getInventoryNodeIdStr() {
+        return inventoryNodeIdStr;
     }
 
-    public void setFabricId(FabricId fabricId) {
-        this.fabricId = fabricId;
+    public void setInventoryNodeIdStr(String inventoryNodeIdStr) {
+        this.inventoryNodeIdStr = inventoryNodeIdStr;
     }
 
+    public String getInventoryNodeConnectorIdStr() {
+        return inventoryNodeConnectorIdStr;
+    }
+
+    public void setInventoryNodeConnectorIdStr(String inventoryNodeConnectorIdStr) {
+        this.inventoryNodeConnectorIdStr = inventoryNodeConnectorIdStr;
+    }
 }
