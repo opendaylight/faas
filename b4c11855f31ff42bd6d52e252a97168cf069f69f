@@ -1,0 +1,8 @@
+Verified+1: jenkins-releng <jenkins-releng@opendaylight.org>
+Code-Review+1: xingjun chu <xingjun.chu@huawei.com>
+Code-Review+2: Henry Yu <henry.yu1@huawei.com>
+Submitted-by: Henry Yu <henry.yu1@huawei.com>
+Submitted-at: Mon, 14 Dec 2015 20:06:26 +0000
+Reviewed-on: https://git.opendaylight.org/gerrit/31297
+Project: faas
+Branch: refs/heads/master
