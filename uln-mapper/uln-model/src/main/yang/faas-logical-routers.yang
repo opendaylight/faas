@@ -20,6 +20,10 @@ module faas-logical-routers {
             list logical-router {
                 uses faas-common:admin-attributes;
                 uses faas-common:logical-entity-attributes;
+                leaf public {
+                    description "True if there is at least one port accessed by the Internet";
+                    type boolean;
+                }
             }
         }
     }

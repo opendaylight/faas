@@ -55,6 +55,10 @@ module faas-ports {
                     description "The rule groups that need to be applied to this port";
                     type faas-common:uuid;
                 }
+                leaf is-public {
+                    description "True if accessed by the Internet";
+                    type boolean;
+                }
                 leaf-list public-ips {
                     description "The public IP addresses, if any";
                     type inet:ip-address;

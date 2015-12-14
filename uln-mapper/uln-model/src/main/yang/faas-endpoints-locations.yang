@@ -25,6 +25,10 @@ module faas-endpoints-locations {
                     description "The port connected to this endpoint location";
                     type faas-common:uuid;
                 }
+                leaf original-port-name {
+                    description "the original port name such as neutron name";
+                    type faas-common:text;
+                }
                 leaf node-id {
                     description "The switch for this attached endpoint";
                     type inv:node-id;
