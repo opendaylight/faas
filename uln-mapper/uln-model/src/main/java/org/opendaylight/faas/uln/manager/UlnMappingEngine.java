@@ -8,17 +8,20 @@
 
 package org.opendaylight.faas.uln.manager;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
+import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.faas.uln.datastore.api.UlnDatastoreApi;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.listeners.UlnUtil;
+import org.opendaylight.sfc.provider.api.SfcDataStoreAPI;
 import org.opendaylight.sfc.provider.api.SfcProviderRenderedPathAPI;
 import org.opendaylight.sfc.provider.api.SfcProviderServicePathAPI;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.common.rev151017.RspName;
@@ -30,9 +33,32 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.rsp.rev1407
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.rsp.rev140701.rendered.service.paths.rendered.service.path.RenderedServicePathHop;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfp.rev140701.ServiceFunctionPaths;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfp.rev140701.service.function.paths.ServiceFunctionPath;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.AccessLists;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.Acl;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.AclBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.AclKey;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.AccessListEntries;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.AccessListEntriesBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.Ace;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.AceBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.ActionsBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.MatchesBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.actions.packet.handling.DenyBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.actions.packet.handling.PermitBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.matches.ace.type.AceIpBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.matches.ace.type.ace.ip.ace.ip.version.AceIpv4Builder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.matches.ace.type.ace.ip.ace.ip.version.AceIpv6Builder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Dscp;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Address;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Prefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv6Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.PortNumber;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Name;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev150611.acl.transport.header.fields.DestinationPortRangeBuilder;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev150611.acl.transport.header.fields.SourcePortRangeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.RedirectBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.redirect.redirect.type.TunnelBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.redirect.redirect.type.tunnel.tunnel.type.NshBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
@@ -44,12 +70,14 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.SecurityRuleGroup;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.SecurityRule;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleAction;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleClassifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleClassifier.Direction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +88,12 @@ public class UlnMappingEngine {
 
     private static final Logger LOG = LoggerFactory.getLogger(UlnMappingEngine.class);
     private static final String PV_SFC_TYPE_NAME = "sfc_chain_name";
+    private static final String PV_PERMIT_TYPE_NAME = "action-definition-id";
+    private static final String PV_ACTION_VALUE_ALLOW = "Action-Allow";
+    private static final String PV_ACTION_VALUE_DENY = "Action-Deny";
+    private static final String PV_PROTO_TYPE_NAME = "proto";
+    private static final String PV_DESTPORT_TYPE_NAME = "destport";
+    private static final String PV_SOURCEPORT_TYPE_NAME = "sourceport";
 
     private Map<Uuid, UserLogicalNetworkCache> ulnStore;
 
@@ -473,11 +507,6 @@ public class UlnMappingEngine {
         }
     }
 
-    private String createAclInDatastore(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
         CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(lsw);
         NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
@@ -526,35 +555,26 @@ public class UlnMappingEngine {
 
     private void renderSecurityRuleGroups(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
             SecurityRuleGroups ruleGroups) {
-
-        String aclName = this.createAclInDatastore(tenantId, uln, ruleGroups);
-
-        this.addNewRules(ruleGroups);
-
-        VcontainerServiceProviderAPI.createAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
-
-        uln.markSecurityRuleGroupsAsRendered(ruleGroups);
-    }
-
-    private void addNewRules(SecurityRuleGroups ruleGroups) {
-        List<SecurityRuleGroup> securityRuleGroupList = ruleGroups.getSecurityRuleGroup();
-        for (SecurityRuleGroup securityRuleGroup : securityRuleGroupList) {
-            List<SecurityRule> securityRuleList = securityRuleGroup.getSecurityRule();
-            for (SecurityRule securityRule : securityRuleList) {
-                List<RuleAction> ruleActionList = securityRule.getRuleAction();
-                for (RuleAction ruleAction : ruleActionList) {
-                    List<ParameterValue> pvList = ruleAction.getParameterValue();
-                    for (ParameterValue pv : pvList) {
-                        Name pvName = pv.getName();
-                        if (pvName.getValue().equals(PV_SFC_TYPE_NAME) == true) {
-                            String sfcChainName = pv.getStringValue();
-                            LOG.info("FABMGR: ADD sfc chain: {}", sfcChainName);
-                            addSfcChain(sfcChainName, Direction.Bidirectional);
-                        }
-                    }
-                }
+        /*
+         * One SecurityRuleGroups contains a list SecurityRuleGroup.
+         * One SecurityRuleGroup contains a list of SecurityRule.
+         * One SecurityRule can be mapped to one ietf-acl.
+         */
+        SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo =
+                uln.getSecurityRuleGroupsStore().get(ruleGroups.getUuid());
+        if (ruleGroupsMappingInfo == null) {
+            LOG.error("FABMGR: ERROR: renderSecurityRuleGroups: ruleGroupsMappingInfo is null");
+            return;
+        }
+        List<SecurityRuleGroup> ruleGroupList = ruleGroups.getSecurityRuleGroup();
+        for (SecurityRuleGroup ruleGroup : ruleGroupList) {
+            List<SecurityRule> ruleList = ruleGroup.getSecurityRule();
+            for (SecurityRule rule : ruleList) {
+                this.renderSecurityRule(tenantId, uln, nodeId, ruleGroupsMappingInfo, rule);
             }
         }
+
+        uln.markSecurityRuleGroupsAsRendered(ruleGroups);
     }
 
     public ServiceFunctionPath getSfcPath(SfcName chainName) {
@@ -567,7 +587,7 @@ public class UlnMappingEngine {
         return null;
     }
 
-    private void addSfcChain(String sfcChainName, Direction direction) {
+    private SfcChainHeader retrieveSfcChain(String sfcChainName, Direction direction) {
         /*
          * NOTE: some code in this function is copied from the groupbasedpolicy
          * project.
@@ -581,7 +601,7 @@ public class UlnMappingEngine {
         ServiceFunctionPath sfcPath = getSfcPath(new SfcName(sfcChainName));
         if (sfcPath == null || sfcPath.getName() == null) {
             LOG.error("ULN: ERROR: addSfcChain: SFC Path was invalid. Either null or name was null.", sfcPath);
-            return;
+            return null;
         }
         // Find existing RSP based on following naming convention, else create it.
         RspName rspName = new RspName(sfcPath.getName() + "-gbp-rsp");
@@ -595,7 +615,7 @@ public class UlnMappingEngine {
                         sfcChainName);
             } else {
                 LOG.error("ULN: ERROR: addSfcChain: Could not create RSP {} for Chain {}", rspName, sfcChainName);
-                return;
+                return null;
             }
         } else {
             renderedServicePath = rsp;
@@ -612,7 +632,7 @@ public class UlnMappingEngine {
                     if (renderedServicePath == null) {
                         LOG.error("ULN: ERROR: addSfcChain: Could not create RSP {} for Chain {}", rspName,
                                 sfcChainName);
-                        return;
+                        return null;
                     }
                 } else {
                     renderedServicePath = rsp;
@@ -620,13 +640,13 @@ public class UlnMappingEngine {
             }
         } catch (Exception e) {
             LOG.error("ULN: ERROR: addSfcChain: Attemping to determine if srcEp was consumer.", e);
-            return;
+            return null;
         }
 
         RenderedServicePathFirstHop rspFirstHop = SfcProviderRenderedPathAPI.readRenderedServicePathFirstHop(rspName);
         if (!isValidRspFirstHop(rspFirstHop)) {
             // Errors logged in method.
-            return;
+            return null;
         }
 
         RenderedServicePathHop firstRspHop = renderedServicePath.getRenderedServicePathHop().get(0);
@@ -637,6 +657,9 @@ public class UlnMappingEngine {
         Long nshNspToChain = renderedServicePath.getPathId();
         int nshNsiFromChain = (short) lastRspHop.getServiceIndex().intValue() - 1;
         Long nshNspFromChain = renderedServicePath.getPathId();
+
+        return new SfcChainHeader(nshTunIpDst, nshTunUdpPort, nshNsiToChain, nshNspToChain, nshNsiFromChain,
+                nshNspFromChain);
     }
 
     private boolean isValidRspFirstHop(RenderedServicePathFirstHop rspFirstHop) {
@@ -748,5 +771,155 @@ public class UlnMappingEngine {
                 this.doSecurityRuleGroupsCreate(tenantId, uln, rulesEntry.getValue().getSecurityRuleGroups());
             }
         }
+    }
+
+    private void renderSecurityRule(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
+            SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo, SecurityRule securityRule) {
+        String aclName = this.createAclFromSecurityRule(securityRule);
+        VcontainerServiceProviderAPI.createAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
+        ruleGroupsMappingInfo.addRenderedAclName(aclName);
+    }
+
+    private String createAclFromSecurityRule(SecurityRule securityRule) {
+        String aclName = securityRule.getName().getValue();
+
+        /*
+         * create Access List with entries and IID, then write transaction to data store
+         */
+        AccessListEntries ace = this.createAceListFromSecurityRule(securityRule);
+        AclBuilder aclBuilder = new AclBuilder();
+        aclBuilder.setAclName(aclName).setKey(new AclKey(aclName)).setAccessListEntries(ace);
+
+        InstanceIdentifier<Acl> aclPath =
+                InstanceIdentifier.builder(AccessLists.class).child(Acl.class, new AclKey(aclName)).build();
+
+        boolean transactionSuccessful =
+                SfcDataStoreAPI.writePutTransactionAPI(aclPath, aclBuilder.build(), LogicalDatastoreType.CONFIGURATION);
+        if (transactionSuccessful == false) {
+            LOG.error("FABMGR: ERROR: createAclFromSecurityRule:writePutTransactionAPI failed");
+        }
+
+        return aclName;
+    }
+
+    private AccessListEntries createAceListFromSecurityRule(SecurityRule securityRule) {
+        List<Ace> aceList = new ArrayList<>();
+        List<RuleClassifier> classifierList = securityRule.getRuleClassifier();
+        for (RuleClassifier classifier : classifierList) {
+            Ace ace = this.createAceFromSecurityRuleEntry(classifier, securityRule.getRuleAction());
+            aceList.add(ace);
+        }
+
+        AccessListEntriesBuilder accessListEntriesBuilder = new AccessListEntriesBuilder();
+        accessListEntriesBuilder.setAce(aceList);
+
+        return accessListEntriesBuilder.build();
+    }
+
+    private Ace createAceFromSecurityRuleEntry(RuleClassifier classifier, List<RuleAction> ruleActionList) {
+
+        /*
+         * Use classifier to build matches. We setup destination ports using IN direction
+         * classifier, and source ports using OUT direction classifier.
+         */
+        AceIpBuilder aceIpBuilder = new AceIpBuilder();
+        aceIpBuilder.setDscp(new Dscp((short) 1)); // TODO: Do we have to setup DSCP?
+
+        List<ParameterValue> pvList = classifier.getParameterValue();
+        for (ParameterValue pv : pvList) {
+            String pvName = pv.getName().getValue();
+            if (pvName.equals(PV_PROTO_TYPE_NAME)) {
+                aceIpBuilder.setProtocol((short) pv.getIntValue().longValue());
+            } else if (pvName.equals(PV_DESTPORT_TYPE_NAME)) {
+                DestinationPortRangeBuilder destinationPortRangeBuilder = new DestinationPortRangeBuilder();
+                int portNum = (int) pv.getIntValue().longValue();
+                destinationPortRangeBuilder.setLowerPort(new PortNumber(portNum));
+                destinationPortRangeBuilder.setUpperPort(new PortNumber(portNum));
+                aceIpBuilder.setDestinationPortRange(destinationPortRangeBuilder.build());
+            } else if (pvName.equals(PV_SOURCEPORT_TYPE_NAME)) {
+                int portNum = (int) pv.getIntValue().longValue();
+                SourcePortRangeBuilder sourcePortRangeBuilder = new SourcePortRangeBuilder();
+                sourcePortRangeBuilder.setLowerPort(new PortNumber(portNum));
+                sourcePortRangeBuilder.setUpperPort(new PortNumber(portNum));
+                aceIpBuilder.setSourcePortRange(sourcePortRangeBuilder.build());
+            } else if (pvName.equals("ipv4_prefix_address")) { // TODO: what is the right value ?
+                String ipAddrStr = pv.getStringValue();
+                AceIpv4Builder aceIpv4Builder = new AceIpv4Builder();
+                aceIpv4Builder.setSourceIpv4Network(new Ipv4Prefix(ipAddrStr));
+                aceIpv4Builder.setDestinationIpv4Network(new Ipv4Prefix(ipAddrStr));
+                aceIpBuilder.setAceIpVersion(aceIpv4Builder.build()).setProtocol((short) 4);
+            } else if (pvName.equals("ipv6_prefix_address")) { // TODO: what is the right value ?
+                String ipAddrStr = pv.getStringValue();
+                AceIpv6Builder aceIpv6Builder = new AceIpv6Builder();
+                aceIpv6Builder.setSourceIpv6Network(new Ipv6Prefix(ipAddrStr));
+                aceIpv6Builder.setDestinationIpv6Network(new Ipv6Prefix(ipAddrStr));
+                aceIpBuilder.setAceIpVersion(aceIpv6Builder.build()).setProtocol((short) 41);
+            }
+        }
+
+        MatchesBuilder matchesBuilder = new MatchesBuilder();
+        matchesBuilder.setInputInterface("interface-" + 1); // TODO: do we need to set this?
+        matchesBuilder.setAceType(aceIpBuilder.build());
+
+        /*
+         * Create acl Action based on RuleAction. Although RuleAction
+         * is a list, we only take the first element for our conversion,
+         * because the ietf model only has one action per ace. By contrast,
+         * in the ULN model one security_rule can have multiple rule_classifier and rule_action
+         * instance.
+         */
+        ActionsBuilder actionsBuilder = new ActionsBuilder();
+        RuleAction ruleAction = ruleActionList.get(0);
+        ParameterValue pv = ruleAction.getParameterValue().get(0);
+        String pvName = pv.getName().getValue();
+        if (pvName.equals(PV_PERMIT_TYPE_NAME)) {
+            String actionValue = pv.getStringValue();
+            if (actionValue.equals(PV_ACTION_VALUE_ALLOW) == true) {
+                PermitBuilder permitBuilder = new PermitBuilder();
+                permitBuilder.setPermit(true);
+                actionsBuilder.setPacketHandling(permitBuilder.build());
+            } else if (actionValue.equals(PV_ACTION_VALUE_DENY) == true) {
+                DenyBuilder denyBuilder = new DenyBuilder();
+                denyBuilder.setDeny(true);
+                actionsBuilder.setPacketHandling(denyBuilder.build());
+            } else {
+                LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: unknown actionValue: {}", actionValue);
+            }
+
+        } else if (pvName.equals(PV_SFC_TYPE_NAME)) {
+            /*
+             * This is SFC case.
+             */
+            Direction direction = classifier.getDirection();
+            String sfcChainName = pv.getStringValue();
+            LOG.info("FABMGR: createAceFromSecurityRuleEntry: ADD sfc chain: {}", sfcChainName);
+            SfcChainHeader sfcChainHeader = retrieveSfcChain(sfcChainName, direction);
+            if (sfcChainHeader == null) {
+                LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: retrieveSfcChain() failed");
+            }
+
+            NshBuilder nshBuilder = new NshBuilder();
+            nshBuilder.setDestIp(new IpAddress(sfcChainHeader.getNshTunIpDst()));
+            nshBuilder.setDestPort(sfcChainHeader.getNshTunUdpPort());
+            nshBuilder.setNsi(sfcChainHeader.getNshNsiToChain());
+            nshBuilder.setNsp(sfcChainHeader.getNshNspToChain());
+
+            TunnelBuilder tunnelBuilder = new TunnelBuilder();
+            tunnelBuilder.setTunnelType(nshBuilder.build());
+
+            RedirectBuilder redirectBuilder = new RedirectBuilder();
+            redirectBuilder.setRedirectType(tunnelBuilder.build());
+
+            actionsBuilder.setPacketHandling(redirectBuilder.build());
+        }
+
+        // set matches and actions
+        String aceRuleName = classifier.getName().getValue();
+        AceBuilder aceBuilder = new AceBuilder();
+        aceBuilder.setRuleName(aceRuleName);
+        aceBuilder.setMatches(matchesBuilder.build());
+        aceBuilder.setActions(actionsBuilder.build());
+
+        return aceBuilder.build();
     }
 }

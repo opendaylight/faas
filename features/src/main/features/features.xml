@@ -89,8 +89,11 @@
     <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
     <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
     <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
+    <!--
     <feature version='${sfc.version}'>odl-sfcofl2</feature>
     <feature version='${sfc.version}'>odl-sfc-ui</feature>
+    -->
+    <feature version='${sfc.version}'>odl-sfc-provider</feature>
     <feature version="${project.version}">odl-faas-fabricmgr</feature>
 
     <bundle>mvn:org.opendaylight.controller.model/model-inventory/${inventory.model.version}</bundle>

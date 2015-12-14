@@ -8,6 +8,9 @@
 
 package org.opendaylight.faas.uln.manager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
@@ -16,11 +19,13 @@ public class SecurityRuleGroupsMappingInfo {
     private SecurityRuleGroups securityRuleGroups;
     private NodeId renderedDeviceId;
     private boolean serviceHasBeenRendered;
+    private List<String> renderedAclNameList;
 
     public SecurityRuleGroupsMappingInfo(SecurityRuleGroups ruleGroups) {
         super();
         this.securityRuleGroups = ruleGroups;
         this.serviceHasBeenRendered = false;
+        this.renderedAclNameList = new ArrayList<String>();
     }
 
     public void markAsRendered(NodeId renderedLswId) {
@@ -51,6 +56,18 @@ public class SecurityRuleGroupsMappingInfo {
 
     public void setSecurityRuleGroups(SecurityRuleGroups securityRuleGroups) {
         this.securityRuleGroups = securityRuleGroups;
+    }
+
+    public void addRenderedAclName(String aclName) {
+        this.renderedAclNameList.add(aclName);
+    }
+
+    public List<String> getRenderedAclNameList() {
+        return renderedAclNameList;
+    }
+
+    public void setRenderedAclNameList(List<String> renderedAclNameList) {
+        this.renderedAclNameList = renderedAclNameList;
     }
 
 }
