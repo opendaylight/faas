@@ -56,12 +56,12 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier.InstanceIdenti
 
 public class FabMgrYangDataUtil {
 
-    public static final String VC_TOPOLOGY_ID = "faas:vcontainers";
-    private static final String VC_LD_NODE_NAME = "faas:vc:ldnode";
-    private static final String VC_NET_NODE_NAME = "faas:vc:netnode";
-    private static final String VC_LINK_NAME = "faas:vc:link";
-    private static final String VC_NODE_TP_WEST = "faas:vc:node:tp:west";
-    private static final String VC_NODE_TP_EAST = "faas:vc:node:tp:east";
+    public static final String VC_TOPOLOGY_ID = "faas-vcontainers";
+    private static final String VC_LD_NODE_NAME = "vc-ldnode";
+    private static final String VC_NET_NODE_NAME = "vc-netnode";
+    private static final String VC_LINK_NAME = "vc-link";
+    private static final String VC_NODE_TP_WEST = "tp-west";
+    private static final String VC_NODE_TP_EAST = "tp-east";
 
     public static final InstanceIdentifier<Topology> DOM_VCS_PATH = InstanceIdentifier.create(NetworkTopology.class)
         .child(Topology.class, new TopologyKey(new TopologyId(new Uri(VC_TOPOLOGY_ID))));
@@ -241,14 +241,14 @@ public class FabMgrYangDataUtil {
         DestinationBuilder destBuilder = new DestinationBuilder();
         NodeId ldNodeId = ldNode.getNodeId();
         destBuilder.setDestNode(ldNodeId);
-        TpId sourceTpId = new TpId("VC_NODE_TP_WEST");
+        TpId sourceTpId = new TpId(VC_NODE_TP_WEST);
         destBuilder.setDestTp(sourceTpId);
         linkBuilder.setDestination(destBuilder.build());
 
         SourceBuilder sourceBuilder = new SourceBuilder();
         NodeId netNodeId = netNode.getNodeId();
         sourceBuilder.setSourceNode(netNodeId);
-        TpId destTpId = new TpId("VC_NODE_TP_EAST");
+        TpId destTpId = new TpId(VC_NODE_TP_EAST);
         sourceBuilder.setSourceTp(destTpId);
         linkBuilder.setSource(sourceBuilder.build());
 
