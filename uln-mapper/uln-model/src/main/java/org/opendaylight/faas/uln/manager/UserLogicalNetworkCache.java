@@ -639,7 +639,7 @@ public class UserLogicalNetworkCache {
 
     public LogicalSwitchMappingInfo findLswFromPortId(Uuid portId) {
         PortMappingInfo port = this.findPortFromPortId(portId);
-        if(port == null) {
+        if (port == null) {
             return null;
         }
 
@@ -662,7 +662,7 @@ public class UserLogicalNetworkCache {
 
     public LogicalRouterMappingInfo findLrFromPortId(Uuid portId) {
         PortMappingInfo port = this.findPortFromPortId(portId);
-        if(port == null) {
+        if (port == null) {
             return null;
         }
 
@@ -704,5 +704,33 @@ public class UserLogicalNetworkCache {
 
     public Map<Uuid, EndpointLocationMappingInfo> getEpLocationStore() {
         return epLocationStore;
+    }
+
+    public void removeLswFromCache(LogicalSwitch lsw) {
+        this.lswStore.remove(lsw.getUuid());
+    }
+
+    public void removeLrFromCache(LogicalRouter lr) {
+        this.lrStore.remove(lr.getUuid());
+    }
+
+    public void removeEdgeFromCache(Edge edge) {
+        this.edgeStore.remove(edge.getUuid());
+    }
+
+    public void removePortFromCache(Port port) {
+        this.portStore.remove(port.getUuid());
+    }
+
+    public void removeEpLocationFromCache(EndpointLocation epLocation) {
+        this.epLocationStore.remove(epLocation.getUuid());
+    }
+
+    public void removeSubnetFromCache(Subnet subnet) {
+        this.subnetStore.remove(subnet.getUuid());
+    }
+
+    public void removeSecurityRuleGroupsFromCache(SecurityRuleGroups ruleGroups) {
+        this.securityRuleGroupsStore.remove(ruleGroups.getUuid());
     }
 }

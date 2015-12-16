@@ -55,7 +55,7 @@ public class SwitchListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof LogicalSwitch) {
-                LOG.debug("ULN: Create Switch {}", dao);
+                LOG.debug("FABMGR: Create Switch {}", dao);
                 UserLogicalNetworkManager.getUlnMapper().handleLswCreateEvent((LogicalSwitch) dao);
             }
         }
@@ -63,7 +63,8 @@ public class SwitchListener implements DataChangeListener, AutoCloseable {
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof LogicalSwitch) {
-                LOG.debug("ULN: Updated Switch {}", dao);
+                LOG.debug("FABMGR: Updated Switch {}", (LogicalSwitch) entry.getValue());
+                UserLogicalNetworkManager.getUlnMapper().handleLswUpdateEvent((LogicalSwitch) entry.getValue());
             }
         }
         // Remove
@@ -73,7 +74,7 @@ public class SwitchListener implements DataChangeListener, AutoCloseable {
                 continue;
             }
             if (old instanceof LogicalSwitch) {
-                LOG.debug("ULN: Removed Switch {}", old);
+                LOG.debug("FABMGR: Removed Switch {}", old);
             }
         }
     }

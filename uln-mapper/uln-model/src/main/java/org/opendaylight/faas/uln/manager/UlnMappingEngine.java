@@ -101,12 +101,6 @@ public class UlnMappingEngine {
         this.setUlnStore(new HashMap<Uuid, UserLogicalNetworkCache>());
     }
 
-    public void createUlnCacheIfNotExist(Uuid tenantId) {
-        if (this.ulnStore.get(tenantId) == null) {
-            this.ulnStore.put(tenantId, new UserLogicalNetworkCache(tenantId));
-        }
-    }
-
     public void handleLswCreateEvent(LogicalSwitch lsw) {
         Uuid tenantId = lsw.getTenantId();
 
@@ -233,7 +227,7 @@ public class UlnMappingEngine {
 
         LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port);
         if (lsw == null) {
-            LOG.info("FABMGR: doPortCreate: lsw not in cache");
+            LOG.debug("FABMGR: doPortCreate: lsw not in cache");
             return;
         }
 
@@ -611,7 +605,7 @@ public class UlnMappingEngine {
         if (rsp == null) {
             renderedServicePath = createRsp(sfcPath, rspName);
             if (renderedServicePath != null) {
-                LOG.info("ULN: ERROR: addSfcChain: Could not find RSP {} for Chain {}, created.", rspName,
+                LOG.debug("ULN: ERROR: addSfcChain: Could not find RSP {} for Chain {}, created.", rspName,
                         sfcChainName);
             } else {
                 LOG.error("ULN: ERROR: addSfcChain: Could not create RSP {} for Chain {}", rspName, sfcChainName);
@@ -626,7 +620,7 @@ public class UlnMappingEngine {
                 rspName = new RspName(rspName.getValue() + "-Reverse");
                 rsp = getRspByName(rspName, rTx);
                 if (rsp == null) {
-                    LOG.info("ULN: ERROR: addSfcChain: Could not find Reverse RSP {} for Chain {}", rspName,
+                    LOG.debug("ULN: ERROR: addSfcChain: Could not find Reverse RSP {} for Chain {}", rspName,
                             sfcChainName);
                     renderedServicePath = createSymmetricRsp(renderedServicePath);
                     if (renderedServicePath == null) {
@@ -750,7 +744,7 @@ public class UlnMappingEngine {
 
         for (Entry<Uuid, EndpointLocationMappingInfo> epEntry : uln.getEpLocationStore().entrySet()) {
             if (epEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.info("FABMGR: checkAndRenderPendingUlnElements: found unrendered EP: {}",
+                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered EP: {}",
                         epEntry.getValue().getEpLocation().getUuid().getValue());
                 this.doEndpointLocationCreate(tenantId, uln, epEntry.getValue().getEpLocation());
             }
@@ -758,7 +752,7 @@ public class UlnMappingEngine {
 
         for (Entry<Uuid, EdgeMappingInfo> edgeEntry : uln.getEdgeStore().entrySet()) {
             if (edgeEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.info("FABMGR: checkAndRenderPendingUlnElements: found unrendered edge: {}",
+                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered edge: {}",
                         edgeEntry.getValue().getEdge().getUuid().getValue());
                 this.doEdgeCreate(tenantId, uln, edgeEntry.getValue().getEdge());
             }
@@ -766,7 +760,7 @@ public class UlnMappingEngine {
 
         for (Entry<Uuid, SecurityRuleGroupsMappingInfo> rulesEntry : uln.getSecurityRuleGroupsStore().entrySet()) {
             if (rulesEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.info("FABMGR: checkAndRenderPendingUlnElements: found unrendered rules: {}",
+                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered rules: {}",
                         rulesEntry.getValue().getSecurityRuleGroups().getUuid().getValue());
                 this.doSecurityRuleGroupsCreate(tenantId, uln, rulesEntry.getValue().getSecurityRuleGroups());
             }
@@ -892,7 +886,7 @@ public class UlnMappingEngine {
              */
             Direction direction = classifier.getDirection();
             String sfcChainName = pv.getStringValue();
-            LOG.info("FABMGR: createAceFromSecurityRuleEntry: ADD sfc chain: {}", sfcChainName);
+            LOG.debug("FABMGR: createAceFromSecurityRuleEntry: ADD sfc chain: {}", sfcChainName);
             SfcChainHeader sfcChainHeader = retrieveSfcChain(sfcChainName, direction);
             if (sfcChainHeader == null) {
                 LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: retrieveSfcChain() failed");
@@ -922,4 +916,271 @@ public class UlnMappingEngine {
 
         return aceBuilder.build();
     }
+
+    public void handleSubnetUpdateEvent(Subnet subnet) {
+        Uuid tenantId = subnet.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isSubnetAlreadyCached(subnet) == false) {
+            LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: subnet should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            if (uln.isSubnetRendered(subnet) == true) {
+                LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: subnet has already been rendered: {}",
+                        subnet.getUuid().getValue());
+                return;
+            } else {
+                uln.removeSubnetFromCache(subnet);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handleSubnetCreateEvent(subnet);
+    }
+
+    public void handleEdgeUpdateEvent(Edge edge) {
+        Uuid tenantId = edge.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isEdgeAlreadyCached(edge) == false) {
+            LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: edge should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            if (uln.isEdgeRendered(edge) == true) {
+                LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: edge has already been rendered: {}",
+                        edge.getUuid().getValue());
+                return;
+            } else {
+                uln.removeEdgeFromCache(edge);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handleEdgeCreateEvent(edge);
+    }
+
+    public void handleEndpointLocationUpdateEvent(EndpointLocation epLocation) {
+        Uuid tenantId = epLocation.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error(
+                    "FABMGR: ERROR: handleEndpointLocationUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEndpointLocationUpdateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isEpLocationAlreadyCached(epLocation) == false) {
+            LOG.error("FABMGR: ERROR: handleEndpointLocationUpdateEvent: epLocation should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            if (uln.isEpLocationRendered(epLocation) == true) {
+                LOG.error("FABMGR: ERROR: handleEndpointLocationUpdateEvent: epLocation has already been rendered: {}",
+                        epLocation.getUuid().getValue());
+                return;
+            } else {
+                uln.removeEpLocationFromCache(epLocation);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handleEndpointLocationCreateEvent(epLocation);
+    }
+
+    public void handlePortUpdateEvent(Port port) {
+        Uuid tenantId = port.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error("FABMGR: ERROR: handlePortUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handlePortUpdateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isPortAlreadyCached(port) == false) {
+            LOG.error("FABMGR: ERROR: handlePortUpdateEvent: port should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            if (uln.isPortRendered(port) == true) {
+                LOG.error("FABMGR: ERROR: handlePortUpdateEvent: port has already been rendered: {}",
+                        port.getUuid().getValue());
+                return;
+            } else {
+                uln.removePortFromCache(port);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handlePortCreateEvent(port);
+    }
+
+    public void handleLrUpdateEvent(LogicalRouter lr) {
+        Uuid tenantId = lr.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error("FABMGR: ERROR: handleLrUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleLrUpdateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isLrAlreadyCached(lr) == false) {
+            LOG.error("FABMGR: ERROR: handleLrUpdateEvent: lr should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            if (uln.isLrRendered(lr) == true) {
+                LOG.error("FABMGR: ERROR: handleLrUpdateEvent: lr has already been rendered: {}",
+                        lr.getUuid().getValue());
+                return;
+            } else {
+                uln.removeLrFromCache(lr);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handleLrCreateEvent(lr);
+    }
+
+    public void handleSecurityRuleGroupsUpdateEvent(SecurityRuleGroups ruleGroups) {
+        Uuid tenantId = ruleGroups.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error(
+                    "FABMGR: ERROR: handleSecurityRuleGroupsUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsUpdateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isSecurityRuleGroupsAlreadyCached(ruleGroups) == false) {
+            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsUpdateEvent: ruleGroups should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            if (uln.isSecurityRuleGroupsRendered(ruleGroups) == true) {
+                LOG.error(
+                        "FABMGR: ERROR: handleSecurityRuleGroupsUpdateEvent: ruleGroups has already been rendered: {}",
+                        ruleGroups.getUuid().getValue());
+                return;
+            } else {
+                uln.removeSecurityRuleGroupsFromCache(ruleGroups);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handleSecurityRuleGroupsCreateEvent(ruleGroups);
+    }
+
+    public void handleLswUpdateEvent(LogicalSwitch lsw) {
+        Uuid tenantId = lsw.getTenantId();
+        if (this.isUlnAlreadyInCache(tenantId) == false) {
+            LOG.error("FABMGR: ERROR: handleLswUpdateEvent: this is update; ULN is supposed to be in cache: {}",
+                    tenantId.getValue());
+            return;
+        }
+
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleLswCreateEvent: uln is null");
+            return;
+        }
+
+        if (uln.isLswAlreadyCached(lsw) == false) {
+            LOG.error("FABMGR: ERROR: handleLswUpdateEvent: lsw should have been cached");
+            // fall through. Treat this case as create event
+        } else {
+            /*
+             * lsw is already in cache. This is expected, because
+             * we expect a create event already took place before
+             * this update event. If lsw is already rendered, then
+             * we can no longer do any update, so we just return with error,
+             * because this is a real update case which we do not handle
+             * in this release. If lsw has not yet been rendered, then we
+             * replace the one in cache with this updated lsw, and then
+             * invoke render attempt.
+             */
+            if (uln.isLswRendered(lsw) == true) {
+                LOG.error("FABMGR: ERROR: handleLswUpdateEvent: lsw has already been rendered: {}",
+                        lsw.getUuid().getValue());
+                return;
+            } else {
+                uln.removeLswFromCache(lsw);
+            }
+        }
+
+        /*
+         * Now we can treat update event as a new create event.
+         */
+        this.handleLswCreateEvent(lsw);
+    }
+
+    public boolean isUlnAlreadyInCache(Uuid tenantId) {
+        if (this.ulnStore.get(tenantId) == null) {
+            return false;
+        }
+        return true;
+    }
+
+    public void createUlnCache(Uuid tenantId) {
+        if (this.isUlnAlreadyInCache(tenantId) == true) {
+            LOG.warn("FABMGR: ERROR: createUlnCache: ULN already cached: {}", tenantId.getValue());
+            this.ulnStore.remove(tenantId);
+        }
+
+        this.ulnStore.put(tenantId, new UserLogicalNetworkCache(tenantId));
+    }
+
+    public void createUlnCacheIfNotExist(Uuid tenantId) {
+        if (this.ulnStore.get(tenantId) == null) {
+            this.ulnStore.put(tenantId, new UserLogicalNetworkCache(tenantId));
+        }
+    }
+
 }

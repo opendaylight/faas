@@ -54,7 +54,7 @@ public class EdgeListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof Edge) {
-                LOG.debug("ULN: Created Edge {}", (Edge) dao);
+                LOG.debug("FABMGR: Created Edge {}", (Edge) dao);
                 UserLogicalNetworkManager.getUlnMapper().handleEdgeCreateEvent((Edge) dao);
             }
         }
@@ -62,7 +62,8 @@ public class EdgeListener implements DataChangeListener, AutoCloseable {
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof Edge) {
-                LOG.debug("Updated Edge {}", (Edge) dao);
+                LOG.debug("FABMGR: Updated Edge {}", (Edge) entry.getValue());
+                UserLogicalNetworkManager.getUlnMapper().handleEdgeUpdateEvent((Edge) entry.getValue());
             }
         }
         // Remove
@@ -72,7 +73,7 @@ public class EdgeListener implements DataChangeListener, AutoCloseable {
                 continue;
             }
             if (old instanceof Edge) {
-                LOG.debug("Removed Edge {}", (Edge) old);
+                LOG.debug("FABMGR: Removed Edge {}", (Edge) old);
             }
         }
     }
