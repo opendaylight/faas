@@ -109,7 +109,7 @@ def get_tenant_data():
                     ]
                   }
                 ],
-                "id": "icmp-http-contract",
+                "id": "webToAppContract",
                 "subject": [
                   {
                     "name": "allow-http-subject",
@@ -165,23 +165,31 @@ def get_tenant_data():
                 "consumer-named-selector": [
                   {
                     "contract": [
-                      "icmp-http-contract"
+                      "webToAppContract"
                     ],
-                    "name": "webservers-clients-icmp-http-contract"
+                    "name": "app-web-webToAppContract"
                   }
                 ],
-                "id": "clients",
+                "id": "web",
+                "faas-epg-scope-type": "public",
+                #"faas-public-contract-id": "webToAppContract",
+                "faas-epg-subnet": [
+                      "subnet-10.0.35.0/24"
+                 ],
                 "provider-named-selector": []
               },
               {
                 "consumer-named-selector": [],
-                "id": "webservers",
+                "id": "app",
+                "faas-epg-subnet": [
+                    "subnet-10.0.36.0/24"
+                 ],
                 "provider-named-selector": [
                   {
                     "contract": [
-                      "icmp-http-contract"
+                      "webToAppContract"
                     ],
-                    "name": "webservers-clients-icmp-http-contract"
+                    "name": "app-web-webToAppContract"
                   }
                 ]
               }
@@ -259,7 +267,7 @@ def get_endpoint_data():
     return [{
     "input": {
 
-        "endpoint-group": "clients", 
+        "endpoint-group": "web", 
 
         "network-containment" : "subnet-10.0.35.0/24",
 
@@ -280,7 +288,7 @@ def get_endpoint_data():
             {
     "input": {
 
-        "endpoint-group": "clients", 
+        "endpoint-group": "web", 
 
         "network-containment" : "subnet-10.0.35.0/24",
 
@@ -301,7 +309,7 @@ def get_endpoint_data():
             {
     "input": {
 
-        "endpoint-group": "clients", 
+        "endpoint-group": "web", 
 
         "network-containment" : "subnet-10.0.35.0/24",
 
@@ -322,7 +330,7 @@ def get_endpoint_data():
             {
     "input": {
 
-        "endpoint-group": "clients", 
+        "endpoint-group": "web", 
 
         "network-containment" : "subnet-10.0.35.0/24",
 
@@ -343,7 +351,7 @@ def get_endpoint_data():
             {
     "input": {
 
-        "endpoint-group": "webservers", 
+        "endpoint-group": "app", 
 
         "network-containment" : "subnet-10.0.36.0/24",
 
@@ -364,7 +372,7 @@ def get_endpoint_data():
             {
     "input": {
 
-        "endpoint-group": "webservers", 
+        "endpoint-group": "app", 
 
         "network-containment" : "subnet-10.0.36.0/24",
 
@@ -385,7 +393,7 @@ def get_endpoint_data():
             {
     "input": {
 
-        "endpoint-group": "webservers", 
+        "endpoint-group": "app", 
 
         "network-containment" : "subnet-10.0.36.0/24",
 
@@ -405,7 +413,7 @@ def get_endpoint_data():
 },{
     "input": {
 
-        "endpoint-group": "webservers", 
+        "endpoint-group": "app", 
 
         "network-containment" : "subnet-10.0.36.0/24",
 

@@ -720,7 +720,8 @@ public class UlnDatastoreApi {
     }
 
     public static boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
-            Pair<LocationType, LocationType> nodeTypes, Pair<Uuid, Uuid> internalSecGroupRules, Uuid publicSecGroupRules) {
+            Pair<LocationType, LocationType> nodeTypes, Pair<Uuid, Uuid> privateSecGroupRules,
+            Pair<Uuid, Uuid> publicSecGroupRules) {
         if (firstId == null || secondId == null || nodeTypes == null || tenantId == null
                 || nodeTypes.getFirst() == null || nodeTypes.getSecond() == null) {
             LOG.error("Couldn't join logical Network entities -- Missing required info. Nothing Submitted to DS");
@@ -743,7 +744,7 @@ public class UlnDatastoreApi {
             } else if (nodeTypes.getSecond() == LocationType.SwitchType) {
                 second = readLogicalSwitchFromDs(tenantId, secondId);
             }
-            return attachAndSubmitToDs(first, second, internalSecGroupRules, publicSecGroupRules);
+            return attachAndSubmitToDs(first, second, privateSecGroupRules, publicSecGroupRules);
         }
     }
 
@@ -751,13 +752,13 @@ public class UlnDatastoreApi {
         return attachAndSubmitToDs(first, second, null, null);
     }
 
-    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> internalSecGroupRules) {
-        return attachAndSubmitToDs(first, second, internalSecGroupRules, null);
+    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> privateSecGroupRules) {
+        return attachAndSubmitToDs(first, second, privateSecGroupRules, null);
     }
 
-    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> internalSecGroupRules,
-            Uuid publicSecGroupRules) {
-        SubnetBuilder subnetBuilder = null;
+    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> privateSecGroupRules,
+            Pair<Uuid, Uuid> pubSecGroupRules) {
+        Pair<SubnetBuilder, SubnetBuilder> lSubnetPair = new Pair<SubnetBuilder, SubnetBuilder>(null, null);
         Pair<LogicalSwitchBuilder, LogicalSwitchBuilder> lSwitchPair = new Pair<LogicalSwitchBuilder, LogicalSwitchBuilder>(
                 null, null);
         Pair<LogicalRouterBuilder, LogicalRouterBuilder> lRouterPair = new Pair<LogicalRouterBuilder, LogicalRouterBuilder>(
@@ -770,9 +771,9 @@ public class UlnDatastoreApi {
             return false;
         }
         if (first instanceof Subnet) {
-            subnetBuilder = new SubnetBuilder((Subnet) first);
+            lSubnetPair.setFirst(new SubnetBuilder((Subnet) first));
         } else if (first instanceof SubnetBuilder) {
-            subnetBuilder = (SubnetBuilder) first;
+            lSubnetPair.setFirst((SubnetBuilder) first);
         } else if (first instanceof LogicalSwitch) {
             lSwitchPair.setFirst(new LogicalSwitchBuilder((LogicalSwitch) first));
         } else if (first instanceof LogicalSwitchBuilder) {
@@ -786,17 +787,17 @@ public class UlnDatastoreApi {
             return false;
         }
         if (second instanceof Subnet) {
-            if (subnetBuilder != null) {
+            if (lSubnetPair.getFirst() != null) {
                 LOG.error("Not Allowed to join two subnets in a logical network -- Not Submitted to DS");
                 return false;
             }
-            subnetBuilder = new SubnetBuilder((Subnet) second);
+            lSubnetPair.setSecond(new SubnetBuilder((Subnet) second));
         } else if (second instanceof SubnetBuilder) {
-            if (subnetBuilder != null) {
+            if (lSubnetPair.getFirst() != null) {
                 LOG.error("Not Allowed to join two subnets in a logical network -- Not Submitted to DS");
                 return false;
             }
-            subnetBuilder = (SubnetBuilder) second;
+            lSubnetPair.setSecond((SubnetBuilder) second);
         } else if (second instanceof LogicalSwitch) {
             lSwitchPair.setSecond(new LogicalSwitchBuilder((LogicalSwitch) second));
         } else if (second instanceof LogicalSwitchBuilder) {
@@ -811,18 +812,18 @@ public class UlnDatastoreApi {
         }
 
         synchronized (UlnDatastoreApi.class) {
-            Uuid firstSecurityGroupId = null;
-            if (internalSecGroupRules != null && internalSecGroupRules.getFirst() != null) {
-                firstSecurityGroupId = internalSecGroupRules.getFirst();
+            Uuid firstPrivateSecurityGroupId = null;
+            if (privateSecGroupRules != null && privateSecGroupRules.getFirst() != null) {
+                firstPrivateSecurityGroupId = privateSecGroupRules.getFirst();
             }
-            PortBuilder firstPortbuilder = buildPort(subnetBuilder, firstSecurityGroupId, lSwitchPair.getFirst(),
-                    lRouterPair.getFirst());
-            if (firstSecurityGroupId != null) {
+            PortBuilder firstPortbuilder = buildPort(lSubnetPair.getFirst(), firstPrivateSecurityGroupId,
+                    lSwitchPair.getFirst(), lRouterPair.getFirst());
+            if (firstPrivateSecurityGroupId != null) {
                 SecurityRuleGroups dsSecurityGroups = readSecurityGroupsFromDs(firstPortbuilder.getTenantId(),
-                        firstSecurityGroupId);
+                        firstPrivateSecurityGroupId);
                 if (dsSecurityGroups == null) {
                     LOG.error("Couldn't Find Security Rules {} in DS -- Didn't Join Logical Network Elements.",
-                            firstSecurityGroupId);
+                            firstPrivateSecurityGroupId);
                     return false;
                 }
                 SecurityRuleGroupsBuilder firstSecRulesGrpbuilder = new SecurityRuleGroupsBuilder(dsSecurityGroups);
@@ -833,11 +834,11 @@ public class UlnDatastoreApi {
             }
 
             Uuid secondSecurityGroupId = null;
-            if (internalSecGroupRules != null && internalSecGroupRules.getSecond() != null) {
-                secondSecurityGroupId = internalSecGroupRules.getSecond();
+            if (privateSecGroupRules != null && privateSecGroupRules.getSecond() != null) {
+                secondSecurityGroupId = privateSecGroupRules.getSecond();
             }
-            PortBuilder secondPortbuilder = buildPort(subnetBuilder, secondSecurityGroupId, lSwitchPair.getSecond(),
-                    lRouterPair.getSecond());
+            PortBuilder secondPortbuilder = buildPort(lSubnetPair.getSecond(), secondSecurityGroupId,
+                    lSwitchPair.getSecond(), lRouterPair.getSecond());
             if (secondSecurityGroupId != null) {
                 SecurityRuleGroups dsSecurityGroups = readSecurityGroupsFromDs(secondPortbuilder.getTenantId(),
                         secondSecurityGroupId);
@@ -856,7 +857,12 @@ public class UlnDatastoreApi {
             WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
             if (lRouterPair.getFirst() != null) {
                 if (lRouterPair.getFirst().isPublic() != null && lRouterPair.getFirst().isPublic().booleanValue()) {
-                    PortBuilder lportb = buildPort(null, publicSecGroupRules, null, lRouterPair.getFirst());
+                    PortBuilder lportb;
+                    if (pubSecGroupRules == null) {
+                        lportb = buildPort(null, null, null, lRouterPair.getFirst());
+                    } else {
+                        lportb = buildPort(null, pubSecGroupRules.getFirst(), null, lRouterPair.getFirst());
+                    }
                     lportb.setIsPublic(true);
                     wTx.put(logicalDatastoreType, UlnIidFactory.portIid(lportb.getTenantId(), lportb.getUuid()),
                             lportb.build(), true);
@@ -866,7 +872,12 @@ public class UlnDatastoreApi {
             }
             if (lRouterPair.getSecond() != null) {
                 if (lRouterPair.getSecond().isPublic() != null && lRouterPair.getSecond().isPublic().booleanValue()) {
-                    PortBuilder lportb = buildPort(null, publicSecGroupRules, null, lRouterPair.getSecond());
+                    PortBuilder lportb;
+                    if (pubSecGroupRules == null) {
+                        lportb = buildPort(null, null, null, lRouterPair.getSecond());
+                    } else {
+                        lportb = buildPort(null, pubSecGroupRules.getSecond(), null, lRouterPair.getSecond());
+                    }
                     lportb.setIsPublic(true);
                     wTx.put(logicalDatastoreType, UlnIidFactory.portIid(lportb.getTenantId(), lportb.getUuid()),
                             lportb.build(), true);
@@ -882,10 +893,14 @@ public class UlnDatastoreApi {
                 wTx.put(logicalDatastoreType, UlnIidFactory.logicalSwitchIid(lSwitchPair.getSecond().getTenantId(),
                         lSwitchPair.getSecond().getUuid()), lSwitchPair.getSecond().build(), true);
             }
-            if (subnetBuilder != null) {
+            if (lSubnetPair.getFirst() != null) {
                 wTx.put(logicalDatastoreType,
-                        UlnIidFactory.subnetIid(subnetBuilder.getTenantId(), subnetBuilder.getUuid()),
-                        subnetBuilder.build(), true);
+                        UlnIidFactory.subnetIid(lSubnetPair.getFirst().getTenantId(), lSubnetPair.getFirst().getUuid()),
+                        lSubnetPair.getFirst().build(), true);
+            }
+            if (lSubnetPair.getSecond() != null) {
+                wTx.put(logicalDatastoreType, UlnIidFactory.subnetIid(lSubnetPair.getSecond().getTenantId(),
+                        lSubnetPair.getSecond().getUuid()), lSubnetPair.getSecond().build(), true);
             }
             if (secGroupsPair.getFirst() != null) {
                 wTx.put(logicalDatastoreType, UlnIidFactory.securityGroupsIid(secGroupsPair.getFirst().getTenantId(),
@@ -922,25 +937,28 @@ public class UlnDatastoreApi {
             portbuilder.setLocationType(LocationType.SubnetType);
             portbuilder.setTenantId(subnetBuilder.getTenantId());
             subnetBuilder.setPort(merge(subnetBuilder.getPort(), firstNodePorts));
+            LOG.debug("Inserting New Port {} in Subnet {}", portbuilder.getUuid().getValue(), subnetBuilder.getUuid()
+                .getValue());
         } else if (lSwitchBuilder != null) {
             portbuilder.setLocationId(lSwitchBuilder.getUuid());
             portbuilder.setLocationType(LocationType.SwitchType);
             portbuilder.setTenantId(lSwitchBuilder.getTenantId());
             lSwitchBuilder.setPort(merge(lSwitchBuilder.getPort(), firstNodePorts));
+            LOG.debug("Inserting New Port {} in Switch {}", portbuilder.getUuid().getValue(), lSwitchBuilder.getUuid()
+                .getValue());
         } else if (lRouterBuilder != null) {
             portbuilder.setLocationId(lRouterBuilder.getUuid());
             portbuilder.setLocationType(LocationType.RouterType);
             portbuilder.setTenantId(lRouterBuilder.getTenantId());
             lRouterBuilder.setPort(merge(lRouterBuilder.getPort(), firstNodePorts));
+            LOG.debug("Inserting New Port {} in Router {}", portbuilder.getUuid().getValue(), lRouterBuilder.getUuid()
+                .getValue());
         }
 
         return portbuilder;
     }
 
     private static void attachPorts(List<Pair<Port, Port>> portLinks, WriteTransaction t) {
-        if (portLinks == null) {
-            return;
-        }
         for (Pair<Port, Port> portLink : portLinks) {
             EdgeBuilder edgeb = new EdgeBuilder();
             Uuid edgeId = new Uuid(UUID.randomUUID().toString());
@@ -958,6 +976,8 @@ public class UlnDatastoreApi {
             rportb.setEdgeId(edgeId);
             t.put(logicalDatastoreType, UlnIidFactory.portIid(rportb.getTenantId(), rportb.getUuid()), rportb.build(),
                     true);
+            LOG.debug("Attached Port {} to Port {} via Edge {}", lportb.getUuid().getValue(), rportb.getUuid()
+                .getValue(), edgeb.getUuid().getValue());
         }
     }
 
