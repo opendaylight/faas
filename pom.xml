@@ -34,19 +34,6 @@
     <module>features</module>
   </modules>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <configuration>
-          <!-- checkstyle is evil -->
-          <skip>true</skip>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
   <scm>
     <connection>scm:git:ssh://git.opendaylight.org:29418/faas.git</connection>
     <developerConnection>scm:git:ssh://git.opendaylight.org:29418/faas.git</developerConnection>
