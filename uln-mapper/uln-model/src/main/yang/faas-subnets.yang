@@ -20,6 +20,7 @@ module faas-subnets {
         container subnets {
             list subnet {
                 uses faas-common:logical-entity-attributes;
+                key "uuid";
                 leaf ip-prefix {
                     description "The IP prefix that defines the subnet";
                     type inet:ip-prefix;

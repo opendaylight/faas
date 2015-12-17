@@ -20,6 +20,7 @@ module faas-logical-switches {
             list logical-switch {
                 uses faas-common:admin-attributes;
                 uses faas-common:logical-entity-attributes;
+                key "uuid";
             }
         }
     }

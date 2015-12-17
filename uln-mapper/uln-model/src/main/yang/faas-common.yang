@@ -80,7 +80,6 @@ module faas-common {
 
     grouping logical-entity-attributes {
         description "The logical entity common attributes";
-        key "uuid";
         uses base-attributes;
         leaf-list port {
             description "The ports connected to this logical entity";
