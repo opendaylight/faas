@@ -662,55 +662,68 @@ public class UlnDatastoreApi {
 
     public static boolean attachEndpointToSubnetAndSubmitToDs(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
             MacAddress macAddress, List<PrivateIps> privateIpAddresses, List<IpAddress> publicIpAddresses) {
-        synchronized (UlnDatastoreApi.class) {
-            // remove endpoint location, if exists, to handle the case of moving endpoints
-            removeEndpointLocationFromDsIfExists(epLocBuilder.getTenantId(), epLocBuilder.getUuid());
-            Uuid epLocPortId = new Uuid(UUID.randomUUID().toString());
-            epLocBuilder.setPort(epLocPortId);
-            PortBuilder epLocPortbuilder = new PortBuilder();
-            epLocPortbuilder.setUuid(epLocPortId);
-            epLocPortbuilder.setAdminStateUp(true);
-            epLocPortbuilder.setLocationId(epLocBuilder.getUuid());
-            epLocPortbuilder.setLocationType(LocationType.EndpointType);
-            epLocPortbuilder.setTenantId(epLocBuilder.getTenantId());
-            epLocPortbuilder.setMacAddress(macAddress);
-            epLocPortbuilder.setPrivateIps(privateIpAddresses);
-            epLocPortbuilder.setPublicIps(publicIpAddresses);
-
-            Uuid subnetPortId = new Uuid(UUID.randomUUID().toString());
-            PortBuilder subnetPortbuilder = new PortBuilder();
-            subnetPortbuilder.setUuid(subnetPortId);
-            subnetPortbuilder.setAdminStateUp(true);
-            subnetPortbuilder.setLocationId(faasSubnetId);
-            subnetPortbuilder.setLocationType(LocationType.SubnetType);
-            subnetPortbuilder.setTenantId(epLocBuilder.getTenantId());
-
-            Subnet subnet = readSubnetFromDs(epLocBuilder.getTenantId(), faasSubnetId);
-            if (subnet == null) {
-                LOG.error("Failed to attach endpoint -- unable to find subnet {} in tenant {}", faasSubnetId,
-                        epLocBuilder.getTenantId());
+        if (epLocBuilder.getNodeId() == null || epLocBuilder.getNodeConnectorId() == null) {
+            if (epLocBuilder.getOriginalPortName() == null) {
+                LOG.error("Missing Required Fields in Endpoint Location {}.", epLocBuilder.build());
+                return false;
+            } else {
+                // TODO not handled yet. We need to integrate it with neutron in a future release.
+                LOG.error(
+                        "Port Name {} Not Handled Yet by Faas Mapper. NodeId and NodeConnectorId need to be provided.",
+                        epLocBuilder.build());
                 return false;
             }
+        } else {
+            synchronized (UlnDatastoreApi.class) {
+                // remove endpoint location, if exists, to handle the case of moving endpoints
+                removeEndpointLocationFromDsIfExists(epLocBuilder.getTenantId(), epLocBuilder.getUuid());
+                Uuid epLocPortId = new Uuid(UUID.randomUUID().toString());
+                epLocBuilder.setPort(epLocPortId);
+                PortBuilder epLocPortbuilder = new PortBuilder();
+                epLocPortbuilder.setUuid(epLocPortId);
+                epLocPortbuilder.setAdminStateUp(true);
+                epLocPortbuilder.setLocationId(epLocBuilder.getUuid());
+                epLocPortbuilder.setLocationType(LocationType.EndpointType);
+                epLocPortbuilder.setTenantId(epLocBuilder.getTenantId());
+                epLocPortbuilder.setMacAddress(macAddress);
+                epLocPortbuilder.setPrivateIps(privateIpAddresses);
+                epLocPortbuilder.setPublicIps(publicIpAddresses);
 
-            SubnetBuilder subnetBuilder = new SubnetBuilder(subnet);
-            List<Uuid> ports = new ArrayList<>();
-            ports.add(subnetPortId);
-            subnetBuilder.setPort(merge(subnetBuilder.getPort(), ports));
+                Uuid subnetPortId = new Uuid(UUID.randomUUID().toString());
+                PortBuilder subnetPortbuilder = new PortBuilder();
+                subnetPortbuilder.setUuid(subnetPortId);
+                subnetPortbuilder.setAdminStateUp(true);
+                subnetPortbuilder.setLocationId(faasSubnetId);
+                subnetPortbuilder.setLocationType(LocationType.SubnetType);
+                subnetPortbuilder.setTenantId(epLocBuilder.getTenantId());
 
-            List<Pair<Port, Port>> portLinks = new ArrayList<>();
-            portLinks.add(new Pair<>(epLocPortbuilder.build(), subnetPortbuilder.build()));
+                Subnet subnet = readSubnetFromDs(epLocBuilder.getTenantId(), faasSubnetId);
+                if (subnet == null) {
+                    LOG.error("Failed to attach endpoint -- unable to find subnet {} in tenant {}", faasSubnetId,
+                            epLocBuilder.getTenantId());
+                    return false;
+                }
 
-            WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
-            wTx.put(logicalDatastoreType,
-                    UlnIidFactory.subnetIid(subnetBuilder.getTenantId(), subnetBuilder.getUuid()),
-                    subnetBuilder.build(), true);
-            wTx.put(logicalDatastoreType,
-                    UlnIidFactory.endpointLocationIid(epLocBuilder.getTenantId(), epLocBuilder.getUuid()),
-                    epLocBuilder.build(), true);
+                SubnetBuilder subnetBuilder = new SubnetBuilder(subnet);
+                List<Uuid> ports = new ArrayList<>();
+                ports.add(subnetPortId);
+                subnetBuilder.setPort(merge(subnetBuilder.getPort(), ports));
 
-            attachPorts(portLinks, wTx);
+                List<Pair<Port, Port>> portLinks = new ArrayList<>();
+                portLinks.add(new Pair<>(epLocPortbuilder.build(), subnetPortbuilder.build()));
 
-            return submitToDs(wTx);
+                WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+                wTx.put(logicalDatastoreType,
+                        UlnIidFactory.subnetIid(subnetBuilder.getTenantId(), subnetBuilder.getUuid()),
+                        subnetBuilder.build(), true);
+                wTx.put(logicalDatastoreType,
+                        UlnIidFactory.endpointLocationIid(epLocBuilder.getTenantId(), epLocBuilder.getUuid()),
+                        epLocBuilder.build(), true);
+
+                attachPorts(portLinks, wTx);
+
+                return submitToDs(wTx);
+            }
         }
     }
 
