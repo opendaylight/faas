@@ -26,6 +26,7 @@ import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OvsSouthboundUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
@@ -44,6 +45,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.VniMembers;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.vni.members.Members;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -74,12 +76,13 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private ListenerRegistration<DataChangeListener> bridgeDomainListener = null;
     private ListenerRegistration<DataChangeListener> bdifListener = null;
     private ListenerRegistration<DataChangeListener> vtepMembersListener = null;
-    private ListenerRegistration<DataChangeListener> fabricAclListener = null;
+    private ListenerRegistration<DataChangeListener> bridgeDomainAclListener = null;
+    private ListenerRegistration<DataChangeListener> bridgePortAclListener = null;
 
     public DeviceRenderer(ExecutorService exector, DataBroker databroker, InstanceIdentifier<Node> iid, Node node,
             FabricId fabricId) {
 
-    	ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("ova-vxlan-adapter-%d").build();
+        ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("ova-vxlan-adapter-%d").build();
         this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor(threadFact));
 
         this.databroker = databroker;
@@ -112,10 +115,17 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         vtepMembersListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, vtepMembersIId,
                 this, DataChangeScope.BASE);
 
-        InstanceIdentifier<FabricAcl> fabricAclIId = InstanceIdentifier.create(FabricRenderedMapping.class)
+        //Acl function in the scope of Bridge Domain
+        InstanceIdentifier<FabricAcl> bridgeDomainAclIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(Acls.class).child(FabricAcl.class);
-        fabricAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, fabricAclIId, this,
-                DataChangeScope.BASE);
+        bridgeDomainAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
+                bridgeDomainAclIId, this, DataChangeScope.BASE);
+
+        //Acl function in the scope of Bridge Port
+        InstanceIdentifier<FabricAcl> bridgePortAclIId = iid.child(TerminationPoint.class)
+        		.augmentation(BridgeDomainPort.class).child(FabricAcl.class);
+        bridgePortAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
+                bridgePortAclIId, this, DataChangeScope.BASE);
 
         readFabricOptions(node);
     }
@@ -163,8 +173,11 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         if (vtepMembersListener != null) {
             vtepMembersListener.close();
         }
-        if (fabricAclListener != null) {
-            fabricAclListener.close();
+        if (bridgeDomainAclListener != null) {
+            bridgeDomainAclListener.close();
+        }
+        if (bridgePortAclListener != null) {
+            bridgePortAclListener.close();
         }
         executor.shutdownNow();
     }
@@ -182,13 +195,12 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             onDataUpdated(entry);
         }
 
-        for (InstanceIdentifier<?> iid: change.getRemovedPaths()) {
+        for (InstanceIdentifier<?> iid : change.getRemovedPaths()) {
             DataObject oldData = change.getOriginalData().get(iid);
             onDataRemoved(iid, oldData);
         }
 
     }
-
 
     private void onDataCreated(Entry<InstanceIdentifier<?>, DataObject> entry) {
         if (entry.getValue() instanceof HostRoute) {
@@ -371,7 +383,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
 
             if (tunnelOfPort != 0l) {
-                openflow13Provider.updateRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec, false);
+                openflow13Provider.updateRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec,
+                        false);
             }
         }
     }
@@ -401,7 +414,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         openflow13Provider.updateBdifInDevice(dpidLong, bdIfs, newAdapterBdIf, false);
 
-        ctx.addBdifToCache(newAdapterBdIf);
+        ctx.deleteBdifFromCache(newAdapterBdIf);
     }
 
     private void onBridgeDomainCreate(BridgeDomain newRec) {
@@ -419,7 +432,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
         if (gpeTunnelOfPort == 0l) {
-            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
+            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
+                    databroker);
         }
         if (gpeTunnelOfPort != 0l) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
@@ -444,7 +458,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
         if (gpeTunnelOfPort == 0l) {
-            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
+            gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
+                    databroker);
         }
         if (gpeTunnelOfPort != 0l) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
@@ -497,17 +512,33 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     }
 
     private void onFabricAclCreate(InstanceIdentifier<FabricAcl> iid, FabricAcl newRec) {
-        Long dpidLong = ctx.getDpid();
-        Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
+        if (iid.firstKeyOf(Acls.class) != null) {
+            Long dpidLong = ctx.getDpid();
+            Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
 
-        openflow13Provider.updateAclsInDevice(dpidLong, segmentationId, newRec, true);
+            openflow13Provider.updateBridgeDomainAclsInDevice(dpidLong, segmentationId, newRec, true);
+        } else if (iid.firstKeyOf(TerminationPoint.class) != null) {
+            Long dpidLong = ctx.getDpid();
+
+            Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), iid.firstKeyOf(TerminationPoint.class).getTpId(), databroker);
+
+            openflow13Provider.updateBridgePortAclsInDevice(dpidLong, bridgeInPort, newRec, true);
+        }
     }
 
     private void onFabricAclDelete(InstanceIdentifier<FabricAcl> iid, FabricAcl newRec) {
-        Long dpidLong = ctx.getDpid();
-        Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
+        if (iid.firstKeyOf(Acls.class) != null) {
+            Long dpidLong = ctx.getDpid();
+            Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
 
-        openflow13Provider.updateAclsInDevice(dpidLong, segmentationId, newRec, false);
+            openflow13Provider.updateBridgeDomainAclsInDevice(dpidLong, segmentationId, newRec, false);
+        } else if (iid.firstKeyOf(TerminationPoint.class) != null) {
+            Long dpidLong = ctx.getDpid();
+
+            Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), iid.firstKeyOf(TerminationPoint.class).getTpId(), databroker);
+
+            openflow13Provider.updateBridgePortAclsInDevice(dpidLong, bridgeInPort, newRec, false);
+        }
     }
 
 }

@@ -17,8 +17,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public interface FabricRenderer {
 
@@ -30,6 +32,10 @@ public interface FabricRenderer {
 
     void buildLogicPort(TpId tpid, LportAttributeBuilder lp, CreateLogicPortInput input);
 
-    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid, FabricId fabricid);
+    void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid, FabricId fabricid);
+
+    InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName);
+
+    InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName);
 
 }

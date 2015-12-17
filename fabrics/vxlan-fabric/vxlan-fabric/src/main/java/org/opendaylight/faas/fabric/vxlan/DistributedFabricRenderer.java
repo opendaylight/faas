@@ -7,11 +7,10 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
-import java.util.concurrent.ExecutorService;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
@@ -27,10 +26,18 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicPortAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.vxlan.rev150930.VxlanDeviceAddInput;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
@@ -39,25 +46,27 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DistributedFabricRenderer implements AutoCloseable, org.opendaylight.faas.fabric.general.spi.FabricRenderer {
+import com.google.common.util.concurrent.ListeningExecutorService;
+
+public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DistributedFabricRenderer.class);
 
     private final DataBroker dataBroker;
 
-    private final ExecutorService executor;
+    private final ListeningExecutorService executor;
     private final FabricContext fabricCtx;
 
     public DistributedFabricRenderer (final DataBroker dataProvider,
-                             final ExecutorService executor,
                              final FabricContext fabricCtx) {
         this.dataBroker = dataProvider;
-        this.executor = executor;
+        this.executor = fabricCtx.executor;
         this.fabricCtx = fabricCtx;
     }
 
     @Override
     public void close() throws Exception {
+    	// do nothing
     }
 
 
@@ -112,4 +121,42 @@ public class DistributedFabricRenderer implements AutoCloseable, org.opendayligh
         trans.put(LogicalDatastoreType.OPERATIONAL, vtepIId, builder.build(), true);
         MdSalUtils.wrapperSubmit(trans, executor);
     }
+
+	@Override
+	public InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName) {
+		return createAclIId(deviceid, tpid, aclName);
+	}
+
+	private InstanceIdentifier<FabricAcl> createAclIId(NodeId deviceid, TpId tpid, String aclName) {
+		FabricId fabricid = fabricCtx.getFabricId();
+		InstanceIdentifier<FabricAcl> aclIId = null;
+		boolean isLsw = fabricCtx.isValidLogicSwitch(deviceid);
+		boolean isLr = fabricCtx.isValidLogicRouter(deviceid);
+
+		if (tpid != null) {
+			aclIId = MdSalUtils.createLogicPortIId(fabricid, deviceid, tpid)
+					.augmentation(LogicPortAugment.class)
+		            .child(LportAttribute.class)
+		            .child(FabricAcl.class, new FabricAclKey(aclName));
+		 } else {
+			 if (isLsw) {
+				 aclIId = MdSalUtils.createNodeIId(fabricid, deviceid)
+						 .augmentation(LogicSwitchAugment.class)
+						 .child(LswAttribute.class)
+						 .child(FabricAcl.class, new FabricAclKey(aclName));
+			 }
+			 if (isLr) {
+				 aclIId = MdSalUtils.createNodeIId(fabricid, deviceid)
+						 .augmentation(LogicRouterAugment.class)
+						 .child(LrAttribute.class)
+						 .child(FabricAcl.class, new FabricAclKey(aclName));
+			 }
+		 }
+		return aclIId;
+	}
+
+	@Override
+	public InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName) {
+		return createAclIId(deviceid, tpid, aclName);
+	}
 }

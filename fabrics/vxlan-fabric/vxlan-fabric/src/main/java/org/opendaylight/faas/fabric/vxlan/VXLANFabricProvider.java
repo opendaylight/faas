@@ -9,7 +9,6 @@ package org.opendaylight.faas.fabric.vxlan;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
@@ -43,6 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory {
 
@@ -52,7 +53,7 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory
     private final RpcProviderRegistry rpcRegistry;
     private final FabricRendererRegistry rendererRegistry;
 
-    private ExecutorService executor;
+    private ListeningExecutorService executor;
 
     private final Map<InstanceIdentifier<FabricNode>, FabricContext> fabricCtxs = Maps.newHashMap();
 
@@ -64,7 +65,7 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory
         this.rpcRegistry = rpcRegistry;
         this.rendererRegistry = rendererRegistry;
 
-        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+        executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 
         rendererRegistry.register(UnderlayerNetworkType.VXLAN, this);
     }
@@ -73,6 +74,9 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory
     public void close() throws Exception {
         rendererRegistry.unregister(UnderlayerNetworkType.VXLAN);
         executor.shutdown();
+        for (FabricContext ctx : fabricCtxs.values()) {
+        	ctx.close();
+        }
     }
 
 
@@ -93,10 +97,10 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory
             }
         }
         FabricId fabricId = new FabricId(iid.firstKeyOf(Node.class).getNodeId());
-		FabricContext fabricCtx = new FabricContext(fabricId, dataBroker, executor);
+		FabricContext fabricCtx = new FabricContext(fabricId, dataBroker);
 		fabricCtxs.put(iid, fabricCtx);
-		
-        return new DistributedFabricRenderer(dataBroker, executor, fabricCtx);
+
+        return new DistributedFabricRenderer(dataBroker, fabricCtx);
 	}
 
 	@Override
@@ -105,7 +109,7 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory
 		FabricContext fabricCtx = fabricCtxs.get(iid);
 		if (fabricCtx == null) {
 			FabricId fabricId = new FabricId(iid.firstKeyOf(Node.class).getNodeId());
-			fabricCtx = new FabricContext(fabricId, dataBroker, executor);
+			fabricCtx = new FabricContext(fabricId, dataBroker);
 			fabricCtxs.put(iid, fabricCtx);
 		}
 		

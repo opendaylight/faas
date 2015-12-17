@@ -9,8 +9,6 @@ package org.opendaylight.faas.fabric.vxlan;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
@@ -28,7 +26,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.FabricVxlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.RmFromVxlanFabricInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.VtepAttribute;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodes;
@@ -38,15 +35,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.Acls;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.AclsKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -57,6 +49,7 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 public class DistributedFabricListener implements AutoCloseable, FabricListener {
 
@@ -67,7 +60,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
 
-    private ExecutorService executor;
+    private ListeningExecutorService executor;
     private EndPointManager epMgr;
     private final FabricContext fabricCtx;
 
@@ -80,10 +73,10 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         this.dataBroker = dataProvider;
         this.rpcRegistry = rpcRegistry;
 
-        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+        executor = fabricCtx.executor;
 
         this.fabricCtx = fabricCtx;
-        epMgr = new EndPointManager(dataProvider, executor, fabricCtx);
+        epMgr = new EndPointManager(dataProvider, rpcRegistry, fabricCtx);
     }
 
     @Override
@@ -138,7 +131,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
                DeviceContext devCtx = fabricCtx.addDeviceSwitch(deviceIId, vtep);
                Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
                for (LogicSwitchContext lswCtx : lswCtxs) {
-            	   lswCtx.checkAndSetNewMember(device.getNodeId(), vtep);
+            	   lswCtx.checkAndSetNewMember(DeviceKey.newInstance(deviceIId), vtep);
                    devCtx.createBridgeDomain(lswCtx);
                }
             }
@@ -151,7 +144,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     }
 
     @Override
-    public void deviceRemoved(InstanceIdentifier<Node> deviceIId) {
+    public void deviceRemoved(final InstanceIdentifier<Node> deviceIId) {
 
     	NodeId deviceId = deviceIId.firstKeyOf(Node.class).getNodeId();
     	
@@ -170,19 +163,10 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 
         fabricCtx.removeDeviceSwitch(deviceId);
         Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
+        DeviceKey dkey = DeviceKey.newInstance(deviceIId);
         for (LogicSwitchContext lswCtx : lswCtxs) {
-     	   lswCtx.removeMember(deviceId);
+     	   lswCtx.removeMember(dkey);
         }
-    }
-
-    @Override
-    public void endpointAdded(InstanceIdentifier<Endpoint> epIId) {
-        // epMgr.addEndPointIId(epIId);
-    }
-
-    @Override
-    public void endpointUpdated(InstanceIdentifier<Endpoint> epIId) {
-        epMgr.addEndPointIId(epIId);
     }
 
     @Override
@@ -209,39 +193,44 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         MdSalUtils.wrapperSubmit(wt, executor);
 
         ResourceManager.freeResourceManager(new FabricId(node.getNodeId()));
+        fabricCtx.close();
     }
-
+    
 	@Override
 	public void aclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete) {
 		InstanceIdentifier<TerminationPoint> tpiid = iid.firstIdentifierOf(TerminationPoint.class);
+		String aclName = iid.firstKeyOf(FabricAcl.class).getFabricAclName();
 		if (tpiid != null) {
+			if (delete) {
+				executor.submit(AclRenderer.newRmAclTask(dataBroker, tpiid, aclName));	
+			} else {
+				executor.submit(AclRenderer.newAddAclTask(dataBroker, tpiid, aclName));
+			}
 			return;
 		}
-
-		FabricId fabricid = new FabricId(iid.firstKeyOf(Topology.class).getTopologyId().getValue());
-		NodeId lswid = iid.firstKeyOf(Node.class).getNodeId();
-		String aclName = iid.firstKeyOf(FabricAcl.class).getFabricAclName();
-
-		long vni = fabricCtx.getLogicSwitchCtx(lswid).getVni();
-
-		InstanceIdentifier<FabricAcl> aclIId = InstanceIdentifier.create(FabricRenderedMapping.class)
-				.child(Fabric.class, new FabricKey(fabricid))
-                .child(Acls.class, new AclsKey(vni))
-		 		.child(FabricAcl.class, new FabricAclKey(aclName));
 		
-		FabricAclBuilder builder = new FabricAclBuilder();
-		builder.setFabricAclName(aclName);
-		builder.setKey(new FabricAclKey(aclName));
-
-		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-
-		if (delete) {
-			trans.delete(LogicalDatastoreType.OPERATIONAL, aclIId);
+		NodeId nodeId = iid.firstKeyOf(Node.class).getNodeId();
+		if (fabricCtx.isValidLogicSwitch(nodeId)) {
+			if (delete) {
+				fabricCtx.getLogicSwitchCtx(nodeId).removeAcl(aclName);
+			} else {
+				fabricCtx.getLogicSwitchCtx(nodeId).addAcl(aclName);;
+			}
 		} else {
-			trans.merge(LogicalDatastoreType.OPERATIONAL, aclIId, builder.build(), true);
+			LogicRouterContext lrCtx = fabricCtx.getLogicRouterCtx(nodeId);
+			lrCtx.addAcl(aclName);;
+			for (Long vni : lrCtx.getVnis()) {
+				NodeId lsw = lrCtx.getGatewayPortByVni(vni).getLogicSwitch();
+				LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(lsw);
+				if (lswCtx != null) {
+					if (delete) {
+						lswCtx.removeVrfAcl(aclName);
+					} else {
+						lswCtx.addVrfAcl(aclName);
+					}
+				}
+			}
 		}
-
-        MdSalUtils.wrapperSubmit(trans, executor);
 	}
 
 	@Override
@@ -254,7 +243,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 		Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
 		if (devices != null) {
 			for (DeviceContext devCtx : devices) {
-				lswCtx.checkAndSetNewMember(devCtx.getNodeId(), devCtx.getVtep());
+				lswCtx.checkAndSetNewMember(devCtx.getKey(), devCtx.getVtep());
 				devCtx.createBridgeDomain(lswCtx);
 			}
 		}

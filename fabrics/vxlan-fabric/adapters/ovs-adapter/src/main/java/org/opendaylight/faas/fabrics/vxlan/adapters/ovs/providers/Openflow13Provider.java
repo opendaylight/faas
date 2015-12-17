@@ -169,7 +169,7 @@ public class Openflow13Provider {
         aclHandler.programTrafficBehaviorRule(dpidLong, trafficBehavior, writeFlow);
     }
 
-    public void updateAclsInDevice(Long dpidLong, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {
+    public void updateBridgeDomainAclsInDevice(Long dpidLong, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
         InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName));
 
@@ -177,7 +177,18 @@ public class Openflow13Provider {
         if (acl == null)
             return;
 
-        aclHandler.programAclEntry(dpidLong, segmentationId, acl, writeFlow);
+        aclHandler.programBridgeDomainAclEntry(dpidLong, segmentationId, acl, writeFlow);
+    }
+
+    public void updateBridgePortAclsInDevice(Long dpidLong, Long bridgePort, FabricAcl fabricAcl, boolean writeFlow) {
+        String ietfAclName = fabricAcl.getFabricAclName();
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName));
+
+        Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
+        if (acl == null)
+            return;
+
+        aclHandler.programBridgePortAclEntry(dpidLong, bridgePort, acl, writeFlow);
     }
 
     public static NodeBuilder createNodeBuilder(String nodeId) {

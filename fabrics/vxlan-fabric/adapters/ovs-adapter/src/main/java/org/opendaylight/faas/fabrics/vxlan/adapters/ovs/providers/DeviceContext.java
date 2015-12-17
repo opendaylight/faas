@@ -105,6 +105,10 @@ public class DeviceContext {
         bdifCache.put(adapterBdIf.getId(), adapterBdIf);
     }
 
+    public void deleteBdifFromCache(AdapterBdIf adapterBdIf) {
+        bdifCache.remove(adapterBdIf.getId());
+    }
+
     public long getGpe_vtep_ofPort() {
         return gpe_vtep_ofPort;
     }

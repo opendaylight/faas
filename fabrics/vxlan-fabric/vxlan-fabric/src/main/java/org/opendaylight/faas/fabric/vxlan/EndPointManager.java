@@ -7,15 +7,24 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
-import java.util.concurrent.ExecutorService;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
+import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
+import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker.DataChangeScope;
+import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
+import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.general.Constants;
+import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.FabricVxlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
@@ -28,69 +37,95 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
+import org.opendaylight.yangtools.concepts.ListenerRegistration;
+import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
-public class EndPointManager implements AutoCloseable {
+public class EndPointManager implements AutoCloseable, DataChangeListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(EndPointManager.class);
 
     private final DataBroker databroker;
 
-    private final ExecutorService executor;
+    private final RpcProviderRegistry rpcRegistry;
 
     private final FabricContext fabricCtx;
 
-    public EndPointManager (DataBroker databroker, ExecutorService executor, FabricContext fabricCtx) {
+    private final ListenerRegistration<DataChangeListener> epListener;
+
+    private static FutureCallback<Void> simpleFutureMonitor = new FutureCallback<Void> () {
+
+		@Override
+		public void onSuccess(Void result) {
+			// do nothing
+		}
+
+		@Override
+		public void onFailure(Throwable t) {
+			LOG.error("Exception in onDataChanged", t); 			
+		}
+		
+	};
+
+    public EndPointManager (DataBroker databroker, RpcProviderRegistry rpcRegistry, FabricContext fabricCtx) {
         this.databroker = databroker;
-        this.executor = executor;
+        this.rpcRegistry = rpcRegistry;
         this.fabricCtx = fabricCtx;
+
+        epListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, Constants.DOM_ENDPOINTS_PATH.child(Endpoint.class), this, DataChangeScope.ONE);
     }
 
-    public void addEndPointIId(final InstanceIdentifier<Endpoint> epIId) {
-    	ReadOnlyTransaction readTrans = databroker.newReadOnlyTransaction();
-        CheckedFuture<Optional<Endpoint>,ReadFailedException> readFuture = readTrans.read(LogicalDatastoreType.OPERATIONAL, epIId);
-
-        Futures.addCallback(readFuture, new FutureCallback<Optional<Endpoint>>(){
-
-            @Override
-            public void onSuccess(Optional<Endpoint> result) {
-                if (result.isPresent()) {
-                    Endpoint ep = result.get();
-                    FabricId fabricid = ep.getOwnFabric();
-
-                    if (ep.getLocation() != null) {
-                        if (fabricid != null) {
-                            rendererEndpoint(fabricid, ep);
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                LOG.error("", t);
-            }}, executor);
+    public void removeEndPointIId(final InstanceIdentifier<Endpoint> epIId, Endpoint ep) {
+    	InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
+    	WriteTransaction wt = databroker.newWriteOnlyTransaction();
+    	wt.delete(LogicalDatastoreType.OPERATIONAL, hostRouteIId);
+    	MdSalUtils.wrapperSubmit(wt);
     }
 
-    private void rendererEndpoint(FabricId fabricid, Endpoint ep) {
+    private void rendererEndpoint(Endpoint ep) throws Exception {
 
-        // MAC
-        MacAddress mac = ep.getMacAddress();
+    	// 1, create bridge domain port
+    	CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
+    	builder.setNodeId(ep.getLocation().getNodeRef().getValue());
+    	builder.setTpId(ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId());
+    	builder.setAccessType(ep.getLocation().getAccessType());
+    	builder.setAccessTag(ep.getLocation().getAccessSegment());
+    	RpcResult<CreateBridgeDomainPortOutput> rpcResult = getVlanDeviceAdapter().createBridgeDomainPort(builder.build()).get();
 
+    	TpId bridgeDomainPort = rpcResult.getResult().getBridgeDomainPort();
+
+    	// 2, use bridge domain port to renderer logic port
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        
+        EpAccessPortRenderer portRender = EpAccessPortRenderer.newCreateTask(databroker);
+        portRender.createEpAccessPort(trans, ep, bridgeDomainPort);
+
+        // 3, write host route
+        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
+
+        HostRouteBuilder hrBuilder = new HostRouteBuilder();
+        if (!buildHostRoute(hrBuilder, ep, bridgeDomainPort)) {
+        	return;
+        }
+        trans.merge(LogicalDatastoreType.OPERATIONAL, hostRouteIId, hrBuilder.build(), true);
+
+        MdSalUtils.wrapperSubmit(trans);
+    }
+
+    private boolean buildHostRoute(HostRouteBuilder builder, Endpoint ep, TpId bridgeDomainPort) {
         // VNI
         NodeId logicNode = ep.getLogicLocation().getNodeId();
-        
+
         LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
         if (switchCtx == null) {
             LOG.warn("There are no such switch's context.({})", logicNode.getValue());
-            return;
+            return false;
         }
         long vni = switchCtx.getVni();
 
@@ -100,44 +135,75 @@ public class EndPointManager implements AutoCloseable {
         // dest-vtep
         @SuppressWarnings("unchecked")
         InstanceIdentifier<Node> destNodeIId = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
-        NodeId destNodeId = destNodeIId.firstKeyOf(Node.class).getNodeId();
-        DeviceContext devCtx = fabricCtx.getDeviceCtx(destNodeId);
+        DeviceKey dkey = DeviceKey.newInstance(destNodeIId);
+        DeviceContext devCtx = fabricCtx.getDeviceCtx(dkey);
         IpAddress vtepIp = devCtx.getVtep();
-        if (switchCtx.checkAndSetNewMember(destNodeId, vtepIp)) {
+        if (switchCtx.checkAndSetNewMember(dkey, vtepIp)) {
             devCtx.createBridgeDomain(switchCtx);
         }
 
         // dest-bridge-port
-        @SuppressWarnings("unchecked")
-        InstanceIdentifier<TerminationPoint> tpIId = (InstanceIdentifier<TerminationPoint>) ep.getLocation().getTpRef().getValue();
-        TpId tpid = tpIId.firstKeyOf(TerminationPoint.class).getTpId();
-
-        WriteTransaction trans = databroker.newWriteOnlyTransaction();
-
-        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricid, mac);
-
-        HostRouteBuilder builder = new HostRouteBuilder();
-        builder.setMac(mac);
+        builder.setHostid(ep.getEndpointUuid());
+        builder.setMac(ep.getMacAddress());
         builder.setVni(vni);
         builder.setIp(ip);
         builder.setDestVtep(vtepIp);
-        builder.setDestBridgePort(tpid);
+        builder.setDestBridgePort(bridgeDomainPort);
         builder.setAccessType(ep.getLocation().getAccessType());
         builder.setAccessTag(ep.getLocation().getAccessSegment());
 
-        trans.merge(LogicalDatastoreType.OPERATIONAL, hostRouteIId, builder.build(), true);
-
-        trans.submit();
+        return true;
     }
 
-    private InstanceIdentifier<HostRoute> createHostRouteIId(FabricId fabricId, MacAddress mac) {
+    private InstanceIdentifier<HostRoute> createHostRouteIId(FabricId fabricId, Uuid hostid) {
         return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
-                .child(HostRoute.class, new HostRouteKey(mac));
+                .child(HostRoute.class, new HostRouteKey(hostid));
     }
-
 
     @Override
     public void close() throws Exception {
+    	epListener.close();
+    }
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
+
+        Map<InstanceIdentifier<?>, DataObject> updatedData = change.getUpdatedData();
+        for (Entry<InstanceIdentifier<?>, DataObject> entry : updatedData.entrySet()) {
+        	if (entry.getKey().getTargetType().equals(Endpoint.class)) {
+        		
+	        	final Endpoint ep = (Endpoint) entry.getValue();
+	        	if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
+	        		Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
+	
+						@Override
+						public Void call() throws Exception {
+							rendererEndpoint(ep);
+							return null;
+						}}), simpleFutureMonitor, fabricCtx.executor);
+	        	}
+        	}
+        }
+
+        for (final InstanceIdentifier<?> iid: change.getRemovedPaths()) {
+            if (iid.getTargetType().equals(Endpoint.class)) {
+            	DataObject oldData = change.getOriginalData().get(iid);
+            	final Endpoint ep = (Endpoint) oldData;
+            	if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
+            		Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
+	
+						@Override
+						public Void call() throws Exception {
+							removeEndPointIId((InstanceIdentifier<Endpoint>) iid, ep);
+							return null;
+						}}), simpleFutureMonitor, fabricCtx.executor);
+	        	}
+            }
+        }
+	}
+
+    private FabricVxlanDeviceAdapterService getVlanDeviceAdapter() {
+        return rpcRegistry.getRpcService(FabricVxlanDeviceAdapterService.class);
     }
 }

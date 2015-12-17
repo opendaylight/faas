@@ -66,10 +66,9 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         final RpcResult<Void> result = RpcResultBuilder.<Void>success().build();
 
         if ( input == null) {
-            return Futures.immediateFailedCheckedFuture(new IllegalArgumentException("endpoint can not be empty!"));
+            return Futures.immediateFailedCheckedFuture(new IllegalArgumentException("Endpoint can not be empty!"));
         }
         final List<Uuid> toBeDeletedList = input.getIds();
-        final FabricId fabricid = input.getFabricId();
 
         if ( toBeDeletedList == null || toBeDeletedList.isEmpty()) {
             return Futures.immediateFuture(result);
@@ -133,7 +132,6 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
             @Override
             public ListenableFuture<RpcResult<RegisterEndpointOutput>> apply(Void input) throws Exception {
                 outputBuilder.setEndpointId(newepId);
-                fabricObj.notifyEndpointAdded(eppath);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }}, executor);
     }
@@ -173,10 +171,8 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
-                fabricObj.notifyEndpointUpdated(eppath);
                 return Futures.immediateFuture(result);
             }}, executor);
-
     }
 
     public void start() {

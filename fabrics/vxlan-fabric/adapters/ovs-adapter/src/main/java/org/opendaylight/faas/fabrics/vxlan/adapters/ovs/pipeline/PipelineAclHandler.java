@@ -115,7 +115,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         // Add InstructionsBuilder to FlowBuilder
         flowBuilder.setInstructions(isb.build());
 
-        String flowId = "DEFAULT_PIPELINE_FLOW_"+getTable();
+        String flowId = "Acl_TrafficBehavior_"+getTable();
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
         flowBuilder.setMatch(matchBuilder.build());
@@ -190,10 +190,10 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
     }
 
-    public void programAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
+    public void programBridgeDomainAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
-        String flowId = "PipelineAcl_";
+        String flowId = "PipelineAcl_BridgeDomain_";
 
         AccessListEntries accessListEntries = acl.getAccessListEntries();
 
@@ -201,23 +201,48 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             flowId = flowId + ace.getRuleName();
             Matches aclMatches = ace.getMatches();
 
+            MatchBuilder matchBuilder = new MatchBuilder();
+            matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
+
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, segmentationId, (AceEth)aceType, writeFlow, aclActions);
+                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, writeFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, segmentationId, (AceIp)aceType, writeFlow, aclActions);
+                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, writeFlow, aclActions);
+            }
+
+        }
+    }
+
+    public void programBridgePortAclEntry(Long dpidLong, Long bridgePort, Acl acl, boolean writeFlow) {
+        String nodeName = OPENFLOW + dpidLong;
+
+        String flowId = "PipelineAcl_BridgePort_";
+
+        AccessListEntries accessListEntries = acl.getAccessListEntries();
+
+        for (Ace ace: accessListEntries.getAce()) {
+            flowId = flowId + ace.getRuleName();
+            Matches aclMatches = ace.getMatches();
+
+            MatchBuilder matchBuilder = new MatchBuilder();
+            matchBuilder = MatchUtils.createInPortMatch(matchBuilder, dpidLong, bridgePort);
+
+            Actions aclActions = ace.getActions();
+            AceType aceType = aclMatches.getAceType();
+            if (aceType instanceof AceEth ) {
+                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, writeFlow, aclActions);
+            } else if (aceType instanceof AceIp) {
+                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, writeFlow, aclActions);
             }
 
         }
     }
 
     //Match Ethernet source/dest mac, macmask
-    private void aceEthAcl(String nodeName, String flowId, Long segmentationId, AceEth aceEth, boolean writeFlow, Actions aclActions) {
-        MatchBuilder matchBuilder = new MatchBuilder();
+    private void aceEthAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceEth aceEth, boolean writeFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
-
-        matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
 
@@ -248,11 +273,8 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
     }
 
-    private void aceIpAcl(String nodeName, String flowId, Long segmentationId, AceIp aceIp, boolean writeFlow, Actions aclActions) {
-        MatchBuilder matchBuilder = new MatchBuilder();
+    private void aceIpAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceIp aceIp, boolean writeFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
-
-        matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
 
         if (aceIp.getAceIpVersion() instanceof AceIpv6) {
             /*TODO IPv6 Support*/

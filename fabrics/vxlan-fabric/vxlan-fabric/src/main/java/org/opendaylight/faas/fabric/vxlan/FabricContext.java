@@ -9,7 +9,8 @@ package org.opendaylight.faas.fabric.vxlan;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
@@ -20,27 +21,38 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-public class FabricContext {
+public class FabricContext implements AutoCloseable {
 
 	private final FabricId fabricId;
 
     private final Map<NodeId, LogicSwitchContext> logicSwitches = Maps.newConcurrentMap();
 
-    private final Map<NodeId, DeviceContext> devices = Maps.newConcurrentMap();
+    private final Map<DeviceKey, DeviceContext> devices = Maps.newConcurrentMap();
 
     private final Map<NodeId, LogicRouterContext> logicRouters = Maps.newConcurrentMap();
 
     private final DataBroker databroker;
 
-    private final ExecutorService executor;
+    protected final ListeningExecutorService executor;
 
-    public FabricContext(FabricId fabricId, DataBroker databroker, ExecutorService executor) {
+    public FabricContext(FabricId fabricId, DataBroker databroker) {
     	this.fabricId = fabricId;
         this.databroker = databroker;
-        this.executor = executor;
+
+        final ThreadFactory threadFactory = new ThreadFactoryBuilder()
+        		.setNameFormat(fabricId.getValue() + " - %d")
+        		.build();
+        this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor(threadFactory));;
     }
 
+    public FabricId getFabricId() {
+    	return fabricId;
+    }
+    
     public void addLogicRouter(NodeId routerId, long vrf) {
         logicRouters.put(routerId, new LogicRouterContext(vrf));
     }
@@ -50,7 +62,7 @@ public class FabricContext {
     }
     
     public LogicSwitchContext addLogicSwitch(NodeId nodeId, long vni) {
-    	LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vni, executor);
+    	LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vni, nodeId, executor);
         logicSwitches.put(nodeId, lswCtx);
         return lswCtx;
     }
@@ -61,7 +73,7 @@ public class FabricContext {
     
     public DeviceContext addDeviceSwitch(InstanceIdentifier<Node> deviceIId, IpAddress vtep) {
     	DeviceContext devCtx = new DeviceContext(databroker, vtep, deviceIId, executor);
-        devices.put(deviceIId.firstKeyOf(Node.class).getNodeId(), devCtx);
+        devices.put(DeviceKey.newInstance(deviceIId), devCtx);
         return devCtx;
     }
 
@@ -82,13 +94,13 @@ public class FabricContext {
         LogicSwitchContext switchCtx = getLogicSwitchCtx(lsw);
         switchCtx.associateToRouter(routerCtx, ip);
 
-        for (NodeId device : switchCtx.getMembers()) {
+        for (DeviceKey device : switchCtx.getMembers()) {
         	devices.get(device).createBDIF(switchCtx.getVni(), routerCtx);
         }
     }
     
-    public DeviceContext getDeviceCtx(NodeId nodeId) {
-        return devices.get(nodeId);
+    public DeviceContext getDeviceCtx(DeviceKey key) {
+        return devices.get(key);
     }
 
     public Collection<DeviceContext> getDeviceCtxs() {
@@ -98,4 +110,20 @@ public class FabricContext {
     public LogicRouterContext getLogicRouterCtx(NodeId routerId) {
         return logicRouters.get(routerId);
     }
+
+    public boolean isValidLogicSwitch(NodeId nodeid) {
+    	return logicSwitches.containsKey(nodeid);
+    }
+
+    public boolean isValidLogicRouter(NodeId nodeid) {
+    	return logicRouters.containsKey(nodeid);
+    }
+
+	@Override
+	public void close() {
+		executor.shutdown();
+		logicSwitches.clear();
+		logicRouters.clear();
+		devices.clear();
+	}
 }

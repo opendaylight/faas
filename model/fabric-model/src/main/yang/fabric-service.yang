@@ -185,7 +185,7 @@ module fabric-service {
             leaf fabric-id {
                 type fabric:fabric-id;
             }
-            leaf logic-switch {
+            leaf logic-device {
                 type topo:node-id;
             }
             leaf logic-port {
@@ -202,7 +202,7 @@ module fabric-service {
             leaf fabric-id {
                 type fabric:fabric-id;
             }
-            leaf logic-switch {
+            leaf logic-device {
                 type topo:node-id;
             }
             leaf logic-port {

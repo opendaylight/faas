@@ -12,7 +12,6 @@ import java.util.List;
 import org.opendaylight.faas.fabric.general.spi.FabricListener;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
@@ -91,6 +90,17 @@ public class FabricInstance implements FabricRenderer {
         return renderer.addNodeToFabric(node, input);
     }
 
+	@Override
+	public InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName) {
+		return renderer.addAcl(deviceid, tpid, aclName);
+		
+	}
+
+	@Override
+	public InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName) {
+		return renderer.delAcl(deviceid, tpid, aclName);
+	}
+
     public void notifyFabricCreated(FabricNode node) {
     	for (FabricListener listener : listeners) {
     		listener.fabricCreated(node);
@@ -144,16 +154,4 @@ public class FabricInstance implements FabricRenderer {
     		listener.aclUpdate(iid, delete);
     	}
 	}
-
-    public void notifyEndpointAdded(InstanceIdentifier<Endpoint> epIId) {
-    	for (FabricListener listener : listeners) {
-    		listener.endpointAdded(epIId);
-    	}
-    }
-
-    public void notifyEndpointUpdated(InstanceIdentifier<Endpoint> epIId) {
-    	for (FabricListener listener : listeners) {
-    		listener.endpointUpdated(epIId);
-    	}
-    }
 }

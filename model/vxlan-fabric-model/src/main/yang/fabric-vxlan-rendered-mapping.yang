@@ -48,7 +48,10 @@ module fabric-vxlan-rendered-mapping {
 			}
 
             list host-route {
-                key "mac";
+                key "hostid";
+                leaf hostid {
+                	type yang:uuid;
+                }
                 leaf mac {
                     type yang:mac-address;
                 }

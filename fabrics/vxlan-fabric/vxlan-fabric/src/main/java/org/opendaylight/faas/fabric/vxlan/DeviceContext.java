@@ -27,7 +27,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1Builder;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
@@ -59,8 +58,8 @@ public class DeviceContext {
         return vtep;
     }
 
-    public NodeId getNodeId() {
-    	return deviceIId.firstKeyOf(Node.class).getNodeId();
+    public DeviceKey getKey() {
+    	return DeviceKey.newInstance(deviceIId);
     }
     
     public void createBridgeDomain(LogicSwitchContext switchCtx) {

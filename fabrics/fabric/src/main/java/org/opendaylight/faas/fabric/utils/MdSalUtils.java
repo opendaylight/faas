@@ -57,6 +57,10 @@ public class MdSalUtils {
                 .child(Node.class, new NodeKey(nodeId));
     }
 
+    public static InstanceIdentifier<Node> createFNodeIId(FabricId fabricId) {
+        return Constants.DOM_FABRICS_PATH.child(Node.class, new NodeKey(fabricId));
+    }
+
     public static InstanceIdentifier<FabricNode> createFabricIId(FabricId fabricId) {
         return Constants.DOM_FABRICS_PATH.child(Node.class, new NodeKey(fabricId))
                 .augmentation(FabricNode.class);
@@ -76,6 +80,20 @@ public class MdSalUtils {
     }
 
     public static void wrapperSubmit(final WriteTransaction trans, ExecutorService executor) {
+    	CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
+    	Futures.addCallback(future, new FutureCallback<Void>(){
+
+			@Override
+			public void onSuccess(Void result) {
+			}
+
+			@Override
+			public void onFailure(Throwable t) {
+				LOG.error("submit failed.", t);
+			}}, executor);
+    }
+
+    public static void wrapperSubmit(final WriteTransaction trans) {
     	CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
     	Futures.addCallback(future, new FutureCallback<Void>(){
 

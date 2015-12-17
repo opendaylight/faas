@@ -7,7 +7,6 @@
  */
 package org.opendaylight.faas.fabric.general.spi;
 
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -32,10 +31,6 @@ public interface FabricListener {
 
     void logicRouterRemoved(Node lr);
     
-    void endpointAdded(InstanceIdentifier<Endpoint> epIId);
-
-    void endpointUpdated(InstanceIdentifier<Endpoint> epIId);
-
     void aclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete);
 
 }

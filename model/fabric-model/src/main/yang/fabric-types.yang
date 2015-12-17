@@ -131,6 +131,7 @@ module fabric-types {
         leaf vrf-ctx {
             type uint32;
         }
+        uses acl-list;
     }
 
     grouping logic-port {
@@ -171,6 +172,13 @@ module fabric-types {
             }
         }
         uses acl-list;
+
+		list underlayer-ports {
+			key port-ref;
+			leaf port-ref {
+				type tp-ref;
+			}
+		}
     }
 
     grouping logic-link {

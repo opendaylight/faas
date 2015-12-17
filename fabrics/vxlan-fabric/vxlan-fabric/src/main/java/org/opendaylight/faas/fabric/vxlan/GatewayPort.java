@@ -5,11 +5,11 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.opendaylight.faas.fabric.vxlan;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 public class GatewayPort {
 
@@ -19,9 +19,12 @@ public class GatewayPort {
     private long vni;
     private MacAddress mac;
 
-    public GatewayPort (IpPrefix ip, long vni) {
+    private NodeId lsw;
+
+    public GatewayPort (IpPrefix ip, long vni, NodeId lsw) {
         this.ip = ip;
         this.vni = vni;
+        this.lsw = lsw;
     }
 
     public void setMac(MacAddress mac) {
@@ -38,5 +41,9 @@ public class GatewayPort {
 
     Long getVni() {
         return vni;
+    }
+
+    NodeId getLogicSwitch() {
+    	return lsw;
     }
 }

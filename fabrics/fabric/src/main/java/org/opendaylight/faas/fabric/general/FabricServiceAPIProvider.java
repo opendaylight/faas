@@ -7,6 +7,7 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -58,6 +59,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logic.port.Layer3InfoBuilder;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNode;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.LinkId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -83,6 +87,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.net.InetAddresses;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
@@ -323,10 +328,11 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         final NodeId newNodeId = new NodeId(name);
         final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), newNodeId);
 
-        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         NodeBuilder nodeBuilder = new NodeBuilder();
         nodeBuilder.setKey(new NodeKey(newNodeId));
         nodeBuilder.setNodeId(newNodeId);
+
+        nodeBuilder.setSupportingNode(createDefaultSuplNode(fabricId));
 
         LogicSwitchAugmentBuilder lswCtx = new LogicSwitchAugmentBuilder();
         LswAttributeBuilder lswAttr = new LswAttributeBuilder();
@@ -338,6 +344,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         nodeBuilder.addAugmentation(LogicSwitchAugment.class, lswCtx.build());
 
         final Node lsw = nodeBuilder.build();
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lsw, true);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicSwitchOutput>>(){
@@ -431,6 +438,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         nodeBuilder.setKey(new NodeKey(newNodeId));
         nodeBuilder.setNodeId(newNodeId);
 
+        nodeBuilder.setSupportingNode(createDefaultSuplNode(fabricId));
+
         LogicRouterAugmentBuilder lrCtx = new LogicRouterAugmentBuilder();
         LrAttributeBuilder lrAttr = new LrAttributeBuilder();
         lrAttr.setName(name);
@@ -510,40 +519,32 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 	public Future<RpcResult<Void>> addAcl(AddAclInput input) {
 		String aclName = input.getAclName();
 		FabricId fabricid = input.getFabricId();
-		NodeId lsw = input.getLogicSwitch();
+		NodeId ldev = input.getLogicDevice();
 		TpId tpid = input.getLogicPort();
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(new IllegalArgumentException("Fabric is not exist!"));
         }
 
-		InstanceIdentifier<FabricAcl> aclIId = null;
+		final InstanceIdentifier<FabricAcl> aclIId = fabricObj.addAcl(ldev, tpid, aclName);
+
+		if (aclIId == null) {
+			return Futures.immediateFailedFuture(new IllegalArgumentException("Can not add acl, maybe the target is not exists !"));
+		}
+		
 		FabricAclBuilder aclBuilder = new FabricAclBuilder();
 		aclBuilder.setFabricAclName(aclName);
 		aclBuilder.setKey(new FabricAclKey(aclName));
 
-		if (tpid != null) {
-			aclIId = MdSalUtils.createLogicPortIId(fabricid, lsw, tpid)
-						.augmentation(LogicPortAugment.class)
-						.child(LportAttribute.class)
-						.child(FabricAcl.class, new FabricAclKey(aclName));
-		} else {
-			 aclIId = MdSalUtils.createNodeIId(fabricid, lsw)
-					 .augmentation(LogicSwitchAugment.class)
-			 		.child(LswAttribute.class)
-			 		.child(FabricAcl.class, new FabricAclKey(aclName));
-		}
-		final InstanceIdentifier<FabricAcl> tgtAclIId = aclIId;
-
 		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-		trans.merge(LogicalDatastoreType.OPERATIONAL,aclIId, aclBuilder.build(), true);
+		trans.merge(LogicalDatastoreType.OPERATIONAL,aclIId, aclBuilder.build(), false);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-            	fabricObj.notifyAclUpdate(tgtAclIId, false);
+            	fabricObj.notifyAclUpdate(aclIId, false);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
 	}
@@ -552,7 +553,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 	public Future<RpcResult<Void>> delAcl(DelAclInput input) {
 		String aclName = input.getAclName();
 		FabricId fabricid = input.getFabricId();
-		NodeId lsw = input.getLogicSwitch();
+		NodeId ldev = input.getLogicDevice();
 		TpId tpid = input.getLogicPort();
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
@@ -563,12 +564,12 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		InstanceIdentifier<FabricAcl> aclIId = null;
 
 		if (tpid != null) {
-			aclIId = MdSalUtils.createLogicPortIId(fabricid, lsw, tpid)
+			aclIId = MdSalUtils.createLogicPortIId(fabricid, ldev, tpid)
 						.augmentation(LogicPortAugment.class)
 						.child(LportAttribute.class)
 						.child(FabricAcl.class, new FabricAclKey(aclName));
 		} else {
-			 aclIId = MdSalUtils.createNodeIId(fabricid, lsw)
+			 aclIId = MdSalUtils.createNodeIId(fabricid, ldev)
 					 .augmentation(LogicSwitchAugment.class)
 			 		.child(LswAttribute.class)
 			 		.child(FabricAcl.class, new FabricAclKey(aclName));
@@ -618,4 +619,12 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		return 32;// other
 	}
 
+	private List<SupportingNode> createDefaultSuplNode(FabricId fabricid) {
+		SupportingNodeBuilder builder = new SupportingNodeBuilder();
+
+		builder.setNodeRef(fabricid);
+		builder.setKey(new SupportingNodeKey(fabricid, new TopologyId(Constants.FABRICS_TOPOLOGY_ID)));
+
+		return Lists.newArrayList(builder.build());
+	}
 }

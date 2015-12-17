@@ -7,17 +7,23 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class LogicRouterContext {
     private final long vrf;
 
-//    private BiMap<Long, GatewayPort> gatewayPorts = HashBiMap.create();
     private Map<Long, GatewayPort> gatewayPorts = Maps.newConcurrentMap();
+
+    private List<String> acls = Lists.newArrayList();
 
     LogicRouterContext(long vrf) {
         this.vrf = vrf;
@@ -27,11 +33,27 @@ public class LogicRouterContext {
         return vrf;
     }
 
-    public void addGatewayPort(IpPrefix ip, long vni) {
-        gatewayPorts.put(vni, new GatewayPort(ip, vni));
+    public void addGatewayPort(IpPrefix ip, long vni, NodeId lsw) {
+        gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw));
     }
 
     public GatewayPort getGatewayPortByVni(long vni) {
         return gatewayPorts.get(vni);
     }
+
+	public void addAcl(String aclName) {
+		acls.add(aclName);
+	}
+
+	public void removeAcl(String aclName) {
+		acls.remove(aclName);
+	}
+	
+	public List<String> getAcls() {
+		return Collections.unmodifiableList(acls);
+	}
+
+	public Set<Long> getVnis() {
+		return gatewayPorts.keySet();
+	}
 }
