@@ -19,6 +19,7 @@ module faas-logical-routers {
         container logical-routers {
             list logical-router {
                 uses faas-common:admin-attributes;
+                key "uuid";
                 uses faas-common:logical-entity-attributes;
                 leaf public {
                     description "True if there is at least one port accessed by the Internet";
