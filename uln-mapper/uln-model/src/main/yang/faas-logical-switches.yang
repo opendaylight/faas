@@ -19,6 +19,7 @@ module faas-logical-switches {
         container logical-switches {
             list logical-switch {
                 uses faas-common:admin-attributes;
+                key "uuid";
                 uses faas-common:logical-entity-attributes;
             }
         }
