@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1aa4ed85_e6363703",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-routers.yang",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-12-17T16:46:17Z",
+      "side": 1,
+      "message": "uuid should be placed before logical-entity-attributes",
+      "revId": "32a898602ee734f3bfd9089b7f29e3c13644b424",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1aa4ed85_863bc3ea",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-logical-switches.yang",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-12-17T16:46:17Z",
+      "side": 1,
+      "message": "uuid should be placed before logical-entity-attributes",
+      "revId": "32a898602ee734f3bfd9089b7f29e3c13644b424",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1aa4ed85_c631bb0c",
+        "filename": "uln-mapper/uln-model/src/main/yang/faas-subnets.yang",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 3573
+      },
+      "writtenOn": "2015-12-17T16:46:17Z",
+      "side": 1,
+      "message": "uuid should be placed before logical-entity-attributes",
+      "revId": "32a898602ee734f3bfd9089b7f29e3c13644b424",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
