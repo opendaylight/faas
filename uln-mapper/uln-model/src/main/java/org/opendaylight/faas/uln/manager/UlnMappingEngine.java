@@ -9,10 +9,12 @@
 package org.opendaylight.faas.uln.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
@@ -98,7 +100,15 @@ public class UlnMappingEngine {
     private Map<Uuid, UserLogicalNetworkCache> ulnStore;
 
     public UlnMappingEngine() {
-        this.setUlnStore(new HashMap<Uuid, UserLogicalNetworkCache>());
+        /*
+         * TODO: We are experimenting Full Sync vs. concurrentMap.
+         */
+        boolean useFullSync = false;
+        if (useFullSync) {
+            this.ulnStore = Collections.synchronizedMap(new HashMap<Uuid, UserLogicalNetworkCache>());
+        } else {
+            this.ulnStore = new ConcurrentHashMap<Uuid, UserLogicalNetworkCache>();
+        }
     }
 
     public void handleLswCreateEvent(LogicalSwitch lsw) {
@@ -473,7 +483,17 @@ public class UlnMappingEngine {
          */
         boolean readyToRender = false;
         NodeId nodeId = null;
-        Uuid portId = ruleGroups.getPorts().get(0);
+        List<Uuid> portList = ruleGroups.getPorts();
+        if (portList == null) {
+            /*
+             * This means we cannot render this ruleGroups yet. We
+             * need to wait for the update event to update the ports.
+             */
+            LOG.debug("FABMGR: doSecurityRuleGroupsCreate: portList is null. do nothing");
+            return;
+        }
+
+        Uuid portId = portList.get(0);
         LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
         if (lsw != null) {
             if (lsw.hasServiceBeenRendered() == false) {
@@ -710,10 +730,6 @@ public class UlnMappingEngine {
         return ulnStore;
     }
 
-    public void setUlnStore(Map<Uuid, UserLogicalNetworkCache> ulnStore) {
-        this.ulnStore = ulnStore;
-    }
-
     /*
      * This function is called every time when a ULN element is cached and
      * attempting to be rendered. This function is necessary because ULN elements
@@ -728,7 +744,7 @@ public class UlnMappingEngine {
          */
         for (Entry<Uuid, LogicalRouterMappingInfo> lrEntry : uln.getLrStore().entrySet()) {
             if (lrEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.error("FABMGR: ERROR: checkAndRenderPendingUlnElements: LR not renderred: {}",
+                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered LR: {}",
                         lrEntry.getValue().getLr().getUuid().getValue());
                 this.doLogicalRouterCreate(tenantId, uln, lrEntry.getValue().getLr());
             }
@@ -736,7 +752,7 @@ public class UlnMappingEngine {
 
         for (Entry<Uuid, LogicalSwitchMappingInfo> lswEntry : uln.getLswStore().entrySet()) {
             if (lswEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.error("FABMGR: ERROR: checkAndRenderPendingUlnElements: LSW not renderred: {}",
+                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered LSW: {}",
                         lswEntry.getValue().getLsw().getUuid().getValue());
                 this.doLogicalSwitchCreate(tenantId, uln, lswEntry.getValue().getLsw());
             }

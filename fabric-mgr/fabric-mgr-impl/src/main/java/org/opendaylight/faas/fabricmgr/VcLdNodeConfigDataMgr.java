@@ -8,6 +8,7 @@
 
 package org.opendaylight.faas.fabricmgr;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class VcLdNodeConfigDataMgr {
 
     public VcLdNodeConfigDataMgr(Uuid tenantId) {
         this.setTenantId(tenantId);
-        this.vfabricDataMgrStore = new HashMap<NodeId, VfabricConfigDataMgr>();
+        this.vfabricDataMgrStore = Collections.synchronizedMap(new HashMap<NodeId, VfabricConfigDataMgr>());
     }
 
     public Uuid getTenantId() {
@@ -45,6 +46,7 @@ public class VcLdNodeConfigDataMgr {
             VfabricConfigDataMgr vfabDataMgr = new VfabricConfigDataMgr(vfabId);
             vfabDataMgr.setTenantId(tenantId);
             this.vfabricDataMgrStore.put(vfabId, vfabDataMgr);
+            LOG.debug("FABMGR:listenerActionOnVcLdNodeCreate: vfabDataMgr created for vfabId: {}", vfabId.getValue());
         }
     }
 

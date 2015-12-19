@@ -17,6 +17,7 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VfabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.vc.ld.node.attributes.Vfabric;
@@ -81,23 +82,22 @@ public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopol
         outputBuilder.setVcTopologyId(vcTopologyId);
 
         // TODO: This should be implemented as datastore listener event.
-        VcontainerServiceProviderAPI.getFabricMgrProvider().listenerActionOnVcCreate(tenantId);
+        VcontainerServiceProviderAPI.getFabricMgrProvider().listenerActionOnVcCreate(new Uuid(tenantId.getValue()));
 
         List<Vfabric> vfabricList = vcConfig.getVfabric();
         List<NodeId> vfabricIdList = new ArrayList<NodeId>();
         if (vfabricList != null && vfabricList.isEmpty() == false) {
             for (Vfabric vfab : vfabricList) {
                 VfabricId vfabId = vfab.getVfabricId();
-                vfabricIdList.add(vfabId);
+                vfabricIdList.add(new NodeId(vfabId.getValue()));
             }
         }
 
-        VcConfigDataMgr vc = VcontainerServiceProviderAPI.getFabricMgrProvider().getVcConfigDataMgr(tenantId);
-        if(vc == null){
+        VcConfigDataMgr vc =
+                VcontainerServiceProviderAPI.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+        if (vc == null) {
             LOG.error("FABMGR: ERROR: createVcontainer: vc is null");
-        }
-        else
-        {
+        } else {
             vc.getLdNodeConfigDataMgr().listenerActionOnVcLdNodeCreate(tenantId, vfabricIdList);
         }
 
