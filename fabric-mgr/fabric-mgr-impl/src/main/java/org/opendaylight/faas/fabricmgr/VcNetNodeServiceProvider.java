@@ -20,6 +20,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInputBuilder;
@@ -29,7 +30,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
@@ -105,12 +105,19 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         FabricId fabricId = new FabricId(vfabricId);
         lswInputBuilder.setFabricId(fabricId);
         lswInputBuilder.setName(lswName);
-        int l2Resource = VcontainerServiceProviderAPI.getFabricMgrProvider()
-            .getVcConfigDataMgr(tenantId)
-            .getLdNodeConfigDataMgr()
-            .getAvailableL2Resurce(vfabricId);
+        VcConfigDataMgr vcMgr =
+                VcontainerServiceProviderAPI.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: {}", tenantId.getValue());
+            return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
+        }
+
+        int l2Resource = vcMgr.getLdNodeConfigDataMgr().getAvailableL2Resurce(vfabricId);
         Integer vni = new Integer(l2Resource);
         lswInputBuilder.setVni(vni);
+
+        LOG.debug("FABMGR: createLneLayer2: lswName={}, fabricId={}, vni={}", lswName, fabricId.getValue(),
+                vni.intValue());
 
         final RpcResultBuilder<CreateLneLayer2Output> resultBuilder = RpcResultBuilder.<CreateLneLayer2Output>success();
         Future<RpcResult<CreateLogicSwitchOutput>> result =
@@ -125,11 +132,11 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 NodeId nodeId = createLswOutput.getNodeId();
                 // VcLneRef lswRef = new
                 // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
-                builder.setLneId((VcLneId) nodeId);
+                builder.setLneId(new VcLneId(nodeId));
                 return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: createLneLayer2: createLogicSwitch RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: createLneLayer2: createLogicSwitch RPC failed.", e);
         }
 
         return Futures.immediateFailedFuture(new IllegalArgumentException("createLogicSwitch RPC failed"));
@@ -151,6 +158,8 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         lrInputBuilder.setFabricId(fabricId);
         lrInputBuilder.setName(lrName);
 
+        LOG.debug("FABMGR: createLneLayer3: lrName={}, fabricId={}", lrName, fabricId.getValue());
+
         final RpcResultBuilder<CreateLneLayer3Output> resultBuilder = RpcResultBuilder.<CreateLneLayer3Output>success();
         Future<RpcResult<CreateLogicRouterOutput>> result =
                 this.fabServiceService.createLogicRouter(lrInputBuilder.build());
@@ -163,11 +172,11 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 NodeId nodeId = createLrOutput.getNodeId();
                 // VcLneRef lrRef = new
                 // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
-                builder.setLneId((VcLneId) nodeId);
+                builder.setLneId(new VcLneId(nodeId));
                 return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed.", e);
         }
 
         return Futures.immediateFailedFuture(new IllegalArgumentException("createLogicRouter RPC failed"));
@@ -271,7 +280,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 tpId = createLogicPortOutput.getTpId();
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: createLogicalPortOnLsw: createLogicPort RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: createLogicalPortOnLsw: createLogicPort RPC failed.", e);
         }
 
         return tpId;
@@ -291,7 +300,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 epId = epOutput.getEndpointId();
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: registerEndpoint: registerEndpoint RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: registerEndpoint: registerEndpoint RPC failed.", e);
         }
 
         return epId;
@@ -314,7 +323,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 LOG.info("FABMGR: createLrLswGateway: createGateway RPC success");
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed.", e);
         }
     }
 
@@ -332,7 +341,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 LOG.info("FABMGR: createAcl: addAcl RPC success");
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: createAcl: addAcl RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: createAcl: addAcl RPC failed.", e);
         }
     }
 

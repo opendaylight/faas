@@ -8,10 +8,10 @@
 
 package org.opendaylight.faas.fabricmgr;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
@@ -28,7 +28,7 @@ public class VcLdNodeConfigDataMgr {
 
     public VcLdNodeConfigDataMgr(Uuid tenantId) {
         this.setTenantId(tenantId);
-        this.vfabricDataMgrStore = new HashMap<NodeId, VfabricConfigDataMgr>();
+        this.vfabricDataMgrStore = new ConcurrentHashMap<NodeId, VfabricConfigDataMgr>();
     }
 
     public Uuid getTenantId() {
@@ -45,6 +45,7 @@ public class VcLdNodeConfigDataMgr {
             VfabricConfigDataMgr vfabDataMgr = new VfabricConfigDataMgr(vfabId);
             vfabDataMgr.setTenantId(tenantId);
             this.vfabricDataMgrStore.put(vfabId, vfabDataMgr);
+            LOG.debug("FABMGR:listenerActionOnVcLdNodeCreate: vfabDataMgr created for vfabId: {}", vfabId.getValue());
         }
     }
 
