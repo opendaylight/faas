@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1aa4ed85_c86a1d1a",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/FabricMgrProvider.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-12-21T15:14:23Z",
+      "side": 1,
+      "message": "changed",
+      "parentUuid": "1aa4ed85_1f5e2de7",
+      "revId": "c8101f2efac789603f29101921f463ff0e94e7a3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1aa4ed85_bf72797a",
         "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/FabricMgrProvider.java",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2015-12-19T15:31:17Z",
       "side": 1,
       "message": "This loop is not thread safe, since another thread could remove a value during the loop. However, you could solve this problem by using ConcurrentHashMap. Then loop over entryList",
+      "revId": "c8101f2efac789603f29101921f463ff0e94e7a3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1aa4ed85_e8d119ce",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/FabricMgrProvider.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-12-21T15:14:23Z",
+      "side": 1,
+      "message": "vcConfigDataMgrList is concurrentHashMap",
+      "parentUuid": "1aa4ed85_bf72797a",
       "revId": "c8101f2efac789603f29101921f463ff0e94e7a3",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "1aa4ed85_287ad1f1",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/VcLdNodeConfigDataMgr.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-12-21T15:14:23Z",
+      "side": 1,
+      "message": "changed",
+      "parentUuid": "1aa4ed85_df6f3591",
+      "revId": "c8101f2efac789603f29101921f463ff0e94e7a3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1aa4ed85_ff0f91df",
         "filename": "uln-mapper/uln-model/src/main/java/org/opendaylight/faas/uln/manager/UlnMappingEngine.java",
         "patchSetId": 1
@@ -64,6 +118,24 @@
       "writtenOn": "2015-12-19T15:31:17Z",
       "side": 1,
       "message": "I don\u0027t believe this provides full sync. if you want have full sunc, then synchronize the map as follows:\n synchronized(mymap) { // mymap shouldn\u0027t be null\n//one thread can access the entire map at a time\n}",
+      "revId": "c8101f2efac789603f29101921f463ff0e94e7a3",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1aa4ed85_88d8a51e",
+        "filename": "uln-mapper/uln-model/src/main/java/org/opendaylight/faas/uln/manager/UlnMappingEngine.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 4665
+      },
+      "writtenOn": "2015-12-21T15:14:23Z",
+      "side": 1,
+      "message": "I am refactoring this code. I already tried using synchronized block here, but RPC calls in vcontainer provider failed. Don\u0027t know why yet.",
+      "parentUuid": "1aa4ed85_ff0f91df",
       "revId": "c8101f2efac789603f29101921f463ff0e94e7a3",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
