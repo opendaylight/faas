@@ -8,9 +8,11 @@
 
 package org.opendaylight.faas.uln.manager;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
@@ -46,13 +48,27 @@ public class UserLogicalNetworkCache {
     public UserLogicalNetworkCache(Uuid tenantId) {
         super();
         this.setTenantId(tenantId);
-        lswStore = new HashMap<Uuid, LogicalSwitchMappingInfo>();
-        lrStore = new HashMap<Uuid, LogicalRouterMappingInfo>();
-        securityRuleGroupsStore = new HashMap<Uuid, SecurityRuleGroupsMappingInfo>();
-        subnetStore = new HashMap<Uuid, SubnetMappingInfo>();
-        portStore = new HashMap<Uuid, PortMappingInfo>();
-        edgeStore = new HashMap<Uuid, EdgeMappingInfo>();
-        epLocationStore = new HashMap<Uuid, EndpointLocationMappingInfo>();
+        /*
+         * TODO: We are testing Full Sync vs. concurrentMap.
+         */
+        boolean useFullSync = false;
+        if (useFullSync) {
+            lswStore = Collections.synchronizedMap(new HashMap<Uuid, LogicalSwitchMappingInfo>());
+            lrStore = Collections.synchronizedMap(new HashMap<Uuid, LogicalRouterMappingInfo>());
+            securityRuleGroupsStore = Collections.synchronizedMap(new HashMap<Uuid, SecurityRuleGroupsMappingInfo>());
+            subnetStore = Collections.synchronizedMap(new HashMap<Uuid, SubnetMappingInfo>());
+            portStore = Collections.synchronizedMap(new HashMap<Uuid, PortMappingInfo>());
+            edgeStore = Collections.synchronizedMap(new HashMap<Uuid, EdgeMappingInfo>());
+            epLocationStore = Collections.synchronizedMap(new HashMap<Uuid, EndpointLocationMappingInfo>());
+        } else {
+            lswStore = new ConcurrentHashMap<Uuid, LogicalSwitchMappingInfo>();
+            lrStore = new ConcurrentHashMap<Uuid, LogicalRouterMappingInfo>();
+            securityRuleGroupsStore = new ConcurrentHashMap<Uuid, SecurityRuleGroupsMappingInfo>();
+            subnetStore = new ConcurrentHashMap<Uuid, SubnetMappingInfo>();
+            portStore = new ConcurrentHashMap<Uuid, PortMappingInfo>();
+            edgeStore = new ConcurrentHashMap<Uuid, EdgeMappingInfo>();
+            epLocationStore = new ConcurrentHashMap<Uuid, EndpointLocationMappingInfo>();
+        }
     }
 
     public Uuid getTenantId() {
