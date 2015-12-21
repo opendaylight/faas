@@ -353,13 +353,13 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         PortNumber tcpSourcePortLower = aceIp.getSourcePortRange().getLowerPort();
         PortNumber tcpDestinationPortLower = aceIp.getDestinationPortRange().getLowerPort();
 
-        if (null != tcpSourcePortLower) {
+        if (0 != tcpSourcePortLower.getValue()) {
             tcpmatch.setTcpSourcePort(tcpSourcePortLower);
         } else {
             /*TODO TCP PortRange Match*/
         }
 
-        if (null != tcpDestinationPortLower) {
+        if (0 != tcpDestinationPortLower.getValue()) {
             tcpmatch.setTcpDestinationPort(tcpDestinationPortLower);
         } else {
             /*TODO TCP PortRange Match*/
@@ -375,13 +375,13 @@ public class PipelineAclHandler extends AbstractServiceInstance{
         PortNumber udpSourcePortLower = aceIp.getSourcePortRange().getLowerPort();
         PortNumber udpDestinationPortLower = aceIp.getDestinationPortRange().getLowerPort();
 
-        if (null != udpSourcePortLower) {
+        if (0 != udpSourcePortLower.getValue()) {
             udpmatch.setUdpSourcePort(udpSourcePortLower);
         } else {
             /*TODO UDP PortRange Match*/
         }
 
-        if (null != udpDestinationPortLower) {
+        if (0 != udpDestinationPortLower.getValue()) {
             udpmatch.setUdpDestinationPort(udpDestinationPortLower);
         } else {
             /*TODO UDP PortRange Match*/
