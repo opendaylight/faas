@@ -69,7 +69,7 @@ public class VcLdNodeConfigDataMgr {
 
     }
 
-    public int getAvailableL2Resurce(NodeId vfabricId) {
+    public int getAvailableL2Resource(NodeId vfabricId) {
         if (this.vfabricDataMgrStore == null || this.vfabricDataMgrStore.isEmpty() == true) {
             LOG.error("FABMGR: ERROR: getAvailableL2Resurce: vfabricDataMgrStore is null");
             return 0;

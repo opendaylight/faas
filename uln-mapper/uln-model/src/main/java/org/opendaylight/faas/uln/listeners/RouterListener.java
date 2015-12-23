@@ -55,7 +55,7 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof LogicalRouter) {
-                LOG.debug("FABMGR: Create Logical Router {}", dao);
+                LOG.debug("FABMGR: Create Logical Router event: {}", ((LogicalRouter) dao).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handleLrCreateEvent((LogicalRouter) dao);
             }
         }
@@ -63,7 +63,8 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof LogicalRouter) {
-                LOG.debug("FABMGR: Updated Logical Router {}", (LogicalRouter) entry.getValue());
+                LOG.debug("FABMGR: Updated Logical Router event: {}",
+                        ((LogicalRouter) entry.getValue()).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handleLrUpdateEvent((LogicalRouter) entry.getValue());
             }
         }
@@ -74,7 +75,7 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
                 continue;
             }
             if (old instanceof LogicalRouter) {
-                LOG.debug("FABMGR: Removed Logical Router {}", old);
+                LOG.debug("FABMGR: Removed Logical Router event: {}", ((LogicalRouter) old).getUuid().getValue());
             }
         }
     }

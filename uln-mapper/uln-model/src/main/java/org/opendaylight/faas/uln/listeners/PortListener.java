@@ -54,7 +54,7 @@ public class PortListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof Port) {
-                LOG.debug("FABMGR: Created Port {}", (Port) dao);
+                LOG.debug("FABMGR: Created Port event: {}", ((Port) dao).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handlePortCreateEvent((Port) dao);
             }
         }
@@ -62,7 +62,7 @@ public class PortListener implements DataChangeListener, AutoCloseable {
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof Port) {
-                LOG.debug("FABMGR: Updated Port {}", (Port) entry.getValue());
+                LOG.debug("FABMGR: Updated Port event: {}", ((Port) entry.getValue()).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handlePortUpdateEvent((Port) entry.getValue());
             }
         }
@@ -73,7 +73,7 @@ public class PortListener implements DataChangeListener, AutoCloseable {
                 continue;
             }
             if (old instanceof Port) {
-                LOG.debug("FABMGR: Removed Port {}", (Port) old);
+                LOG.debug("FABMGR: Removed Port event: {}", ((Port) old).getUuid().getValue());
             }
         }
     }

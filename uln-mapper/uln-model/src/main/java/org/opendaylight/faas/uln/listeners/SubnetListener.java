@@ -54,7 +54,7 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof Subnet) {
-                LOG.debug("FABMGR: Created Subnet {}", (Subnet) dao);
+                LOG.debug("FABMGR: Created Subnet event: {}", ((Subnet) dao).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handleSubnetCreateEvent((Subnet) dao);
             }
         }
@@ -62,7 +62,7 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof Subnet) {
-                LOG.debug("FABMGR: Updated Subnet {}", (Subnet) entry.getValue());
+                LOG.debug("FABMGR: Updated Subnet event: {}", ((Subnet) entry.getValue()).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handleSubnetUpdateEvent((Subnet) entry.getValue());
             }
         }
@@ -73,7 +73,7 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
                 continue;
             }
             if (old instanceof Subnet) {
-                LOG.debug("FABMGR: Removed Subnet {}", (Subnet) old);
+                LOG.debug("FABMGR: Removed Subnet event: {}", ((Subnet) old).getUuid().getValue());
             }
         }
     }

@@ -51,8 +51,8 @@ public class UserLogicalNetworkCache {
         /*
          * TODO: We are testing Full Sync vs. concurrentMap.
          */
-        boolean useFullSync = false;
-        if (useFullSync) {
+        boolean useSyncMap = false;
+        if (useSyncMap) {
             lswStore = Collections.synchronizedMap(new HashMap<Uuid, LogicalSwitchMappingInfo>());
             lrStore = Collections.synchronizedMap(new HashMap<Uuid, LogicalRouterMappingInfo>());
             securityRuleGroupsStore = Collections.synchronizedMap(new HashMap<Uuid, SecurityRuleGroupsMappingInfo>());

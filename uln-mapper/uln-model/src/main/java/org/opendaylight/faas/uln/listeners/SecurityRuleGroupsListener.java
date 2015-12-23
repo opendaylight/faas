@@ -55,7 +55,8 @@ public class SecurityRuleGroupsListener implements DataChangeListener, AutoClose
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof SecurityRuleGroups) {
-                LOG.debug("FABMGR: Created SecurityRuleGroups {}", dao);
+                LOG.debug("FABMGR: Created SecurityRuleGroups event: {}",
+                        ((SecurityRuleGroups) dao).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handleSecurityRuleGroupsCreateEvent((SecurityRuleGroups) dao);
             }
         }
@@ -75,13 +76,14 @@ public class SecurityRuleGroupsListener implements DataChangeListener, AutoClose
                 continue;
             }
             if (old instanceof SecurityRuleGroups) {
-                LOG.debug("FABMGR: Removed SecurityRuleGroups {}", old);
+                LOG.debug("FABMGR: Removed SecurityRuleGroups event: {}",
+                        ((SecurityRuleGroups) old).getUuid().getValue());
             }
         }
     }
 
     private void updateRules(SecurityRuleGroups newData, SecurityRuleGroups oldData) {
-        LOG.debug("FABMGR: Updated SecurityRuleGroups {}", newData);
+        LOG.debug("FABMGR: Updated SecurityRuleGroups event: {}", newData.getUuid().getValue());
         UserLogicalNetworkManager.getUlnMapper().handleSecurityRuleGroupsUpdateEvent(newData);
     }
 

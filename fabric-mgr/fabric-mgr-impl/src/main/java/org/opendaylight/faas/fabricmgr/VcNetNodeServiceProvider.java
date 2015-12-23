@@ -112,7 +112,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
             return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
         }
 
-        int l2Resource = vcMgr.getLdNodeConfigDataMgr().getAvailableL2Resurce(vfabricId);
+        int l2Resource = vcMgr.getLdNodeConfigDataMgr().getAvailableL2Resource(vfabricId);
         Integer vni = new Integer(l2Resource);
         lswInputBuilder.setVni(vni);
 

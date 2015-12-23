@@ -36,7 +36,7 @@ public class UserLogicalNetworkManager implements AutoCloseable {
     private static final UlnMappingEngine ulnMapper = new UlnMappingEngine();
 
     public UserLogicalNetworkManager() {
-        LOG.debug("Starting Uln-mapper...");
+        LOG.debug("FABMGR: Starting Uln-mapper...");
         int numCPU = Runtime.getRuntime().availableProcessors();
         executor = Executors.newScheduledThreadPool(numCPU * 2);
         routerListener = new RouterListener(executor);
@@ -46,7 +46,8 @@ public class UserLogicalNetworkManager implements AutoCloseable {
         securityGroupListener = new SecurityRuleGroupsListener(executor);
         subnetListener = new SubnetListener(executor);
         switchListener = new SwitchListener(executor);
-        LOG.info("Uln-mapper has Started");
+        ulnMapper.initialize();
+        LOG.info("FABMGR: Uln-mapper has Started. threadpool size={}", numCPU * 2);
     }
 
     public static UlnMappingEngine getUlnMapper() {

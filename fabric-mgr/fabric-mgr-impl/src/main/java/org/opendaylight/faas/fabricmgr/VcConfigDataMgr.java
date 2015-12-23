@@ -47,7 +47,7 @@ public class VcConfigDataMgr {
         this.tenantId = tenantId;
     }
 
-    public NodeId getAvailabeVfabricResource() {
+    public NodeId getAvailableVfabricResource() {
         return this.ldNodeConfigDataMgr.getAvailableVfabricId();
     }
 

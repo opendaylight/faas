@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
@@ -98,20 +101,28 @@ public class UlnMappingEngine {
     private static final String PV_SOURCEPORT_TYPE_NAME = "sourceport";
 
     private Map<Uuid, UserLogicalNetworkCache> ulnStore;
+    private final Executor exec;
+    private final Semaphore workerThreadLock;
+    private int pendingUlnEventCounter;
 
     public UlnMappingEngine() {
         /*
          * TODO: We are experimenting Full Sync vs. concurrentMap.
          */
-        boolean useFullSync = false;
-        if (useFullSync) {
+        boolean useSyncMap = false;
+        if (useSyncMap) {
             this.ulnStore = Collections.synchronizedMap(new HashMap<Uuid, UserLogicalNetworkCache>());
         } else {
             this.ulnStore = new ConcurrentHashMap<Uuid, UserLogicalNetworkCache>();
         }
+        this.exec = Executors.newSingleThreadExecutor();
+        this.workerThreadLock = new Semaphore(-1); // releases must occur before any acquires will
+                                                   // be
+        // granted. The worker thread is blocked initially.
+        this.pendingUlnEventCounter = 0;
     }
 
-    public void handleLswCreateEvent(LogicalSwitch lsw) {
+    public synchronized void handleLswCreateEvent(LogicalSwitch lsw) {
         Uuid tenantId = lsw.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -127,12 +138,11 @@ public class UlnMappingEngine {
         }
 
         uln.cacheLsw(lsw);
-        this.doLogicalSwitchCreate(tenantId, uln, lsw);
 
         /*
-         * Check to see if we can render more elements
+         * Notify worker thread to start work
          */
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     private void doLogicalSwitchCreate(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
@@ -142,7 +152,7 @@ public class UlnMappingEngine {
         this.renderLogicalSwitch(tenantId, uln, lsw);
     }
 
-    public void handleLrCreateEvent(LogicalRouter lr) {
+    public synchronized void handleLrCreateEvent(LogicalRouter lr) {
         Uuid tenantId = lr.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -158,9 +168,8 @@ public class UlnMappingEngine {
         }
 
         uln.cacheLr(lr);
-        this.doLogicalRouterCreate(tenantId, uln, lr);
 
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     private void doLogicalRouterCreate(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
@@ -170,7 +179,7 @@ public class UlnMappingEngine {
         this.renderLogicalRouter(tenantId, uln, lr);
     }
 
-    public void handleSubnetCreateEvent(Subnet subnet) {
+    public synchronized void handleSubnetCreateEvent(Subnet subnet) {
         Uuid tenantId = subnet.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -186,9 +195,8 @@ public class UlnMappingEngine {
         }
 
         uln.cacheSubnet(subnet);
-        this.doSubnetCreate(tenantId, uln, subnet);
 
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     private void doSubnetCreate(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
@@ -197,7 +205,7 @@ public class UlnMappingEngine {
          */
     }
 
-    public void handlePortCreateEvent(Port port) {
+    public synchronized void handlePortCreateEvent(Port port) {
         Uuid tenantId = port.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -213,12 +221,8 @@ public class UlnMappingEngine {
         }
 
         uln.cachePort(port);
-        this.doPortCreate(tenantId, uln, port);
 
-        /*
-         * Now check to see if we can render any other elements.
-         */
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     /*
@@ -254,7 +258,7 @@ public class UlnMappingEngine {
         this.renderPortOnLsw(tenantId, uln, lsw, lswPortInfo);
     }
 
-    public void handleEndpointLocationCreateEvent(EndpointLocation epLocation) {
+    public synchronized void handleEndpointLocationCreateEvent(EndpointLocation epLocation) {
         Uuid tenantId = epLocation.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -270,12 +274,8 @@ public class UlnMappingEngine {
         }
 
         uln.cacheEpLocation(epLocation);
-        this.doEndpointLocationCreate(tenantId, uln, epLocation);
 
-        /*
-         * Now check to see if we can render any other elements.
-         */
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     private void doEndpointLocationCreate(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
@@ -362,7 +362,7 @@ public class UlnMappingEngine {
         uln.markEdgeAsRendered(subnetLswEdge.getEdge());
     }
 
-    public void handleEdgeCreateEvent(Edge edge) {
+    public synchronized void handleEdgeCreateEvent(Edge edge) {
         Uuid tenantId = edge.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -378,12 +378,8 @@ public class UlnMappingEngine {
         }
 
         uln.cacheEdge(edge);
-        this.doEdgeCreate(tenantId, uln, edge);
 
-        /*
-         * Now check to see if we can render any other elements.
-         */
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     private void doEdgeCreate(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
@@ -446,7 +442,7 @@ public class UlnMappingEngine {
         }
     }
 
-    public void handleSecurityRuleGroupsCreateEvent(SecurityRuleGroups ruleGroups) {
+    public synchronized void handleSecurityRuleGroupsCreateEvent(SecurityRuleGroups ruleGroups) {
         Uuid tenantId = ruleGroups.getTenantId();
 
         this.createUlnCacheIfNotExist(tenantId);
@@ -461,12 +457,8 @@ public class UlnMappingEngine {
         }
 
         uln.cacheSecurityRuleGroups(ruleGroups);
-        this.doSecurityRuleGroupsCreate(tenantId, uln, ruleGroups);
 
-        /*
-         * Now check to see if we can render any other elements.
-         */
-        this.checkAndRenderPendingUlnElements(tenantId, uln);
+        this.workerThreadLock.release();
     }
 
     /*
@@ -522,13 +514,13 @@ public class UlnMappingEngine {
     }
 
     private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
-        CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(lsw);
+        CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(tenantId, lsw);
         NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLswAsRendered(lsw, renderedLswId);
     }
 
     private void renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
-        CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(lr);
+        CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(tenantId, lr);
         NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLrAsRendered(lr, renderedLrId);
     }
@@ -591,7 +583,7 @@ public class UlnMappingEngine {
         uln.markSecurityRuleGroupsAsRendered(ruleGroups);
     }
 
-    public ServiceFunctionPath getSfcPath(SfcName chainName) {
+    private ServiceFunctionPath getSfcPath(SfcName chainName) {
         ServiceFunctionPaths paths = SfcProviderServicePathAPI.readAllServiceFunctionPaths();
         for (ServiceFunctionPath path : paths.getServiceFunctionPath()) {
             if (path.getServiceChainName().equals(chainName)) {
@@ -737,6 +729,14 @@ public class UlnMappingEngine {
      * to be rendered immediately and thus may be cached. It can be rendered
      * in the future when its dependencies are rendered.
      */
+    private void checkUlnCache() {
+        for (Entry<Uuid, UserLogicalNetworkCache> entry : this.ulnStore.entrySet()) {
+            Uuid tenantId = entry.getKey();
+            UserLogicalNetworkCache uln = entry.getValue();
+            this.checkAndRenderPendingUlnElements(tenantId, uln);
+        }
+    }
+
     private void checkAndRenderPendingUlnElements(Uuid tenantId, UserLogicalNetworkCache uln) {
         /*
          * There are should be no pending LRs and LSWs, because they
@@ -933,7 +933,7 @@ public class UlnMappingEngine {
         return aceBuilder.build();
     }
 
-    public void handleSubnetUpdateEvent(Subnet subnet) {
+    public synchronized void handleSubnetUpdateEvent(Subnet subnet) {
         Uuid tenantId = subnet.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: this is update; ULN is supposed to be in cache: {}",
@@ -966,7 +966,7 @@ public class UlnMappingEngine {
         this.handleSubnetCreateEvent(subnet);
     }
 
-    public void handleEdgeUpdateEvent(Edge edge) {
+    public synchronized void handleEdgeUpdateEvent(Edge edge) {
         Uuid tenantId = edge.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: this is update; ULN is supposed to be in cache: {}",
@@ -999,7 +999,7 @@ public class UlnMappingEngine {
         this.handleEdgeCreateEvent(edge);
     }
 
-    public void handleEndpointLocationUpdateEvent(EndpointLocation epLocation) {
+    public synchronized void handleEndpointLocationUpdateEvent(EndpointLocation epLocation) {
         Uuid tenantId = epLocation.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error(
@@ -1033,7 +1033,7 @@ public class UlnMappingEngine {
         this.handleEndpointLocationCreateEvent(epLocation);
     }
 
-    public void handlePortUpdateEvent(Port port) {
+    public synchronized void handlePortUpdateEvent(Port port) {
         Uuid tenantId = port.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error("FABMGR: ERROR: handlePortUpdateEvent: this is update; ULN is supposed to be in cache: {}",
@@ -1066,7 +1066,7 @@ public class UlnMappingEngine {
         this.handlePortCreateEvent(port);
     }
 
-    public void handleLrUpdateEvent(LogicalRouter lr) {
+    public synchronized void handleLrUpdateEvent(LogicalRouter lr) {
         Uuid tenantId = lr.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error("FABMGR: ERROR: handleLrUpdateEvent: this is update; ULN is supposed to be in cache: {}",
@@ -1099,7 +1099,7 @@ public class UlnMappingEngine {
         this.handleLrCreateEvent(lr);
     }
 
-    public void handleSecurityRuleGroupsUpdateEvent(SecurityRuleGroups ruleGroups) {
+    public synchronized void handleSecurityRuleGroupsUpdateEvent(SecurityRuleGroups ruleGroups) {
         Uuid tenantId = ruleGroups.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error(
@@ -1134,7 +1134,7 @@ public class UlnMappingEngine {
         this.handleSecurityRuleGroupsCreateEvent(ruleGroups);
     }
 
-    public void handleLswUpdateEvent(LogicalSwitch lsw) {
+    public synchronized void handleLswUpdateEvent(LogicalSwitch lsw) {
         Uuid tenantId = lsw.getTenantId();
         if (this.isUlnAlreadyInCache(tenantId) == false) {
             LOG.error("FABMGR: ERROR: handleLswUpdateEvent: this is update; ULN is supposed to be in cache: {}",
@@ -1177,14 +1177,14 @@ public class UlnMappingEngine {
         this.handleLswCreateEvent(lsw);
     }
 
-    public boolean isUlnAlreadyInCache(Uuid tenantId) {
+    private synchronized boolean isUlnAlreadyInCache(Uuid tenantId) {
         if (this.ulnStore.get(tenantId) == null) {
             return false;
         }
         return true;
     }
 
-    public void createUlnCache(Uuid tenantId) {
+    private synchronized void createUlnCache(Uuid tenantId) {
         if (this.isUlnAlreadyInCache(tenantId) == true) {
             LOG.warn("FABMGR: ERROR: createUlnCache: ULN already cached: {}", tenantId.getValue());
             this.ulnStore.remove(tenantId);
@@ -1193,10 +1193,50 @@ public class UlnMappingEngine {
         this.ulnStore.put(tenantId, new UserLogicalNetworkCache(tenantId));
     }
 
-    public void createUlnCacheIfNotExist(Uuid tenantId) {
+    private synchronized void createUlnCacheIfNotExist(Uuid tenantId) {
         if (this.ulnStore.get(tenantId) == null) {
             this.ulnStore.put(tenantId, new UserLogicalNetworkCache(tenantId));
         }
     }
 
+    public void initialize() {
+        this.exec.execute(new Runnable() {
+
+            public void run() {
+                try {
+                    for (;;) {
+                        workerThreadLock.acquire();
+                        LOG.debug("FABMGR: run: acquired the lock; start to work");
+                        /*
+                         * We enter here implying that at lease one ULN
+                         * event has taken place (event listener calls
+                         * lock.release()). While we are calling checkUlnCache(),
+                         * there might be more ULN events taking place. In that case,
+                         * lock permits increases, so that we will be able to acquire
+                         * the lock again in the next loop iteration.
+                         */
+                        int numOfJobs = workerThreadLock.availablePermits();
+                        LOG.debug("FABMGR: calling checkUlnCache(), numOfJobs={}", numOfJobs);
+                        checkUlnCache();
+                    }
+                } catch (InterruptedException e) {
+                    workerThreadLock.release();
+                    LOG.error("FABMGR: ERROR: initialize:", e);
+                }
+            }
+        });
+
+    }
+
+    public synchronized int getPendingUlnEventCounter() {
+        return pendingUlnEventCounter;
+    }
+
+    public synchronized void incPendingUlnEventCounter() {
+        this.pendingUlnEventCounter++;
+    }
+
+    public synchronized void decPendingUlnEventCounter() {
+        this.pendingUlnEventCounter--;
+    }
 }

@@ -30,6 +30,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Output;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
@@ -44,6 +45,7 @@ public class FabricMgrProvider implements AutoCloseable {
     private final VcontainerServiceProvider vcProvider;
     private final VcNetNodeServiceProvider netNodeServiceProvider;
     private Map<Uuid, VcConfigDataMgr> vcConfigDataMgrList; // tenantId-Vcontainer lookup map
+    private VcNetNodeService vcNetNodeService;
 
     public FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
             final NotificationService notificationService) {
@@ -59,6 +61,7 @@ public class FabricMgrProvider implements AutoCloseable {
         this.netNodeServiceProvider = new VcNetNodeServiceProvider(this.threadPool);
         this.netNodeServiceProvider.initialize();
 
+        this.vcNetNodeService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(VcNetNodeService.class);
         this.vcConfigDataMgrList = new ConcurrentHashMap<Uuid, VcConfigDataMgr>();
 
         VcontainerServiceProviderAPI.setFabricMgrProvider(this);
@@ -74,6 +77,7 @@ public class FabricMgrProvider implements AutoCloseable {
     }
 
     public NodeId createLneLayer2(Uuid tenantId, CreateLneLayer2Input lneInput) {
+        LOG.trace("enter createLneLayer2: {}, {}", tenantId.getValue(), lneInput);
         CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder(lneInput);
         if (this.vcConfigDataMgrList.containsKey(tenantId) == false) {
             LOG.error("FABMGR: ERROR: createLneLayer2: tenant nout found: {}", tenantId.getValue());
@@ -91,7 +95,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ----->
         }
 
-        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        NodeId vfabricId = vcMgr.getAvailableVfabricResource();
         if (vfabricId != null) {
             builder.setVfabricId(vfabricId);
         } else {
@@ -99,8 +103,10 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ---->
         }
 
+        LOG.trace("FABMGR: about to call createLneLayer2");
         NodeId nodeId = null;
-        Future<RpcResult<CreateLneLayer2Output>> result = this.netNodeServiceProvider.createLneLayer2(builder.build());
+        Future<RpcResult<CreateLneLayer2Output>> result = this.vcNetNodeService.createLneLayer2(builder.build());
+        LOG.trace("FABMGR: createLneLayer2 returns");
         try {
             RpcResult<CreateLneLayer2Output> output = result.get();
             if (output.isSuccessful()) {
@@ -112,6 +118,7 @@ public class FabricMgrProvider implements AutoCloseable {
             LOG.error("FABMGR: ERROR: createLneLayer2: createLogicSwitch RPC failed: {}", e);
         }
 
+        LOG.debug("FABMGR: createLneLayer2: lswId={}", nodeId.getValue());
         return nodeId;
     }
 
@@ -123,7 +130,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ----->
         }
 
-        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        NodeId vfabricId = vcMgr.getAvailableVfabricResource();
         if (vfabricId != null) {
             builder.setVfabricId(vfabricId);
         } else {
@@ -131,9 +138,8 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ---->
         }
 
-        this.netNodeServiceProvider.createLneLayer3(builder.build());
         NodeId nodeId = null;
-        Future<RpcResult<CreateLneLayer3Output>> result = this.netNodeServiceProvider.createLneLayer3(builder.build());
+        Future<RpcResult<CreateLneLayer3Output>> result = this.vcNetNodeService.createLneLayer3(builder.build());
         try {
             RpcResult<CreateLneLayer3Output> output = result.get();
             if (output.isSuccessful()) {
@@ -145,6 +151,7 @@ public class FabricMgrProvider implements AutoCloseable {
             LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed: {}", e);
         }
 
+        LOG.debug("FABMGR: createLneLayer3: lrId={}", nodeId.getValue());
         return nodeId;
     }
 
@@ -155,7 +162,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ----->
         }
 
-        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        NodeId vfabricId = vcMgr.getAvailableVfabricResource();
         if (vfabricId == null) {
             LOG.error("FABMGR: ERROR: attachEpToLneLayer2: vfabricId is null: {}", tenantId.getValue());
             return null; // ---->
@@ -190,7 +197,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ----->
         }
 
-        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        NodeId vfabricId = vcMgr.getAvailableVfabricResource();
         if (vfabricId == null) {
             LOG.error("FABMGR: ERROR: createLogicalPortOnLneLayer2: vfabricId is null: {}", tenantId.getValue());
             return null; // ---->
@@ -209,7 +216,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return; // ----->
         }
 
-        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        NodeId vfabricId = vcMgr.getAvailableVfabricResource();
         if (vfabricId == null) {
             LOG.error("FABMGR: ERROR: createLrLswGateway: vfabricId is null: {}", tenantId.getValue());
             return; // ---->
@@ -243,7 +250,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return; // ----->
         }
 
-        NodeId vfabricId = vcMgr.getAvailabeVfabricResource();
+        NodeId vfabricId = vcMgr.getAvailableVfabricResource();
         if (vfabricId == null) {
             LOG.error("FABMGR: ERROR: createAcl: vfabricId is null: {}", tenantId.getValue());
             return; // ---->

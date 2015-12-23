@@ -17,6 +17,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.r
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
@@ -26,21 +27,25 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 
 public class UlnUtil {
 
-    public static CreateLneLayer2Input createLneLayer2Input(LogicalSwitch lsw) {
+    public static CreateLneLayer2Input createLneLayer2Input(Uuid tenantId, LogicalSwitch lsw) {
         CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder();
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid lswId =
                 new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
                         lsw.getUuid().getValue());
+        builder.setTenantId(new TenantId(tenantId.getValue()));
         builder.setLswUuid(lswId);
+        builder.setName(lswId.getValue());
         return builder.build();
     }
 
-    public static CreateLneLayer3Input createLneLayer3Input(LogicalRouter lr) {
+    public static CreateLneLayer3Input createLneLayer3Input(Uuid tenantId, LogicalRouter lr) {
         CreateLneLayer3InputBuilder builder = new CreateLneLayer3InputBuilder();
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid lrId =
                 new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
                         lr.getUuid().getValue());
+        builder.setTenantId(new TenantId(tenantId.getValue()));
         builder.setLrUuid(lrId);
+        builder.setName(lrId.getValue());
         return builder.build();
     }
 
