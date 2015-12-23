@@ -107,6 +107,12 @@ public class FabricInstance implements FabricRenderer {
     	}
     }
 
+    public void notifyGatewayRemoved(NodeId lswId, NodeId lrId) {
+    	for (FabricListener listener : listeners) {
+    		listener.gatewayRemoved(lswId, lrId);
+    	}
+    }
+    
     public void notifyLogicSwitchCreated(NodeId nodeId, Node lsw) {
     	for (FabricListener listener : listeners) {
     		listener.logicSwitchCreated(nodeId, lsw);

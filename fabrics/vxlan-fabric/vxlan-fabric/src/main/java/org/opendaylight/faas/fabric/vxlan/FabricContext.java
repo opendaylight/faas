@@ -98,6 +98,16 @@ public class FabricContext implements AutoCloseable {
         	devices.get(device).createBDIF(switchCtx.getVni(), routerCtx);
         }
     }
+
+    public void unAssociateSwitchToRouter(NodeId lsw, NodeId lr) {
+        LogicRouterContext routerCtx = getLogicRouterCtx(lr);
+        LogicSwitchContext switchCtx = getLogicSwitchCtx(lsw);
+
+        GatewayPort gwPort = switchCtx.unAssociateToRouter(routerCtx);
+        for (DeviceKey device : switchCtx.getMembers()) {
+        	devices.get(device).removeBDIF(switchCtx.getVni(), gwPort);
+        }
+    }
     
     public DeviceContext getDeviceCtx(DeviceKey key) {
         return devices.get(key);

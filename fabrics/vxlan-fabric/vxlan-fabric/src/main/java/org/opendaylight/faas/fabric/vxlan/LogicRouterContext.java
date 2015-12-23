@@ -33,8 +33,12 @@ public class LogicRouterContext {
         return vrf;
     }
 
-    public void addGatewayPort(IpPrefix ip, long vni, NodeId lsw) {
-        gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw));
+    public GatewayPort addGatewayPort(IpPrefix ip, long vni, NodeId lsw) {
+        return gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw));
+    }
+
+    public GatewayPort removeGatewayPort(long vni) {
+    	return gatewayPorts.remove(vni);
     }
 
     public GatewayPort getGatewayPortByVni(long vni) {

@@ -1186,7 +1186,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             Buckets buckets = groupBuilder.getBuckets();
             List<Action> bucketActions = Lists.newArrayList();
             for (Bucket bucket : buckets.getBucket()) {
-                if ((destTunnelIp != null) && (bucket.getBucketId().getValue() == 1l)) {
+//                if ((destTunnelIp != null) && (bucket.getBucketId().getValue() == 1l)) {
+                if (bucket.getBucketId().getValue() == 1l) {
                     // remove port from the bucket id = 1
                     int index = 0;
                     boolean isPortDeleted = false;

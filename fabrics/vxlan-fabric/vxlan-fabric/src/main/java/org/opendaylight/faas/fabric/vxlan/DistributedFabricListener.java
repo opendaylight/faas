@@ -274,4 +274,10 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 	public void logicRouterRemoved(Node lr) {
 		fabricCtx.removeLogicSwitch(lr.getNodeId());
 	}
+
+	@Override
+	public void gatewayRemoved(NodeId lswId, NodeId lrId) {
+		fabricCtx.unAssociateSwitchToRouter(lswId, lrId);
+		
+	}
 }

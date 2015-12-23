@@ -30,7 +30,9 @@ public interface FabricListener {
     void logicRouterCreated(NodeId nodeId, Node lr);
 
     void logicRouterRemoved(Node lr);
-    
+
+    void gatewayRemoved(NodeId lswId, NodeId lrId);
+
     void aclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete);
 
 }

@@ -80,7 +80,10 @@ public class DeviceContext {
 
     	LogicRouterContext vrfctx = switchCtx.getVrfCtx();
     	if (vrfctx != null) {
-    		removeBDIF(vni, vrfctx);
+    		GatewayPort gw = vrfctx.getGatewayPortByVni(vni);
+    		if (gw != null) {
+    			removeBDIF(vni, gw);
+    		}
     	}
     }
 
@@ -91,10 +94,9 @@ public class DeviceContext {
         syncToDom(gw, false);
     }
 
-    void removeBDIF(long vni, LogicRouterContext vrfctx) {
+    void removeBDIF(long vni, GatewayPort gw) {
     	bdifs.remove(vni);
 
-    	GatewayPort gw = vrfctx.getGatewayPortByVni(vni);
     	syncToDom(gw, true);
     }
 

@@ -7,6 +7,7 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,6 +100,19 @@ public class LogicSwitchContext implements AutoCloseable {
 
         inhertAcls.addAll(vrfCtx.getAcls());
         writeToDom(false, vrfCtx.getAcls());
+    }
+
+    public GatewayPort unAssociateToRouter(LogicRouterContext vrfCtx) {
+    	LogicRouterContext oldVrfCtx = this.vrfCtx;
+    	this.vrfCtx = null;
+
+    	GatewayPort gwPort = oldVrfCtx.removeGatewayPort(vni);
+    	List<String> oldAcls = Collections.unmodifiableList(inhertAcls);
+    	inhertAcls.clear();
+    	if (!oldAcls.isEmpty()) {
+    		writeToDom(true, oldAcls);
+    	}
+    	return gwPort;
     }
 
     public LogicRouterContext getVrfCtx() {

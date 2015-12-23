@@ -59,9 +59,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logic.port.Layer3InfoBuilder;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNode;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeBuilder;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.LinkId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -80,6 +77,9 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNode;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
@@ -127,8 +127,13 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     @Override
     public Future<RpcResult<Void>> rmGateway(RmGatewayInput input) {
         FabricId fabricid = input.getFabricId();
-        NodeId routeid = input.getLogicRouter();
+        final NodeId routerid = input.getLogicRouter();
         IpAddress gwip = input.getIpAddress();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+        }
 
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
@@ -139,27 +144,34 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         tpOnRouter = new TpId(String.valueOf(gwip.getValue()));
         if (tpOnRouter != null) {
-            link = findGWLink(trans, fabricid, tpOnRouter);
+            link = findGWLink(trans, fabricid, tpOnRouter, routerid);
+            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLinkIId(fabricid, link.getLinkId()));
         }
         if (link != null) {
             lswId = link.getDestination().getDestNode();
             tpOnSwitch = link.getDestination().getDestTp();
+            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, lswId, tpOnSwitch));
         }
 
-        trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, routeid, tpOnRouter));
-        trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, lswId, tpOnSwitch));
-        trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLinkIId(fabricid, link.getLinkId()));
+        final NodeId flswid = lswId == null ? null : lswId;
+        
+        trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, routerid, tpOnRouter));
 
-        trans.submit();
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
-        return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+            	fabricObj.notifyGatewayRemoved(flswid, routerid);
+            	
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }}, executor);
     }
 
-    private Link findGWLink(ReadWriteTransaction trans, FabricId fabricid, TpId tpid) {
+    private Link findGWLink(ReadWriteTransaction trans, FabricId fabricid, TpId tpid, NodeId routerid) {
 
         InstanceIdentifier<Link> linkIId = InstanceIdentifier.create(NetworkTopology.class)
         .child(Topology.class, new TopologyKey(new TopologyId(fabricid)))
-        .child(Link.class);
+        .child(Link.class, new LinkKey(this.createGatewayLink(routerid, tpid)));
 
         CheckedFuture<Optional<Link>,ReadFailedException> readFuture =  trans.read(LogicalDatastoreType.OPERATIONAL, linkIId);
 
@@ -213,7 +225,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     @Override
     public Future<RpcResult<Void>> createGateway(CreateGatewayInput input) {
         final FabricId fabricid = input.getFabricId();
-        final NodeId routeId = input.getLogicRouter();
+        final NodeId routerId = input.getLogicRouter();
         final NodeId swId = input.getLogicSwitch();
 
         final IpAddress gwIp = input.getIpAddress();
@@ -234,26 +246,31 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 
         // add logic port to Router
-        TpId tpid1 = createGWPortOnRouter(fabricid, routeId, gwIp, ipPrefix, trans);
+        TpId tpid1 = createGWPortOnRouter(fabricid, routerId, gwIp, ipPrefix, trans);
 
         // add logic port to switch
         TpId tpid2 = createGWPortOnSwitch(fabricid, swId, trans);
 
         // add link
-        createLogicLink(fabricid, routeId, swId, trans, tpid1, tpid2);
+        LinkId linkId = createGatewayLink(routerId, tpid1);
+        createLogicLink(fabricid, routerId, swId, trans, tpid1, tpid2, linkId);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.buildGateway(swId, ipPrefix, routeId, fabricid);
+                fabricObj.buildGateway(swId, ipPrefix, routerId, fabricid);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
     }
 
+    private LinkId createGatewayLink(NodeId routerId, TpId gwPort) {
+    	return new LinkId(String.format("gateway:%s, router:%s", gwPort.getValue(), routerId));
+    }
+    
     private void createLogicLink(FabricId fabricid, NodeId routeId, NodeId swId, WriteTransaction trans, TpId tpid1,
-            TpId tpid2) {
-        final LinkId linkid = new LinkId(UUID.randomUUID().toString());
+            TpId tpid2, LinkId lid) {
+        final LinkId linkid = lid == null ? new LinkId(UUID.randomUUID().toString()) : lid;
         InstanceIdentifier<Link> linkIId = MdSalUtils.createLinkIId(fabricid, linkid);
         LinkBuilder linkBuilder = new LinkBuilder();
         linkBuilder.setLinkId(linkid);
@@ -404,7 +421,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 
-        trans.delete(LogicalDatastoreType.CONFIGURATION, tpIId);
+        trans.delete(LogicalDatastoreType.OPERATIONAL, tpIId);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
