@@ -65,12 +65,16 @@ def get_tenant_data():
               {
                 "id": "bridge-domain1",
                 "parent": "l3-context-vrf-red"
+              },
+              {
+                "id": "bridge-domain2",
+                "parent": "l3-context-vrf-red"
               }
             ],
             "l2-flood-domain": [
               {
-                "id": "flood-domain-1",
-                "parent": "bridge-domain1"
+                "id": "flood-domain2",
+                "parent": "bridge-domain2"
               },
               {
                 "id": "flood-domain1",
@@ -86,7 +90,7 @@ def get_tenant_data():
               {
                 "id": "subnet-10.0.35.0/24",
                 "ip-prefix": "10.0.35.1/24",
-                "parent": "flood-domain-1",
+                "parent": "flood-domain2",
                 "virtual-router-ip": "10.0.35.1"
               },
               {
@@ -271,7 +275,7 @@ def get_endpoint_data():
 
         "network-containment" : "subnet-10.0.35.0/24",
 
-        "l2-context": "bridge-domain1", 
+        "l2-context": "bridge-domain2", 
         "mac-address": "00:00:00:00:35:02", 
 
         "l3-address": [
@@ -292,7 +296,7 @@ def get_endpoint_data():
 
         "network-containment" : "subnet-10.0.35.0/24",
 
-        "l2-context": "bridge-domain1", 
+        "l2-context": "bridge-domain2", 
         "mac-address": "00:00:00:00:35:03", 
 
         "l3-address": [
@@ -313,7 +317,7 @@ def get_endpoint_data():
 
         "network-containment" : "subnet-10.0.35.0/24",
 
-        "l2-context": "bridge-domain1", 
+        "l2-context": "bridge-domain2", 
         "mac-address": "00:00:00:00:35:04", 
 
         "l3-address": [
@@ -334,7 +338,7 @@ def get_endpoint_data():
 
         "network-containment" : "subnet-10.0.35.0/24",
 
-        "l2-context": "bridge-domain1", 
+        "l2-context": "bridge-domain2", 
         "mac-address": "00:00:00:00:35:05", 
 
         "l3-address": [
@@ -445,16 +449,16 @@ if __name__ == "__main__":
         sys.exit("No controller set.")
     
 
-    print "tenants"
-    tenants=get(controller,DEFAULT_PORT,CONF_TENANT)
-    print tenants
+    #print "tenants"
+    #tenants=get(controller,DEFAULT_PORT,CONF_TENANT)
+    #print tenants
     
-    print "sending tenant"
-    put(controller, DEFAULT_PORT, get_tenant_uri(), get_tenant_data(),True)
+    print "creating tenant Policy"
+    put(controller, DEFAULT_PORT, get_tenant_uri(), get_tenant_data(),False)
     
     print "registering endpoints"
     for endpoint in get_endpoint_data():
-        post(controller, DEFAULT_PORT, get_endpoint_uri(),endpoint,True)
+        post(controller, DEFAULT_PORT, get_endpoint_uri(),endpoint,False)
         
         
     

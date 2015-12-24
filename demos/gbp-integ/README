@@ -1,0 +1,24 @@
+Those scripts puts a tenant policy, endpoint registrations, and maps
+the resolved policy to faas user logical network. The resolved policy
+is a service profile of two EPGs: Web and App. The Web EPG provides
+public access.
+
+1) layer2:
+    >> rest-faas-renderer.py creates layer 2 communication between Web and App EPGs.
+    >> undo-rest-faas-renderer.py script destroys the tenant and unregister all endpoints, hence
+        destroying all logical networks.
+2) layer3:
+    >> rest-faas-renderer.py creates layer 3 communication between Web and App EPGs.
+    >> undo-rest-faas-renderer.py script destroys the tenant and unregister all endpoints, hence
+        destroying all logical networks.
+
+Helpful links can be used to verify results:
+1) GET http://{{controllerIp}}:{{port}}/restconf/operational/faas:logical-networks
+   This shows how the gbp-faas renderer mapped consumer and providers EPGs
+   to logical routers/switches
+
+2) GET http://{{controllerIp}}:{{port}}/restconf/operational/faas-logical-networks:tenant-logical-networks/
+   This shows how the uln-mapper logical network entities and how they are connected to each other.
+
+3) GET http://{{controllerIp}}:{{port}}/restconf/operational/faas:mapped-tenants-entities/
+   This shows how gbp-faas renderer entities Ids maps to uln-mapper Ids.

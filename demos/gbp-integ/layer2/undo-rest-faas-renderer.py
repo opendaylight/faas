@@ -167,7 +167,7 @@ if __name__ == "__main__":
         sys.exit("No controller set.")
     
     print "unregistering endpoints"
-    post(controller, DEFAULT_PORT, get_endpoint_uri(),get_endpoint_data(),True)
+    post(controller, DEFAULT_PORT, get_endpoint_uri(),get_endpoint_data(),False)
     
     print "delete tenant"
     delete(controller,DEFAULT_PORT,get_tenant_uri())
