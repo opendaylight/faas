@@ -73,7 +73,8 @@ public class UlnUtil {
         NodeId nodeId = epLocation.getNodeId();
         NodeConnectorId nodeConnectorId = epLocation.getNodeConnectorId();
 
-        IpAddress gatewayIpAddr = subnet.getExternalGateways().get(0).getExternalGateway();
+        // IpAddress gatewayIpAddr = subnet.getExternalGateways().get(0).getExternalGateway();
+        IpAddress gatewayIpAddr = subnet.getVirtualRouterIp();
         MacAddress macAddress = epPort.getMacAddress();
         IpAddress ipAddress = epPort.getPrivateIps().get(0).getIpAddress();
 

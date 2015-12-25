@@ -103,7 +103,6 @@ public class UlnMappingEngine {
     private Map<Uuid, UserLogicalNetworkCache> ulnStore;
     private final Executor exec;
     private final Semaphore workerThreadLock;
-    private int pendingUlnEventCounter;
 
     public UlnMappingEngine() {
         /*
@@ -116,10 +115,11 @@ public class UlnMappingEngine {
             this.ulnStore = new ConcurrentHashMap<Uuid, UserLogicalNetworkCache>();
         }
         this.exec = Executors.newSingleThreadExecutor();
-        this.workerThreadLock = new Semaphore(-1); // releases must occur before any acquires will
-                                                   // be
-        // granted. The worker thread is blocked initially.
-        this.pendingUlnEventCounter = 0;
+        /*
+         * Releases must occur before any acquires will be
+         * granted. The worker thread is blocked initially.
+         */
+        this.workerThreadLock = new Semaphore(-1);
     }
 
     public synchronized void handleLswCreateEvent(LogicalSwitch lsw) {
@@ -880,7 +880,16 @@ public class UlnMappingEngine {
          */
         ActionsBuilder actionsBuilder = new ActionsBuilder();
         RuleAction ruleAction = ruleActionList.get(0);
-        ParameterValue pv = ruleAction.getParameterValue().get(0);
+        if (ruleAction == null) {
+            LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: ruleAction is null");
+            return null;
+        }
+        List<ParameterValue> actions = ruleAction.getParameterValue();
+        if (actions == null || actions.isEmpty() == true) {
+            LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: actions is null or empty");
+            return null;
+        }
+        ParameterValue pv = actions.get(0);
         String pvName = pv.getName().getValue();
         if (pvName.equals(PV_PERMIT_TYPE_NAME)) {
             String actionValue = pv.getStringValue();
@@ -1218,6 +1227,10 @@ public class UlnMappingEngine {
                         int numOfJobs = workerThreadLock.availablePermits();
                         LOG.debug("FABMGR: calling checkUlnCache(), numOfJobs={}", numOfJobs);
                         checkUlnCache();
+                        boolean debug = true; // TODO: temp code; remove it
+                        if (numOfJobs == 0 && debug) {
+                            LOG.debug("FABMGR: run: dumpUlnTable: {}", dumpUlnTable());
+                        }
                     }
                 } catch (InterruptedException e) {
                     workerThreadLock.release();
@@ -1228,15 +1241,15 @@ public class UlnMappingEngine {
 
     }
 
-    public synchronized int getPendingUlnEventCounter() {
-        return pendingUlnEventCounter;
-    }
+    private String dumpUlnTable() {
+        StringBuilder sb = new StringBuilder();
+        for (Entry<Uuid, UserLogicalNetworkCache> entry : this.ulnStore.entrySet()) {
+            Uuid tenantId = entry.getKey();
+            sb.append("\n***ULN: " + tenantId.getValue() + "\n");
+            UserLogicalNetworkCache uln = entry.getValue();
+            sb.append(uln.dumpUlnInstance());
+        }
 
-    public synchronized void incPendingUlnEventCounter() {
-        this.pendingUlnEventCounter++;
-    }
-
-    public synchronized void decPendingUlnEventCounter() {
-        this.pendingUlnEventCounter--;
+        return sb.toString();
     }
 }

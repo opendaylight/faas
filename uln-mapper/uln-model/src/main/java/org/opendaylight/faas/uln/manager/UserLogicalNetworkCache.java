@@ -10,6 +10,7 @@ package org.opendaylight.faas.uln.manager;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class UserLogicalNetworkCache {
 
     public enum EdgeType {
-        unknownType, LrToLr, LswToLsw, LrToLsw, LswToSubnet, SubnetToEpLocation
+        unknownType, LrToLr, LswToLsw, LrToLsw, LswToSubnet, SubnetToEpLocation;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(UserLogicalNetworkCache.class);
@@ -528,6 +529,9 @@ public class UserLogicalNetworkCache {
         } else if ((this.isPortSubnetType(leftPortId) && this.isPortEpLocationType(rightPortId))
                 || (this.isPortEpLocationType(leftPortId) && this.isPortSubnetType(rightPortId))) {
             edgeType = EdgeType.SubnetToEpLocation;
+        } else {
+            LOG.trace("FABMGR: findEdgeType: unknown type: leftPortId={}, rightPortId={}", leftPortId.getValue(),
+                    rightPortId.getValue());
         }
 
         return edgeType;
@@ -628,15 +632,16 @@ public class UserLogicalNetworkCache {
         PortMappingInfo port = this.findPortFromPortId(portId);
 
         if (port == null) {
+            LOG.trace("FABMGR: portIsType: port not found: portId={}", portId.getValue());
             return false;
         }
 
         LocationType myType = port.getPort().getLocationType();
         if (myType == portType) {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     /*
@@ -748,5 +753,64 @@ public class UserLogicalNetworkCache {
 
     public void removeSecurityRuleGroupsFromCache(SecurityRuleGroups ruleGroups) {
         this.securityRuleGroupsStore.remove(ruleGroups.getUuid());
+    }
+
+    public String dumpUlnInstance() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("*********** Logical Switch table *****************\n");
+        for (Entry<Uuid, LogicalSwitchMappingInfo> entry : this.lswStore.entrySet()) {
+            LogicalSwitchMappingInfo info = entry.getValue();
+            sb.append("lswId=" + entry.getKey().getValue() + ", " + info.getLsw().getUuid().getValue());
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        sb.append("*********** Logical Router table *****************\n");
+        for (Entry<Uuid, LogicalRouterMappingInfo> entry : this.lrStore.entrySet()) {
+            LogicalRouterMappingInfo info = entry.getValue();
+            sb.append("lrId=" + entry.getKey().getValue() + ", " + info.getLr().getUuid().getValue());
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        sb.append("*********** SecurityRuleGroups table *****************\n");
+        for (Entry<Uuid, SecurityRuleGroupsMappingInfo> entry : securityRuleGroupsStore.entrySet()) {
+            SecurityRuleGroupsMappingInfo info = entry.getValue();
+            sb.append("ruleId=" + entry.getKey().getValue());
+            List<Uuid> ports = info.getSecurityRuleGroups().getPorts();
+            sb.append(", portId=" + ((ports == null || ports.isEmpty()) ? "null" : ports.get(0).getValue()));
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        sb.append("*********** Subnet table *****************\n");
+        for (Entry<Uuid, SubnetMappingInfo> entry : subnetStore.entrySet()) {
+            SubnetMappingInfo info = entry.getValue();
+            sb.append("subnetId=" + entry.getKey().getValue() + ", " + info.getSubnet().getUuid().getValue());
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        sb.append("*********** Port table *****************\n");
+        for (Entry<Uuid, PortMappingInfo> entry : portStore.entrySet()) {
+            PortMappingInfo info = entry.getValue();
+            sb.append("portId=" + entry.getKey().getValue() + ", type=" + info.getPort().getLocationType().toString());
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        sb.append("*********** Edge table *****************\n");
+        for (Entry<Uuid, EdgeMappingInfo> entry : edgeStore.entrySet()) {
+            EdgeMappingInfo info = entry.getValue();
+            sb.append("edgeId=" + entry.getKey().getValue() + ", type=" + this.findEdgeType(info).toString());
+            sb.append(", leftPort=" + info.getEdge().getLeftPortId().getValue());
+            sb.append(", rightPort=" + info.getEdge().getRightPortId().getValue());
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        sb.append("*********** EpLocation table *****************\n");
+        for (Entry<Uuid, EndpointLocationMappingInfo> entry : epLocationStore.entrySet()) {
+            EndpointLocationMappingInfo info = entry.getValue();
+            sb.append("epLocationId=" + entry.getKey().getValue() + ", portId="
+                    + info.getEpLocation().getPort().getValue());
+            sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
+        }
+
+        return sb.toString();
     }
 }
