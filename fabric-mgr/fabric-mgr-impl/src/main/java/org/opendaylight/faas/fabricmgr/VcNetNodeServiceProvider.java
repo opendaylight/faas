@@ -311,16 +311,16 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
-        inputBuilder.setLogicRouter(lrId);
-        inputBuilder.setLogicSwitch(lswId);
-        inputBuilder.setIpAddress(gatewayIpAddr);
-        inputBuilder.setNetwork(ipPrefix);
+        inputBuilder.setLogicRouter(new NodeId(lrId));
+        inputBuilder.setLogicSwitch(new NodeId(lswId));
+        inputBuilder.setIpAddress(new IpAddress(gatewayIpAddr));
+        inputBuilder.setNetwork(new IpPrefix(ipPrefix));
 
         Future<RpcResult<Void>> result = this.fabServiceService.createGateway(inputBuilder.build());
         try {
             RpcResult<Void> output = result.get();
             if (output.isSuccessful()) {
-                LOG.info("FABMGR: createLrLswGateway: createGateway RPC success");
+                LOG.debug("FABMGR: createLrLswGateway: createGateway RPC success");
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed.", e);
@@ -346,7 +346,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         try {
             RpcResult<Void> output = result.get();
             if (output.isSuccessful()) {
-                LOG.info("FABMGR: createAcl: addAcl RPC success");
+                LOG.debug("FABMGR: createAcl: addAcl RPC success");
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createAcl: addAcl RPC failed.", e);

@@ -55,6 +55,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.cont
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.ace.matches.ace.type.ace.ip.ace.ip.version.AceIpv6Builder;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Dscp;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv6Prefix;
@@ -405,6 +406,7 @@ public class UlnMappingEngine {
         SubnetMappingInfo subnet = null;
 
         if (uln.isEdgeLrToLswType(edge) == true) {
+            LOG.trace("FABMGR: doEdgeCreate: found LrToLsw edge: {}", edge.getUuid().getValue());
             PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
             PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
             if (leftPort != null && rightPort != null) {
@@ -431,14 +433,53 @@ public class UlnMappingEngine {
         }
 
         if (canRenderEdge == true) {
+            NodeId lrDevId = null;
+            NodeId lswDevId = null;
+            IpAddress gatewayIp = null;
+            IpPrefix ipPrefix = null;
+
             if (lsw.hasServiceBeenRendered() == false) {
-                this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
-            }
-            if (lr.hasServiceBeenRendered() == false) {
-                this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                lswDevId = this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+            } else {
+                lswDevId = lsw.getRenderedDeviceId();
             }
 
-            this.renderLrLswEdge(tenantId, uln, lr, lsw, subnet, edge);
+            if (lswDevId == null) {
+                LOG.error("FABMGR: doEdgeCreate: lswDevId is null. edgeId={}, lswId={}", edge.getUuid().getValue(),
+                        lsw.getLsw().getUuid().getValue());
+                return;
+            }
+
+            if (lr.hasServiceBeenRendered() == false) {
+                lrDevId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+            } else {
+                lrDevId = lr.getRenderedDeviceId();
+            }
+
+            if (lrDevId == null) {
+                LOG.error("FABMGR: doEdgeCreate: lrDevId is null. edgeId={}, lrId={}", edge.getUuid().getValue(),
+                        lr.getLr().getUuid().getValue());
+                return;
+            }
+
+            gatewayIp = subnet.getSubnet().getVirtualRouterIp();
+            if (gatewayIp == null) {
+                LOG.error("FABMGR: doEdgeCreate: gatewayIp is null. edgeId={}, subnetId={}", edge.getUuid().getValue(),
+                        subnet.getSubnet().getUuid().getValue());
+                return;
+            }
+
+            ipPrefix = subnet.getSubnet().getIpPrefix();
+            if (ipPrefix == null) {
+                LOG.error("FABMGR: doEdgeCreate: ipPrefix is null. edgeId={}, subnetId={}", edge.getUuid().getValue(),
+                        subnet.getSubnet().getUuid().getValue());
+                return;
+            }
+
+            LOG.debug("FABMGR: doEdgeCreate: edgeId={}, lrDevId={}, lswDevId={}, gateway={}, ipPrefix={}",
+                    edge.getUuid().getValue(), lrDevId.getValue(), lswDevId.getValue(),
+                    gatewayIp.getIpv4Address().getValue(), ipPrefix.getIpv4Prefix().getValue());
+            this.renderLrLswEdge(tenantId, uln, lrDevId, lswDevId, gatewayIp, ipPrefix, edge);
         }
     }
 
@@ -489,22 +530,32 @@ public class UlnMappingEngine {
         LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
         if (lsw != null) {
             if (lsw.hasServiceBeenRendered() == false) {
-                LOG.error("FABMGR: ERROR: doSecurityRuleGroupsCreate: lsw not rendered: {}",
+                LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lsw not rendered: {}",
                         lsw.getLsw().getUuid().getValue());
-                this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+                nodeId = this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+            } else {
+                nodeId = lsw.getRenderedDeviceId();
             }
-            nodeId = lsw.getRenderedDeviceId();
-            readyToRender = true;
+            if (nodeId == null) {
+                LOG.error("FABMGR:doSecurityRuleGroupsCreate: lsw nodeId is null");
+            } else {
+                readyToRender = true;
+            }
         } else {
             LogicalRouterMappingInfo lr = uln.findLrFromPortId(portId);
             if (lr != null) {
                 if (lr.hasServiceBeenRendered() == false) {
-                    LOG.error("FABMGR: ERROR: doSecurityRuleGroupsCreate: lr not rendered: {}",
+                    LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lr not rendered: {}",
                             lr.getLr().getUuid().getValue());
-                    this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                    nodeId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                } else {
+                    nodeId = lr.getRenderedDeviceId();
                 }
-                nodeId = lr.getRenderedDeviceId();
-                readyToRender = true;
+                if (nodeId == null) {
+                    LOG.error("FABMGR:doSecurityRuleGroupsCreate: lr nodeId is null");
+                } else {
+                    readyToRender = true;
+                }
             }
         }
 
@@ -513,16 +564,18 @@ public class UlnMappingEngine {
         }
     }
 
-    private void renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+    private NodeId renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
         CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(tenantId, lsw);
         NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLswAsRendered(lsw, renderedLswId);
+        return renderedLswId;
     }
 
-    private void renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
+    private NodeId renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
         CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(tenantId, lr);
         NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLrAsRendered(lr, renderedLrId);
+        return renderedLrId;
     }
 
     private void renderEpRegistration(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation,
@@ -551,11 +604,10 @@ public class UlnMappingEngine {
         lswPortInfo.markAsRendered(renderedPortId);
     }
 
-    private void renderLrLswEdge(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr,
-            LogicalSwitchMappingInfo lsw, SubnetMappingInfo subnet, Edge edge) {
-        VcontainerServiceProviderAPI.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lr.getRenderedDeviceId(),
-                lsw.getRenderedDeviceId(), subnet.getSubnet().getExternalGateways().get(0).getExternalGateway(),
-                subnet.getSubnet().getIpPrefix());
+    private void renderLrLswEdge(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrId, NodeId lswId,
+            IpAddress gatewayIpAddr, IpPrefix ipPrefix, Edge edge) {
+        VcontainerServiceProviderAPI.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lrId, lswId, gatewayIpAddr,
+                ipPrefix);
         uln.markEdgeAsRendered(edge);
     }
 

@@ -425,9 +425,9 @@ public class UserLogicalNetworkCache {
             EdgeMappingInfo edge = entry.getValue();
             if (this.findEdgeType(edge) == EdgeType.LswToSubnet) {
                 PortMappingInfo lswPort = this.findLswPortOnEdge(edge);
-                if (lswPort != null && lswPort.getPort().getLocationId() == lswId) {
+                if (lswPort != null && lswPort.getPort().getLocationId().equals(lswId)) {
                     PortMappingInfo otherPort = this.findOtherPortInEdge(edge, lswPort.getPort().getUuid());
-                    if (otherPort != null && otherPort.getPort().getLocationType() == LocationType.SwitchType) {
+                    if (otherPort != null && otherPort.getPort().getLocationType() == LocationType.SubnetType) {
                         subnetLswEdge = edge;
                     } else {
                         LOG.error("FABMGR: ERROR: findSubnetLswEdge: otherPort is not subnet type");
