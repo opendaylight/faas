@@ -760,14 +760,18 @@ public class UserLogicalNetworkCache {
         sb.append("*********** Logical Switch table *****************\n");
         for (Entry<Uuid, LogicalSwitchMappingInfo> entry : this.lswStore.entrySet()) {
             LogicalSwitchMappingInfo info = entry.getValue();
-            sb.append("lswId=" + entry.getKey().getValue() + ", " + info.getLsw().getUuid().getValue());
+            sb.append("lswId=" + entry.getKey().getValue());
+            sb.append(", renderedDevId="
+                    + ((info.getRenderedDeviceId() == null) ? "null" : info.getRenderedDeviceId().getValue()));
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }
 
         sb.append("*********** Logical Router table *****************\n");
         for (Entry<Uuid, LogicalRouterMappingInfo> entry : this.lrStore.entrySet()) {
             LogicalRouterMappingInfo info = entry.getValue();
-            sb.append("lrId=" + entry.getKey().getValue() + ", " + info.getLr().getUuid().getValue());
+            sb.append("lrId=" + entry.getKey().getValue());
+            sb.append(", renderedDevId="
+                    + ((info.getRenderedDeviceId() == null) ? "null" : info.getRenderedDeviceId().getValue()));
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }
 
@@ -777,6 +781,12 @@ public class UserLogicalNetworkCache {
             sb.append("ruleId=" + entry.getKey().getValue());
             List<Uuid> ports = info.getSecurityRuleGroups().getPorts();
             sb.append(", portId=" + ((ports == null || ports.isEmpty()) ? "null" : ports.get(0).getValue()));
+            List<String> aclNameList = info.getRenderedAclNameList();
+            if (aclNameList != null && aclNameList.isEmpty() == false) {
+                for (String aclName : aclNameList) {
+                    sb.append(", " + aclName);
+                }
+            }
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }
 

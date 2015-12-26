@@ -886,50 +886,59 @@ public class UlnMappingEngine {
         }
         List<ParameterValue> actions = ruleAction.getParameterValue();
         if (actions == null || actions.isEmpty() == true) {
-            LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: actions is null or empty");
-            return null;
-        }
-        ParameterValue pv = actions.get(0);
-        String pvName = pv.getName().getValue();
-        if (pvName.equals(PV_PERMIT_TYPE_NAME)) {
-            String actionValue = pv.getStringValue();
-            if (actionValue.equals(PV_ACTION_VALUE_ALLOW) == true) {
-                PermitBuilder permitBuilder = new PermitBuilder();
-                permitBuilder.setPermit(true);
-                actionsBuilder.setPacketHandling(permitBuilder.build());
-            } else if (actionValue.equals(PV_ACTION_VALUE_DENY) == true) {
-                DenyBuilder denyBuilder = new DenyBuilder();
-                denyBuilder.setDeny(true);
-                actionsBuilder.setPacketHandling(denyBuilder.build());
-            } else {
-                LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: unknown actionValue: {}", actionValue);
-            }
-
-        } else if (pvName.equals(PV_SFC_TYPE_NAME)) {
             /*
-             * This is SFC case.
+             * The policy rules inherited from GBP may allow null P-V list
+             * in actions. Although from real use case perspective, null P-V list
+             * in actions may provide few practical values, this function decides
+             * to handle the case more gracefully than disruptively -- if the function
+             * aborts here and returns null, SFC provider will generate exceptions.
              */
-            Direction direction = classifier.getDirection();
-            String sfcChainName = pv.getStringValue();
-            LOG.debug("FABMGR: createAceFromSecurityRuleEntry: ADD sfc chain: {}", sfcChainName);
-            SfcChainHeader sfcChainHeader = retrieveSfcChain(sfcChainName, direction);
-            if (sfcChainHeader == null) {
-                LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: retrieveSfcChain() failed");
+            LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: actions is null or empty");
+            PermitBuilder permitBuilder = new PermitBuilder();
+            permitBuilder.setPermit(true);
+            actionsBuilder.setPacketHandling(permitBuilder.build());
+        } else {
+            ParameterValue pv = actions.get(0);
+            String pvName = pv.getName().getValue();
+            if (pvName.equals(PV_PERMIT_TYPE_NAME)) {
+                String actionValue = pv.getStringValue();
+                if (actionValue.equals(PV_ACTION_VALUE_ALLOW) == true) {
+                    PermitBuilder permitBuilder = new PermitBuilder();
+                    permitBuilder.setPermit(true);
+                    actionsBuilder.setPacketHandling(permitBuilder.build());
+                } else if (actionValue.equals(PV_ACTION_VALUE_DENY) == true) {
+                    DenyBuilder denyBuilder = new DenyBuilder();
+                    denyBuilder.setDeny(true);
+                    actionsBuilder.setPacketHandling(denyBuilder.build());
+                } else {
+                    LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: unknown actionValue: {}", actionValue);
+                }
+            } else if (pvName.equals(PV_SFC_TYPE_NAME)) {
+                /*
+                 * This is SFC case.
+                 */
+                Direction direction = classifier.getDirection();
+                String sfcChainName = pv.getStringValue();
+                LOG.debug("FABMGR: createAceFromSecurityRuleEntry: ADD sfc chain: {}", sfcChainName);
+                SfcChainHeader sfcChainHeader = retrieveSfcChain(sfcChainName, direction);
+                if (sfcChainHeader == null) {
+                    LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: retrieveSfcChain() failed");
+                }
+
+                NshBuilder nshBuilder = new NshBuilder();
+                nshBuilder.setDestIp(new IpAddress(sfcChainHeader.getNshTunIpDst()));
+                nshBuilder.setDestPort(sfcChainHeader.getNshTunUdpPort());
+                nshBuilder.setNsi(sfcChainHeader.getNshNsiToChain());
+                nshBuilder.setNsp(sfcChainHeader.getNshNspToChain());
+
+                TunnelBuilder tunnelBuilder = new TunnelBuilder();
+                tunnelBuilder.setTunnelType(nshBuilder.build());
+
+                RedirectBuilder redirectBuilder = new RedirectBuilder();
+                redirectBuilder.setRedirectType(tunnelBuilder.build());
+
+                actionsBuilder.setPacketHandling(redirectBuilder.build());
             }
-
-            NshBuilder nshBuilder = new NshBuilder();
-            nshBuilder.setDestIp(new IpAddress(sfcChainHeader.getNshTunIpDst()));
-            nshBuilder.setDestPort(sfcChainHeader.getNshTunUdpPort());
-            nshBuilder.setNsi(sfcChainHeader.getNshNsiToChain());
-            nshBuilder.setNsp(sfcChainHeader.getNshNspToChain());
-
-            TunnelBuilder tunnelBuilder = new TunnelBuilder();
-            tunnelBuilder.setTunnelType(nshBuilder.build());
-
-            RedirectBuilder redirectBuilder = new RedirectBuilder();
-            redirectBuilder.setRedirectType(tunnelBuilder.build());
-
-            actionsBuilder.setPacketHandling(redirectBuilder.build());
         }
 
         // set matches and actions

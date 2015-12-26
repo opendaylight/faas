@@ -332,8 +332,16 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
         inputBuilder.setAclName(aclName);
-        inputBuilder.setLogicDevice(nodeId);
+        /*
+         * NOTE: The NodeId must be new'd before passing to RPC. Otherwise,
+         * addAcl() PRC return failure, because Fabric cannot find the logic
+         * device in its Cache map using the nodeId as search key.
+         */
+        NodeId deviceId = new NodeId(nodeId.getValue());
+        inputBuilder.setLogicDevice(deviceId);
 
+        LOG.debug("FABMGR: createAcl: fabricId={}, deviceId={}, aclName={}", fabricId.getValue(), deviceId.getValue(),
+                aclName);
         Future<RpcResult<Void>> result = this.fabServiceService.addAcl(inputBuilder.build());
         try {
             RpcResult<Void> output = result.get();
