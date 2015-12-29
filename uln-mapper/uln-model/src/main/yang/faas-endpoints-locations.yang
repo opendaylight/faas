@@ -16,28 +16,44 @@ module faas-endpoints-locations {
         description "Initial revision";
     }
 
+    grouping faas-port-ref {
+        leaf faas-port-ref-id {
+            description "faas port cross reference. It is used to relate faas endpoints with other systems endpoints like groupbasedpolicy";
+            mandatory true;
+            type faas-common:uuid;
+        }
+        leaf port-name {
+            description "the original port name such as neutron name";
+            type faas-common:text;
+        }
+        leaf node-id {
+            description "The switch for this attached endpoint";
+            type inv:node-id;
+        }
+        leaf node-connector-id {
+            description "The switch connector that this endpoint is attached to";
+            type inv:node-connector-id;
+        }
+    }
+
     grouping endpoints-locations-container {
         container endpoints-locations {
             list endpoint-location {
                 key "uuid";
                 uses faas-common:base-attributes;
+                uses faas-port-ref;
                 leaf port {
                     description "The port connected to this endpoint location";
                     type faas-common:uuid;
                 }
-                leaf original-port-name {
-                    description "the original port name such as neutron name";
-                    type faas-common:text;
-                }
-                leaf node-id {
-                    description "The switch for this attached endpoint";
-                    type inv:node-id;
-                }
-                leaf node-connector-id {
-                    description "The switch connector that this endpoint is attached to";
-                    type inv:node-connector-id;
-                }
             }
+        }
+    }
+    rpc register-endpoint-location {
+        description
+                "Register endpoint switch location";
+        input {
+            uses faas-port-ref;
         }
     }
 }
