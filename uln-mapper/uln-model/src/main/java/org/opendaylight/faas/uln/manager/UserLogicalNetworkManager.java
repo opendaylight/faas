@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- *
+ * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
@@ -18,6 +18,7 @@ import org.opendaylight.faas.uln.listeners.RouterListener;
 import org.opendaylight.faas.uln.listeners.SecurityRuleGroupsListener;
 import org.opendaylight.faas.uln.listeners.SubnetListener;
 import org.opendaylight.faas.uln.listeners.SwitchListener;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.FaasEndpointsLocationsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,8 @@ public class UserLogicalNetworkManager implements AutoCloseable {
 
     public UserLogicalNetworkManager() {
         LOG.debug("FABMGR: Starting Uln-mapper...");
+        UlnMapperDatastoreDependency.getRpcRegistry().addRpcImplementation(FaasEndpointsLocationsService.class,
+                new FaasServiceImpl());
         int numCPU = Runtime.getRuntime().availableProcessors();
         executor = Executors.newScheduledThreadPool(numCPU * 2);
         routerListener = new RouterListener(executor);
