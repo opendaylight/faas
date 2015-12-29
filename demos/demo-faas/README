@@ -2,7 +2,6 @@
 2. Move the demo-faas directory to the gbpsfc enviroment directory: ~/groupbasedpolicy/demos/gbpsfc-env/
 3. start odl features: odl-restconf odl-sfcofl2 odl-sfc-ui odl-faas-vxlan-fabric odl-faas-vxlan-ovs-adapter
 4. In the gbpsfc-env directory, : #./startdemo.sh demo-faas
-5. python runTest.py
-6. python runSfcTest.py
+5. python ../miinet-enviroment-test/runSfcTest.py
 
 
