@@ -280,117 +280,11 @@ def get_endpoint_data():
                 "l3-context": "l3-context-vrf-red"
             }
         ], 
-        "faas-node-connector-id": "openflow:1:1", 
-        "faas-node-id": "openflow:1",
+        "faas-port-ref-id": "165b3a20-adc7-11e5-bf7f-feff819cdc9f",
         "tenant": "tenant-dobre"
     }
 },
-            {
-    "input": {
-
-        "endpoint-group": "web", 
-
-        "network-containment" : "subnet-10.0.35.0/24",
-
-        "l2-context": "bridge-domain1", 
-        "mac-address": "00:00:00:00:35:03", 
-
-        "l3-address": [
-            {
-                "ip-address": "10.0.35.3", 
-                "l3-context": "l3-context-vrf-red"
-            }
-        ], 
-        "faas-node-connector-id": "openflow:1:2", 
-        "faas-node-id": "openflow:1",
-        "tenant": "tenant-dobre"
-    }
-},
-            {
-    "input": {
-
-        "endpoint-group": "web", 
-
-        "network-containment" : "subnet-10.0.35.0/24",
-
-        "l2-context": "bridge-domain1", 
-        "mac-address": "00:00:00:00:35:04", 
-
-        "l3-address": [
-            {
-                "ip-address": "10.0.35.4", 
-                "l3-context": "l3-context-vrf-red"
-            }
-        ], 
-        "faas-node-connector-id": "openflow:1:3", 
-        "faas-node-id": "openflow:1",
-        "tenant": "tenant-dobre"
-    }
-},
-            {
-    "input": {
-
-        "endpoint-group": "web", 
-
-        "network-containment" : "subnet-10.0.35.0/24",
-
-        "l2-context": "bridge-domain1", 
-        "mac-address": "00:00:00:00:35:05", 
-
-        "l3-address": [
-            {
-                "ip-address": "10.0.35.5", 
-                "l3-context": "l3-context-vrf-red"
-            }
-        ], 
-        "faas-node-connector-id": "openflow:1:4", 
-        "faas-node-id": "openflow:1",
-        "tenant": "tenant-dobre"
-    }
-},
-            {
-    "input": {
-
-        "endpoint-group": "app", 
-
-        "network-containment" : "subnet-10.0.36.0/24",
-
-        "l2-context": "bridge-domain1", 
-        "mac-address": "00:00:00:00:36:02", 
-
-        "l3-address": [
-            {
-                "ip-address": "10.0.36.2", 
-                "l3-context": "l3-context-vrf-red"
-            }
-        ], 
-        "faas-node-connector-id": "openflow:2:1", 
-        "faas-node-id": "openflow:2",
-        "tenant": "tenant-dobre"
-    }
-},
-            {
-    "input": {
-
-        "endpoint-group": "app", 
-
-        "network-containment" : "subnet-10.0.36.0/24",
-
-        "l2-context": "bridge-domain1", 
-        "mac-address": "00:00:00:00:36:03", 
-
-        "l3-address": [
-            {
-                "ip-address": "10.0.36.3", 
-                "l3-context": "l3-context-vrf-red"
-            }
-        ], 
-        "faas-node-connector-id": "openflow:2:2", 
-        "faas-node-id": "openflow:2",
-        "tenant": "tenant-dobre"
-    }
-},
-            {
+{
     "input": {
 
         "endpoint-group": "app", 
@@ -406,34 +300,31 @@ def get_endpoint_data():
                 "l3-context": "l3-context-vrf-red"
             }
         ], 
-        "faas-node-connector-id": "openflow:2:3", 
-        "faas-node-id": "openflow:2",
-        "tenant": "tenant-dobre"
-    }
-},{
-    "input": {
-
-        "endpoint-group": "app", 
-
-        "network-containment" : "subnet-10.0.36.0/24",
-
-        "l2-context": "bridge-domain1", 
-        "mac-address": "00:00:00:00:36:05", 
-
-        "l3-address": [
-            {
-                "ip-address": "10.0.36.5", 
-                "l3-context": "l3-context-vrf-red"
-            }
-        ], 
-        "faas-node-connector-id": "openflow:2:4", 
-        "faas-node-id": "openflow:2",
+        "faas-port-ref-id": "6c82ea5c-ae43-11e5-bf7f-feff819cdc9f",
         "tenant": "tenant-dobre"
     }
 }]
 
 def get_endpoint_uri():
     return "/restconf/operations/endpoint:register-endpoint"
+
+def get_endpoint_location_data():
+    return [{
+    "input": {
+        "node-connector-id": "openflow:1:1", 
+        "node-id": "openflow:1",
+        "faas-port-ref-id": "165b3a20-adc7-11e5-bf7f-feff819cdc9f"
+    }
+},{
+    "input": {
+        "node-connector-id": "openflow:2:1", 
+        "node-id": "openflow:2",
+        "faas-port-ref-id": "6c82ea5c-ae43-11e5-bf7f-feff819cdc9f"
+    }
+}]
+
+def get_endpoint_location_uri():
+    return "/restconf/operations/faas-endpoints-locations:register-endpoint-location"
 
 if __name__ == "__main__":
     # Launch main menu
@@ -455,6 +346,10 @@ if __name__ == "__main__":
     print "registering endpoints"
     for endpoint in get_endpoint_data():
         post(controller, DEFAULT_PORT, get_endpoint_uri(),endpoint,False)
+
+    print "registering endpoints locations"
+    for loc in get_endpoint_location_data():
+        post(controller, DEFAULT_PORT, get_endpoint_location_uri(),loc,False)
         
         
     

@@ -88,32 +88,8 @@ def get_endpoint_data():
              "mac-address": "00:00:00:00:35:02"
           },
           {
-             "l2-context": "bridge-domain2", 
-             "mac-address": "00:00:00:00:35:03"
-          },
-          {
-             "l2-context": "bridge-domain2", 
-             "mac-address": "00:00:00:00:35:04"
-          },
-          {
-             "l2-context": "bridge-domain2", 
-             "mac-address": "00:00:00:00:35:05"
-          },
-          {
-             "l2-context": "bridge-domain1", 
-             "mac-address": "00:00:00:00:36:02"
-          },
-          {
             "l2-context": "bridge-domain1", 
-            "mac-address": "00:00:00:00:36:03"
-          },
-          {
-            "l2-context": "bridge-domain1", 
-            "mac-address": "00:00:00:00:36:04"
-          },
-          {
-            "l2-context": "bridge-domain1", 
-            "mac-address": "00:00:00:00:36:05"
+            "mac-address": "00:00:00:00:36:04",
           }
         ],      
 
@@ -123,31 +99,7 @@ def get_endpoint_data():
                 "l3-context": "l3-context-vrf-red"
             },
             {
-                "ip-address": "10.0.35.3", 
-                "l3-context": "l3-context-vrf-red"
-            },
-            {
-                "ip-address": "10.0.35.4", 
-                "l3-context": "l3-context-vrf-red"
-            },
-            {
-                "ip-address": "10.0.35.5", 
-                "l3-context": "l3-context-vrf-red"
-            },
-            {
-                "ip-address": "10.0.36.2", 
-                "l3-context": "l3-context-vrf-red"
-            },
-            {
-                "ip-address": "10.0.36.3", 
-                "l3-context": "l3-context-vrf-red"
-            },
-            {
                 "ip-address": "10.0.36.4", 
-                "l3-context": "l3-context-vrf-red"
-            },
-            {
-                "ip-address": "10.0.36.5", 
                 "l3-context": "l3-context-vrf-red"
             }
         ]
