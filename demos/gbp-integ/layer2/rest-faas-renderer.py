@@ -171,19 +171,11 @@ def get_tenant_data():
                   }
                 ],
                 "id": "web",
-                "faas-epg-scope-type": "public",
-                #"faas-public-contract-id": "webToAppContract",
-                "faas-epg-subnet": [
-                      "subnet-10.0.35.0/24"
-                 ],
                 "provider-named-selector": []
               },
               {
                 "consumer-named-selector": [],
                 "id": "app",
-                "faas-epg-subnet": [
-                    "subnet-10.0.36.0/24"
-                 ],
                 "provider-named-selector": [
                   {
                     "contract": [
@@ -193,6 +185,11 @@ def get_tenant_data():
                   }
                 ]
               }
+            ],
+            "external-implicit-group": [
+               {
+                 "id": "web"
+               }
             ],
             "subject-feature-instances": {
               "classifier-instance": [

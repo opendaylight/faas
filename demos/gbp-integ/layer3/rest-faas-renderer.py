@@ -190,6 +190,11 @@ def get_tenant_data():
                 ]
               }
             ],
+            "external-implicit-group": [
+               {
+                 "id": "web"
+               }
+            ],
             "subject-feature-instances": {
               "classifier-instance": [
                 {
