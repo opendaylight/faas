@@ -16,11 +16,13 @@ public class EdgeMappingInfo {
     private Edge edge;
     private NodeId renderedDeviceId;
     private boolean serviceHasBeenRendered;
+    private boolean isToBeDeleted;
 
     public EdgeMappingInfo(Edge edge) {
         super();
         this.setEdge(edge);
         this.serviceHasBeenRendered = false;
+        this.isToBeDeleted = false;
     }
 
     public void markAsRendered(NodeId renderedLswId) {
@@ -53,4 +55,11 @@ public class EdgeMappingInfo {
         this.edge = edge;
     }
 
+    public boolean isToBeDeleted() {
+        return this.isToBeDeleted;
+    }
+
+    public void markDeleted() {
+        this.isToBeDeleted = true;
+    }
 }

@@ -200,6 +200,7 @@ public class UlnMappingEngine {
         this.workerThreadLock.release();
     }
 
+    @SuppressWarnings("unused")
     private void doSubnetCreate(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
         /*
          * For subnet, we do not need to render it.
@@ -232,6 +233,7 @@ public class UlnMappingEngine {
      * been rendered, because lsw is rendered upon reception),
      * then we call renderPortOnLsw()
      */
+    @SuppressWarnings("unused")
     private void doPortCreate(Uuid tenantId, UserLogicalNetworkCache uln, Port port) {
         port.getLocationType();
 
@@ -337,7 +339,7 @@ public class UlnMappingEngine {
         }
 
         /*
-         * If we get here, then we get have received all the
+         * If we get here, then we have received all the
          * information that we need in order to do
          * EP registration. The steps are:
          * 1. create LSW
@@ -351,12 +353,15 @@ public class UlnMappingEngine {
 
         if (lswPort.hasServiceBeenRendered() == false) {
             this.renderPortOnLsw(tenantId, uln, lsw, lswPort);
+            uln.addPortToLsw(lsw.getLsw(), lswPort.getPort());
         }
 
         EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
 
         this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedDeviceId(), lswPort.getRenderedDeviceId(),
                 endpoint);
+        uln.setLswIdOnEpLocation(epLocation, lsw.getLsw().getUuid());
+        uln.setLswPortIdOnEpLocation(epLocation, lswPort.getPort().getUuid());
         uln.markEdgeAsRendered(epEdge.getEdge());
         uln.markPortAsRendered(subnetPort.getPort());
         uln.markPortAsRendered(subnetPort2.getPort());
@@ -398,17 +403,20 @@ public class UlnMappingEngine {
          */
         if (uln.isEdgeLrToLrType(edge) || uln.isEdgeLswToLswType(edge)) {
             uln.markEdgeAsRendered(edge);
+            return;
         }
 
         boolean canRenderEdge = false;
         LogicalSwitchMappingInfo lsw = null;
         LogicalRouterMappingInfo lr = null;
         SubnetMappingInfo subnet = null;
+        PortMappingInfo leftPort = null;
+        PortMappingInfo rightPort = null;
 
         if (uln.isEdgeLrToLswType(edge) == true) {
             LOG.trace("FABMGR: doEdgeCreate: found LrToLsw edge: {}", edge.getUuid().getValue());
-            PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
-            PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
+            leftPort = uln.findLeftPortOnEdge(edge);
+            rightPort = uln.findRightPortOnEdge(edge);
             if (leftPort != null && rightPort != null) {
                 if (uln.isPortLswType(leftPort.getPort().getUuid()) == true) {
                     lsw = uln.findLswFromItsPort(leftPort.getPort());
@@ -445,8 +453,8 @@ public class UlnMappingEngine {
             }
 
             if (lswDevId == null) {
-                LOG.error("FABMGR: doEdgeCreate: lswDevId is null. edgeId={}, lswId={}", edge.getUuid().getValue(),
-                        lsw.getLsw().getUuid().getValue());
+                LOG.error("FABMGR: ERROR: doEdgeCreate: lswDevId is null. edgeId={}, lswId={}",
+                        edge.getUuid().getValue(), lsw.getLsw().getUuid().getValue());
                 return;
             }
 
@@ -457,22 +465,22 @@ public class UlnMappingEngine {
             }
 
             if (lrDevId == null) {
-                LOG.error("FABMGR: doEdgeCreate: lrDevId is null. edgeId={}, lrId={}", edge.getUuid().getValue(),
+                LOG.error("FABMGR: ERROR: doEdgeCreate: lrDevId is null. edgeId={}, lrId={}", edge.getUuid().getValue(),
                         lr.getLr().getUuid().getValue());
                 return;
             }
 
             gatewayIp = subnet.getSubnet().getVirtualRouterIp();
             if (gatewayIp == null) {
-                LOG.error("FABMGR: doEdgeCreate: gatewayIp is null. edgeId={}, subnetId={}", edge.getUuid().getValue(),
-                        subnet.getSubnet().getUuid().getValue());
+                LOG.error("FABMGR: ERROR: doEdgeCreate: gatewayIp is null. edgeId={}, subnetId={}",
+                        edge.getUuid().getValue(), subnet.getSubnet().getUuid().getValue());
                 return;
             }
 
             ipPrefix = subnet.getSubnet().getIpPrefix();
             if (ipPrefix == null) {
-                LOG.error("FABMGR: doEdgeCreate: ipPrefix is null. edgeId={}, subnetId={}", edge.getUuid().getValue(),
-                        subnet.getSubnet().getUuid().getValue());
+                LOG.error("FABMGR: ERROR: doEdgeCreate: ipPrefix is null. edgeId={}, subnetId={}",
+                        edge.getUuid().getValue(), subnet.getSubnet().getUuid().getValue());
                 return;
             }
 
@@ -480,6 +488,11 @@ public class UlnMappingEngine {
                     edge.getUuid().getValue(), lrDevId.getValue(), lswDevId.getValue(),
                     gatewayIp.getIpv4Address().getValue(), ipPrefix.getIpv4Prefix().getValue());
             this.renderLrLswEdge(tenantId, uln, lrDevId, lswDevId, gatewayIp, ipPrefix, edge);
+            uln.addLrLswEdgeToLsw(lsw.getLsw(), edge);
+            uln.addLrLswEdgeToLr(lr.getLr(), edge);
+            uln.addGatewayIpToLr(lr.getLr(), gatewayIp);
+            uln.addLrLswEdgeToPort(leftPort.getPort(), edge);
+            uln.addLrLswEdgeToPort(rightPort.getPort(), edge);
         }
     }
 
@@ -539,6 +552,7 @@ public class UlnMappingEngine {
             if (nodeId == null) {
                 LOG.error("FABMGR:doSecurityRuleGroupsCreate: lsw nodeId is null");
             } else {
+                uln.addSecurityRuleGroupsToLsw(lsw.getLsw(), ruleGroups);
                 readyToRender = true;
             }
         } else {
@@ -554,6 +568,7 @@ public class UlnMappingEngine {
                 if (nodeId == null) {
                     LOG.error("FABMGR:doSecurityRuleGroupsCreate: lr nodeId is null");
                 } else {
+                    uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
                     readyToRender = true;
                 }
             }
@@ -619,7 +634,7 @@ public class UlnMappingEngine {
          * One SecurityRule can be mapped to one ietf-acl.
          */
         SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo =
-                uln.getSecurityRuleGroupsStore().get(ruleGroups.getUuid());
+                uln.findSecurityRuleGroupsFromRuleGroupsId(ruleGroups.getUuid());
         if (ruleGroupsMappingInfo == null) {
             LOG.error("FABMGR: ERROR: renderSecurityRuleGroups: ruleGroupsMappingInfo is null");
             return;
@@ -781,58 +796,447 @@ public class UlnMappingEngine {
      * to be rendered immediately and thus may be cached. It can be rendered
      * in the future when its dependencies are rendered.
      */
-    private void checkUlnCache() {
+    private void inspectUlnCache() {
         for (Entry<Uuid, UserLogicalNetworkCache> entry : this.ulnStore.entrySet()) {
             Uuid tenantId = entry.getKey();
             UserLogicalNetworkCache uln = entry.getValue();
-            this.checkAndRenderPendingUlnElements(tenantId, uln);
+            this.processPendingUlnRequests(tenantId, uln);
         }
     }
 
-    private void checkAndRenderPendingUlnElements(Uuid tenantId, UserLogicalNetworkCache uln) {
+    private void processPendingUlnRequests(Uuid tenantId, UserLogicalNetworkCache uln) {
         /*
-         * There are should be no pending LRs and LSWs, because they
-         * are directly rendered upon reception.
+         * For add requests, LR and LSW can be created directly, as
+         * they have no dependencies. For deletion, they cannot be deleted until
+         * ACL rules and logical ports are deleted.
          */
         for (Entry<Uuid, LogicalRouterMappingInfo> lrEntry : uln.getLrStore().entrySet()) {
-            if (lrEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered LR: {}",
-                        lrEntry.getValue().getLr().getUuid().getValue());
-                this.doLogicalRouterCreate(tenantId, uln, lrEntry.getValue().getLr());
+            LogicalRouterMappingInfo info = lrEntry.getValue();
+            if (info.isToBeDeleted() == true) {
+                if (info.hasServiceBeenRendered() == true) {
+                    LOG.debug("FABMGR: processPendingUlnRequests: doLogicalRouterRemove: {}",
+                            info.getLr().getUuid().getValue());
+                    this.doLogicalRouterRemove(tenantId, uln, info.getLr());
+                } else {
+                    LOG.debug("FABMGR: processPendingUlnRequests: removeLrFromCache: {}",
+                            info.getLr().getUuid().getValue());
+                    uln.removeLrFromCache(info.getLr());
+                }
+            } else if (info.hasServiceBeenRendered() == false) {
+                LOG.debug("FABMGR: processPendingUlnRequests: doLogicalRouterCreate: {}",
+                        info.getLr().getUuid().getValue());
+                this.doLogicalRouterCreate(tenantId, uln, info.getLr());
             }
         }
 
+        /*
+         * LR addition dependency: None
+         * LR deletion dependency: ACL, Logical Ports, Gateway
+         */
         for (Entry<Uuid, LogicalSwitchMappingInfo> lswEntry : uln.getLswStore().entrySet()) {
-            if (lswEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered LSW: {}",
-                        lswEntry.getValue().getLsw().getUuid().getValue());
-                this.doLogicalSwitchCreate(tenantId, uln, lswEntry.getValue().getLsw());
+            LogicalSwitchMappingInfo info = lswEntry.getValue();
+            if (info.isToBeDeleted() == true) {
+                if (info.hasServiceBeenRendered() == true) {
+                    LOG.debug("FABMGR: processPendingUlnRequests: doLogicalSwitchRemove: {}",
+                            info.getLsw().getUuid().getValue());
+                    this.doLogicalSwtichRemove(tenantId, uln, info.getLsw());
+                } else {
+                    LOG.debug("FABMGR: processPendingUlnRequests: removeLswFromCache: {}",
+                            info.getLsw().getUuid().getValue());
+                    uln.removeLswFromCache(info.getLsw());
+                }
+            } else if (info.hasServiceBeenRendered() == false) {
+                LOG.debug("FABMGR: processPendingUlnRequests: doLogicalSwitchCreate: {}",
+                        info.getLsw().getUuid().getValue());
+                this.doLogicalSwitchCreate(tenantId, uln, info.getLsw());
             }
         }
 
+        /*
+         * EP addition dependency: LSW
+         * EP deletion dependency: None
+         */
         for (Entry<Uuid, EndpointLocationMappingInfo> epEntry : uln.getEpLocationStore().entrySet()) {
-            if (epEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered EP: {}",
-                        epEntry.getValue().getEpLocation().getUuid().getValue());
-                this.doEndpointLocationCreate(tenantId, uln, epEntry.getValue().getEpLocation());
+            EndpointLocationMappingInfo info = epEntry.getValue();
+            if (info.isToBeDeleted() == true) {
+                if (info.hasServiceBeenRendered() == true) {
+                    LOG.debug("FABMGR: processPendingUlnRequests: doEndpointLocationRemove: {}",
+                            info.getEpLocation().getUuid().getValue());
+                    this.doEndpointLocationRemove(tenantId, uln, info.getEpLocation());
+                } else {
+                    LOG.debug("FABMGR: processPendingUlnRequests: removeEpLocationFromCache: {}",
+                            info.getEpLocation().getUuid().getValue());
+                    uln.removeEpLocationFromCache(info.getEpLocation());
+                }
+            } else if (info.hasServiceBeenRendered() == false) {
+                LOG.debug("FABMGR: processPendingUlnRequests: doEndpointLocationCreate: {}",
+                        info.getEpLocation().getUuid().getValue());
+                this.doEndpointLocationCreate(tenantId, uln, info.getEpLocation());
             }
         }
 
+        /*
+         * LSW-LR Edge addition dependency: LSW and LR
+         * LSW-LR Edge deletion dependency: None
+         *
+         * NOTE: LSW-LR Edge is mapped to gateway. Other edge types are
+         * not mapped.
+         */
         for (Entry<Uuid, EdgeMappingInfo> edgeEntry : uln.getEdgeStore().entrySet()) {
-            if (edgeEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered edge: {}",
-                        edgeEntry.getValue().getEdge().getUuid().getValue());
-                this.doEdgeCreate(tenantId, uln, edgeEntry.getValue().getEdge());
+            EdgeMappingInfo info = edgeEntry.getValue();
+            if (info.isToBeDeleted() == true) {
+                if (info.hasServiceBeenRendered() == true) {
+                    LOG.debug("FABMGR: processPendingUlnRequests: doEdgeRemove: {}",
+                            info.getEdge().getUuid().getValue());
+                    this.doEdgeRemove(tenantId, uln, info.getEdge());
+                } else {
+                    LOG.debug("FABMGR: processPendingUlnRequests: removeEdgeFromCache: {}",
+                            info.getEdge().getUuid().getValue());
+                    uln.removeEdgeFromCache(info.getEdge());
+                }
+            } else if (info.hasServiceBeenRendered() == false) {
+                LOG.debug("FABMGR: processPendingUlnRequests: doEdgeCreate: {}", info.getEdge().getUuid().getValue());
+                this.doEdgeCreate(tenantId, uln, info.getEdge());
             }
         }
 
+        /*
+         * ACL addition dependency: LSW or LR
+         * ACL deletion dependency: None
+         */
         for (Entry<Uuid, SecurityRuleGroupsMappingInfo> rulesEntry : uln.getSecurityRuleGroupsStore().entrySet()) {
-            if (rulesEntry.getValue().hasServiceBeenRendered() == false) {
-                LOG.debug("FABMGR: checkAndRenderPendingUlnElements: found unrendered rules: {}",
+            if (rulesEntry.getValue().isToBeDeleted() == true) {
+                if (rulesEntry.getValue().hasServiceBeenRendered() == true) {
+                    LOG.debug("FABMGR: processPendingUlnRequests: doSecurityRuleGroupsRemove: {}",
+                            rulesEntry.getValue().getSecurityRuleGroups().getUuid().getValue());
+                    this.doSecurityRuleGroupsRemove(tenantId, uln, rulesEntry.getValue().getSecurityRuleGroups());
+                } else {
+                    LOG.debug("FABMGR: processPendingUlnRequests: removeSecurityRuleGroupsFromCache: {}",
+                            rulesEntry.getValue().getSecurityRuleGroups().getUuid().getValue());
+                    uln.removeSecurityRuleGroupsFromCache(rulesEntry.getValue().getSecurityRuleGroups());
+                }
+            } else if (rulesEntry.getValue().hasServiceBeenRendered() == false) {
+                LOG.debug("FABMGR: processPendingUlnRequests: doSecurityRuleGroupsCreate: {}",
                         rulesEntry.getValue().getSecurityRuleGroups().getUuid().getValue());
                 this.doSecurityRuleGroupsCreate(tenantId, uln, rulesEntry.getValue().getSecurityRuleGroups());
             }
         }
+
+        /*
+         * Subnet addition dependency: subnets are not mapped to Fabric; no need to render
+         * Subnet deletion dependency: None. can be directly deleted from cache
+         */
+        for (Entry<Uuid, SubnetMappingInfo> subnetEntry : uln.getSubnetStore().entrySet()) {
+            if (subnetEntry.getValue().isToBeDeleted() == true) {
+                LOG.debug("FABMGR: processPendingUlnRequests: delete subnet: {}",
+                        subnetEntry.getValue().getSubnet().getUuid().getValue());
+                uln.removeSubnetFromCache(subnetEntry.getValue().getSubnet());
+            }
+        }
+
+        /*
+         * Port addition dependency: ports are not mapped to Fabric; no need to render
+         * Port deletion dependency: Gateway
+         */
+        for (Entry<Uuid, PortMappingInfo> portEntry : uln.getPortStore().entrySet()) {
+            PortMappingInfo info = portEntry.getValue();
+            if (info.isToBeDeleted() == true) {
+                if (info.isLrLswEdgeListEmpty() == true) {
+                    LOG.debug("FABMGR: processPendingUlnRequests: removePortFromCache: {}",
+                            portEntry.getValue().getPort().getUuid().getValue());
+                    uln.removePortFromCache(portEntry.getValue().getPort());
+                } else {
+                    LOG.trace("FABMGR: processPendingUlnRequests: port LrLswEdgeList not Empty: {}",
+                            portEntry.getValue().getPort().getUuid().getValue());
+                }
+            }
+        }
+    }
+
+    private void doSecurityRuleGroupsRemove(Uuid tenantId, UserLogicalNetworkCache uln, SecurityRuleGroups ruleGroups) {
+        /*
+         * We check to see if the LSW or LR is rendered. If not, then we
+         * generate error and abort. The model supports the rules
+         * to be be applied on multiple ports, but in practice, GBP only use
+         * one port. So, we can just use port 0 to fin the LSW (or LR).
+         */
+        NodeId nodeId = null;
+        List<Uuid> portList = ruleGroups.getPorts();
+        if (portList == null) {
+            /*
+             * This means we cannot render this ruleGroups yet. We
+             * need to wait for the update event to update the ports.
+             */
+            LOG.error("FABMGR: ERROR: doSecurityRuleGroupsRemove: portList is null.");
+            return;
+        }
+
+        Uuid portId = portList.get(0);
+        LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
+        if (lsw != null) {
+            if (lsw.hasServiceBeenRendered() == false) {
+                LOG.error("FABMGR: ERROR: doSecurityRuleGroupsRemove: lsw not rendered: {}",
+                        lsw.getLsw().getUuid().getValue());
+                return;
+            } else {
+                nodeId = lsw.getRenderedDeviceId();
+            }
+            if (nodeId == null) {
+                LOG.error("FABMGR: ERROR: doSecurityRuleGroupsRemove: lsw nodeId is null");
+                return;
+            } else {
+                /*
+                 * We are now ready to remove ACL. After ACL is removed, The
+                 * LSW can also be removed
+                 */
+                LOG.debug("FABMGR: doSecurityRuleGroupsRemove: calling removeSecurityRuleGroups...");
+                this.removeSecurityRuleGroupsFromFabric(tenantId, uln, nodeId, ruleGroups);
+                uln.removeSecurityRuleGroupsFromLsw(lsw.getLsw(), ruleGroups);
+                uln.removeSecurityRuleGroupsFromCache(ruleGroups);
+            }
+        } else {
+            LogicalRouterMappingInfo lr = uln.findLrFromPortId(portId);
+            if (lr != null) {
+                if (lr.hasServiceBeenRendered() == false) {
+                    LOG.error("FABMGR: ERROR: doSecurityRuleGroupsRemove: lr not rendered: {}",
+                            lr.getLr().getUuid().getValue());
+                    return;
+                } else {
+                    nodeId = lr.getRenderedDeviceId();
+                }
+                if (nodeId == null) {
+                    LOG.error("FABMGR: ERROR: doSecurityRuleGroupsCreate: lr nodeId is null");
+                    return;
+                } else {
+                    /*
+                     * We are now ready to remove ACL. After ACL is removed, The
+                     * LSW can also be removed
+                     */
+                    LOG.debug("FABMGR: doSecurityRuleGroupsRemove: calling removeSecurityRuleGroups()");
+                    this.removeSecurityRuleGroupsFromFabric(tenantId, uln, nodeId, ruleGroups);
+                    uln.removeSecurityRuleGroupsFromLr(lr.getLr(), ruleGroups);
+                    uln.removeSecurityRuleGroupsFromCache(ruleGroups);
+                }
+            }
+        }
+    }
+
+    private void removeSecurityRuleGroupsFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
+            SecurityRuleGroups ruleGroups) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void doEdgeRemove(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
+        /*
+         * An edge has the following type:
+         * LR to LR
+         * LSW to LSW
+         * LSW to LR
+         * LSW to Subnet
+         * Subnet to EndpointLocation
+         *
+         * On a single fabric, only LR-to-LSW type needs to be mapped to
+         * Fabric's createGateway() API. (Other types are applicable only to
+         * multi-fabric.) so, we can remove other types of edges
+         * directly from the ULN cache.
+         */
+        if (uln.isEdgeLrToLswType(edge) == false) {
+            uln.removeEdgeFromCache(edge);
+            return;
+        }
+
+        /*
+         * Now this is a Lr-Lsw edge. We need to remove its
+         * reference from the two Ports, LR and LSW. Then call the Fabric
+         * RPC to remove the Gateway on Fabric.
+         */
+        LOG.debug("FABMGR: doEdgeRemove: found LrToLsw edge: {}", edge.getUuid().getValue());
+        if (uln.isEdgeRendered(edge) == false) {
+            LOG.error("FABMGR: ERROR: doEdgeRemove: LrToLsw edge not rendered: {}", edge.getUuid().getValue());
+            return;
+        }
+
+        LogicalSwitchMappingInfo lsw = null;
+        LogicalRouterMappingInfo lr = null;
+        PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
+        PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
+        if (leftPort != null && rightPort != null) {
+            if (uln.isPortLswType(leftPort.getPort().getUuid()) == true) {
+                lsw = uln.findLswFromItsPort(leftPort.getPort());
+                if (lsw != null && uln.isPortLrType(rightPort.getPort().getUuid()) == true) {
+                    uln.removeLrLswEdgeFromLsw(lsw.getLsw(), edge);
+                    lr = uln.findLrFromItsPort(rightPort.getPort());
+                    if (lr != null) {
+                        uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
+                    } else {
+                        LOG.error("FABMGR: ERROR: doEdgeRemove: lr is null: {}", edge.getUuid().getValue());
+                        return;
+                    }
+                } else {
+                    LOG.error("FABMGR: ERROR: doEdgeRemove: lsw is null: {}", edge.getUuid().getValue());
+                    return;
+                }
+            } else if (uln.isPortLswType(rightPort.getPort().getUuid()) == true) {
+                lsw = uln.findLswFromItsPort(rightPort.getPort());
+                if (lsw != null && uln.isPortLrType(leftPort.getPort().getUuid()) == true) {
+                    uln.removeLrLswEdgeFromLsw(lsw.getLsw(), edge);
+                    lr = uln.findLrFromItsPort(leftPort.getPort());
+                    if (lr != null) {
+                        uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
+                    } else {
+                        LOG.error("FABMGR: ERROR: doEdgeRemove: lr is null: {}", edge.getUuid().getValue());
+                        return;
+                    }
+                } else {
+                    LOG.error("FABMGR: ERROR: doEdgeRemove: lsw is null: {}", edge.getUuid().getValue());
+                    return;
+                }
+            }
+        } else {
+            LOG.error("FABMGR: ERROR: doEdgeRemove: at lease on port is null: {}", edge.getUuid().getValue());
+        }
+
+        uln.removeLrLswEdgeFromPort(leftPort.getPort(), edge);
+        uln.removeLrLswEdgeFromPort(rightPort.getPort(), edge);
+
+        NodeId lrDevId = null;
+        IpAddress gatewayIp = null;
+
+        lrDevId = lr.getRenderedDeviceId();
+
+        if (lrDevId == null) {
+            LOG.error("FABMGR: ERROR: doEdgeRemove: lrDevId is null. edgeId={}, lrId={}", edge.getUuid().getValue(),
+                    lr.getLr().getUuid().getValue());
+            return;
+        }
+
+        gatewayIp = lr.getGatewayIpAddr();
+        if (gatewayIp == null) {
+            LOG.error("FABMGR: doEdgeCreate: gatewayIp is null. edgeId={}, lrId={}", edge.getUuid().getValue(),
+                    lr.getLr().getUuid().getValue());
+            return;
+        }
+
+        LOG.debug("FABMGR: doEdgeRemove: edgeId={}, lrDevId={}, gateway={}", edge.getUuid().getValue(),
+                lrDevId.getValue(), gatewayIp.getIpv4Address().getValue());
+        this.removeLrLswEdgeFromFabric(tenantId, uln, lrDevId, gatewayIp);
+        uln.removeEdgeFromCache(edge);
+    }
+
+    private void removeLrLswEdgeFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrDevId,
+            IpAddress gatewayIp) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void doEndpointLocationRemove(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
+        EndpointLocationMappingInfo epInfo = uln.findEpLocationFromEpLocationId(epLocation.getUuid());
+        if (epInfo == null) {
+            LOG.error("FABMGR: ERROR: doEndpointLocationRemove: epLocation not in cache: {}",
+                    epLocation.getUuid().getValue());
+            return;
+        }
+
+        Uuid lswId = epInfo.getLswId();
+        LogicalSwitchMappingInfo lsw = uln.findLswFromLswId(lswId);
+        if (lsw == null) {
+            LOG.error("FABMGR: ERROR: doEndpointLocationRemove: lsw not in cache: {}", lswId.getValue());
+            return;
+        }
+
+        Uuid lswPortId = epInfo.getLswPortId();
+        PortMappingInfo lswPort = uln.findPortFromPortId(lswPortId);
+        if (lswPort == null) {
+            LOG.error("FABMGR: ERROR: doEndpointLocationRemove: lswPort not in cache: {}", lswPortId.getValue());
+            return;
+        }
+
+        /*
+         * Remove the reference to the logical port from LSW.
+         * LSW can be removed when its dependency reference counters drop
+         * to zero.
+         */
+        uln.removePortFromLsw(lsw.getLsw(), lswPort.getPort());
+
+        this.removeEpRegistrationFromFabric(tenantId, uln, epLocation);
+
+        uln.removeEpLocationFromCache(epLocation);
+    }
+
+    private void removeEpRegistrationFromFabric(Uuid tenantId, UserLogicalNetworkCache uln,
+            EndpointLocation epLocation) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void doLogicalSwtichRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+        LogicalSwitchMappingInfo lswInfo = uln.findLswFromLswId(lsw.getUuid());
+        if (lswInfo == null) {
+            LOG.error("FABMGR: ERROR: doLogicalSwtichRemove: lsw not in cache: {}", lsw.getUuid().getValue());
+            return;
+        }
+
+        int numOfRuleGroups = lswInfo.getSecurityRuleGroupsListSize();
+        if (numOfRuleGroups > 0) {
+            LOG.trace("FABMGR: doLogicalSwtichRemove: numOfRuleGroups={}", numOfRuleGroups);
+            return;
+        }
+
+        int numOfLrLswEdges = lswInfo.getLrLswEdgeListSize();
+        if (numOfLrLswEdges > 0) {
+            LOG.trace("FABMGR: doLogicalSwtichRemove: numOfLrLswEdges={}", numOfLrLswEdges);
+            return;
+        }
+
+        /*
+         * All the dependencies of this LSW are deleted(There are may still be undeleted
+         * logical ports on the LSW, but they can be removed together with
+         * this LSW). So we can go ahead to remove this LSW.
+         */
+        this.removeLswFromFabric(tenantId, uln, lsw);
+
+        uln.removeLswFromCache(lsw);
+    }
+
+    private void removeLswFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void doLogicalRouterRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
+        LogicalRouterMappingInfo lrInfo = uln.findLrFromLrId(lr.getUuid());
+        if (lrInfo == null) {
+            LOG.error("FABMGR: ERROR: doLogicalRouterRemove: lr not in cache: {}", lr.getUuid().getValue());
+            return;
+        }
+
+        int numOfRuleGroups = lrInfo.getSecurityRuleGroupsListSize();
+        if (numOfRuleGroups > 0) {
+            LOG.trace("FABMGR: doLogicalRouterRemove: numOfRuleGroups={}", numOfRuleGroups);
+            return;
+        }
+
+        int numOfLrLswEdges = lrInfo.getLrLswEdgeListSize();
+        if (numOfLrLswEdges > 0) {
+            LOG.trace("FABMGR: doLogicalRouterRemove: numOfLrLswEdges={}", numOfLrLswEdges);
+            return;
+        }
+
+        /*
+         * All the dependencies of this LR are deleted(There are may still be undeleted
+         * logical ports on the LR, but they can be removed together with
+         * this LR). So we can go ahead to remove this LR.
+         */
+        this.removeLrFromFabric(tenantId, uln, lr);
+
+        uln.removeLrFromCache(lr);
+
+    }
+
+    private void removeLrFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
+        // TODO Auto-generated method stub
+
     }
 
     private void renderSecurityRule(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
@@ -1287,7 +1691,7 @@ public class UlnMappingEngine {
                          */
                         int numOfJobs = workerThreadLock.availablePermits();
                         LOG.debug("FABMGR: calling checkUlnCache(), numOfJobs={}", numOfJobs);
-                        checkUlnCache();
+                        inspectUlnCache();
                         boolean debug = true; // TODO: temp code; remove it
                         if (numOfJobs == 0 && debug) {
                             LOG.debug("FABMGR: run: dumpUlnTable: {}", dumpUlnTable());
@@ -1312,5 +1716,152 @@ public class UlnMappingEngine {
         }
 
         return sb.toString();
+    }
+
+    public synchronized void handleLswRemoveEvent(LogicalSwitch lsw) {
+        Uuid tenantId = lsw.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleLswRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isLswAlreadyCached(lsw) == false) {
+            LOG.error("FABMGR: ERROR: handleLswRemoveEvent: lsw not in cache");
+            return;
+        }
+
+        uln.addRequestRemoveLsw(lsw);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
+    }
+
+    public synchronized void handleLrRemoveEvent(LogicalRouter lr) {
+        Uuid tenantId = lr.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleLrRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isLrAlreadyCached(lr) == false) {
+            LOG.error("FABMGR: ERROR: handleLrRemoveEvent: lr not in cache");
+            return;
+        }
+
+        uln.addRequestRemoveLr(lr);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
+    }
+
+    public synchronized void handleEdgeRemoveEvent(Edge edge) {
+        Uuid tenantId = edge.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEdgeRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isEdgeAlreadyCached(edge) == false) {
+            LOG.error("FABMGR: ERROR: handleEdgeRemoveEvent: edge not in cache");
+            return;
+        }
+
+        uln.addRequestRemoveEdge(edge);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
+    }
+
+    public synchronized void handleEndpointLocationRemoveEvent(EndpointLocation epLocation) {
+        Uuid tenantId = epLocation.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleEndpointLocationRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isEpLocationAlreadyCached(epLocation) == false) {
+            LOG.error("FABMGR: ERROR: handleEndpointLocationRemoveEvent: epLocation not in cache");
+            return;
+        }
+
+        uln.addRequestRemoveEpLocation(epLocation);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
+    }
+
+    public synchronized void handlePortRemoveEvent(Port port) {
+        Uuid tenantId = port.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handlePortRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isPortAlreadyCached(port) == false) {
+            LOG.error("FABMGR: ERROR: handlePortRemoveEvent: port not in cache");
+            return;
+        }
+
+        uln.addRequestRemovePort(port);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
+    }
+
+    public synchronized void handleSecurityRuleGroupsRemoveEvent(SecurityRuleGroups ruleGroups) {
+        Uuid tenantId = ruleGroups.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isSecurityRuleGroupsAlreadyCached(ruleGroups) == false) {
+            LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsRemoveEvent: ruleGroups not in cache");
+            return;
+        }
+
+        uln.addRequestRemoveSecurityRuleGroups(ruleGroups);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
+    }
+
+    public synchronized void handleSubnetRemoveEvent(Subnet subnet) {
+        Uuid tenantId = subnet.getTenantId();
+        UserLogicalNetworkCache uln = this.ulnStore.get(tenantId);
+        if (uln == null) {
+            LOG.error("FABMGR: ERROR: handleSubnetRemoveEvent: uln is null");
+            return;
+        }
+
+        if (uln.isSubnetAlreadyCached(subnet) == false) {
+            LOG.error("FABMGR: ERROR: handleSubnetRemoveEvent: subnet not in cache");
+            return;
+        }
+
+        uln.addRequestRemoveSubnet(subnet);
+
+        /*
+         * Notify worker thread to start work
+         */
+        this.workerThreadLock.release();
     }
 }

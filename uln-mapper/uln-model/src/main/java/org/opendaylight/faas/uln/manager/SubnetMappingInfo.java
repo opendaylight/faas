@@ -16,11 +16,13 @@ public class SubnetMappingInfo {
     private Subnet subnet;
     private NodeId renderedDeviceId;
     private boolean serviceHasBeenRendered;
+    private boolean isToBeDeleted;
 
     public SubnetMappingInfo(Subnet subnet) {
         super();
         this.subnet = subnet;
         this.serviceHasBeenRendered = false;
+        this.isToBeDeleted = false;
     }
 
     public void markAsRendered(NodeId renderedLswId) {
@@ -53,4 +55,11 @@ public class SubnetMappingInfo {
         this.subnet = subnet;
     }
 
+    public boolean isToBeDeleted() {
+        return this.isToBeDeleted;
+    }
+
+    public void markDeleted() {
+        this.isToBeDeleted = true;
+    }
 }

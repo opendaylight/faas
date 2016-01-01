@@ -20,12 +20,14 @@ public class SecurityRuleGroupsMappingInfo {
     private NodeId renderedDeviceId;
     private boolean serviceHasBeenRendered;
     private List<String> renderedAclNameList;
+    private boolean isToBeDeleted;
 
     public SecurityRuleGroupsMappingInfo(SecurityRuleGroups ruleGroups) {
         super();
         this.securityRuleGroups = ruleGroups;
         this.serviceHasBeenRendered = false;
         this.renderedAclNameList = new ArrayList<String>();
+        this.isToBeDeleted = false;
     }
 
     public void markAsRendered(NodeId renderedLswId) {
@@ -70,4 +72,11 @@ public class SecurityRuleGroupsMappingInfo {
         this.renderedAclNameList = renderedAclNameList;
     }
 
+    public boolean isToBeDeleted() {
+        return this.isToBeDeleted;
+    }
+
+    public void markDeleted() {
+        this.isToBeDeleted = true;
+    }
 }
