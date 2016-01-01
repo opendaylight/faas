@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
@@ -444,6 +445,22 @@ public class UserLogicalNetworkCache {
         return this.portStore.get(portId);
     }
 
+    public LogicalSwitchMappingInfo findLswFromLswId(Uuid lswId) {
+        return this.lswStore.get(lswId);
+    }
+
+    public LogicalRouterMappingInfo findLrFromLrId(Uuid lrId) {
+        return this.lrStore.get(lrId);
+    }
+
+    public EndpointLocationMappingInfo findEpLocationFromEpLocationId(Uuid epLocationId) {
+        return this.epLocationStore.get(epLocationId);
+    }
+
+    public SecurityRuleGroupsMappingInfo findSecurityRuleGroupsFromRuleGroupsId(Uuid ruleGroupsId) {
+        return this.securityRuleGroupsStore.get(ruleGroupsId);
+    }
+
     public PortMappingInfo findSubnetPortInEdge(EdgeMappingInfo edge, Uuid subnetId) {
         PortMappingInfo subnetPort = null;
         Uuid leftPortId = edge.getEdge().getLeftPortId();
@@ -822,5 +839,259 @@ public class UserLogicalNetworkCache {
         }
 
         return sb.toString();
+    }
+
+    public void addRequestRemoveLsw(LogicalSwitch lsw) {
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeLsw: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void addRequestRemoveLr(LogicalRouter lr) {
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeLr: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void addRequestRemoveEdge(Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        EdgeMappingInfo info = this.edgeStore.get(edgeId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeEdge: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void addRequestRemovePort(Port port) {
+        Uuid portId = port.getUuid();
+        PortMappingInfo info = this.portStore.get(portId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removePort: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void addRequestRemoveSubnet(Subnet subnet) {
+        Uuid subnetId = subnet.getUuid();
+        SubnetMappingInfo info = this.subnetStore.get(subnetId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeSubnet: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void addRequestRemoveEpLocation(EndpointLocation epLocation) {
+        Uuid epLocationId = epLocation.getUuid();
+        EndpointLocationMappingInfo info = this.epLocationStore.get(epLocationId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeEpLocation: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void addRequestRemoveSecurityRuleGroups(SecurityRuleGroups ruleGroups) {
+        Uuid ruleGroupsId = ruleGroups.getUuid();
+        SecurityRuleGroupsMappingInfo info = this.securityRuleGroupsStore.get(ruleGroupsId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeSecurityRuleGroups: info is null");
+            return;
+        }
+        info.markDeleted();
+    }
+
+    public void removeSecurityRuleGroupsFromLsw(LogicalSwitch lsw, SecurityRuleGroups ruleGroups) {
+        Uuid ruleGroupsId = ruleGroups.getUuid();
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeSecurityRuleGroupsFromLsw: info is null: {}", lswId.getValue());
+            return;
+        }
+        info.removeSecurityRuleGroups(ruleGroupsId);
+    }
+
+    public void removeSecurityRuleGroupsFromLr(LogicalRouter lr, SecurityRuleGroups ruleGroups) {
+        Uuid ruleGroupsId = ruleGroups.getUuid();
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeSecurityRuleGroupsFromLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.removeSecurityRuleGroups(ruleGroupsId);
+    }
+
+    public void removePortFromLsw(LogicalSwitch lsw, Port port) {
+        Uuid portId = port.getUuid();
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removePortFromLsw: info is null: {}", lswId.getValue());
+            return;
+        }
+        info.removePort(portId);
+    }
+
+    public void removeLrLswEdgeFromLsw(LogicalSwitch lsw, Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeLrLswEdgeFromLsw: info is null: {}", lswId.getValue());
+            return;
+        }
+        info.removeLrLswEdge(edgeId);
+    }
+
+    public void removePortFromLr(LogicalRouter lr, Port port) {
+        Uuid portId = port.getUuid();
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removePortFromLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.removePort(portId);
+    }
+
+    public void removeLrLswEdgeFromLr(LogicalRouter lr, Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeLrLswEdgeFromLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.removeLrLswEdge(edgeId);
+    }
+
+    public void removeLrLswEdgeFromPort(Port port, Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        Uuid portId = port.getUuid();
+        PortMappingInfo info = this.portStore.get(portId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: removeLrLswEdgeFromPort: info is null: {}", portId.getValue());
+            return;
+        }
+        info.removeLrLswEdge(edgeId);
+    }
+
+    public void addSecurityRuleGroupsToLsw(LogicalSwitch lsw, SecurityRuleGroups ruleGroups) {
+        Uuid ruleGroupsId = ruleGroups.getUuid();
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addSecurityRuleGroupsToLsw: info is null: {}", lswId.getValue());
+            return;
+        }
+        info.addSecurityRuleGroups(ruleGroupsId);
+    }
+
+    public void addPortToLsw(LogicalSwitch lsw, Port port) {
+        Uuid portId = port.getUuid();
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addPortToLsw: info is null: {}", lswId.getValue());
+            return;
+        }
+        info.addPort(portId);
+    }
+
+    public void addLrLswEdgeToLsw(LogicalSwitch lsw, Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        Uuid lswId = lsw.getUuid();
+        LogicalSwitchMappingInfo info = this.lswStore.get(lswId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addLrLswEdgeToLsw: info is null: {}", lswId.getValue());
+            return;
+        }
+        info.addLrLswEdge(edgeId);
+    }
+
+    public void addSecurityRuleGroupsToLr(LogicalRouter lr, SecurityRuleGroups ruleGroups) {
+        Uuid ruleGroupsId = ruleGroups.getUuid();
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addSecurityRuleGroupsToLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.addSecurityRuleGroups(ruleGroupsId);
+    }
+
+    public void addPortToLr(LogicalRouter lr, Port port) {
+        Uuid portId = port.getUuid();
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addPortToLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.addPort(portId);
+    }
+
+    public void addLrLswEdgeToLr(LogicalRouter lr, Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addLrLswEdgeToLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.addLrLswEdge(edgeId);
+    }
+
+    public void addLrLswEdgeToPort(Port port, Edge edge) {
+        Uuid edgeId = edge.getUuid();
+        Uuid portId = port.getUuid();
+        PortMappingInfo info = this.portStore.get(portId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addLrLswEdgeToPort: info is null: {}", portId.getValue());
+            return;
+        }
+        info.addLrLswEdge(edgeId);
+    }
+
+    public void addGatewayIpToLr(LogicalRouter lr, IpAddress gatewayIp) {
+        Uuid lrId = lr.getUuid();
+        LogicalRouterMappingInfo info = this.lrStore.get(lrId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: addLrLswEdgeToLr: info is null: {}", lrId.getValue());
+            return;
+        }
+        info.addGatewayIp(gatewayIp);
+    }
+
+    public void setLswIdOnEpLocation(EndpointLocation epLocation, Uuid lswId) {
+        Uuid epLocationId = epLocation.getUuid();
+        EndpointLocationMappingInfo info = this.epLocationStore.get(epLocationId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: setLswIdOnEpLocation: info is null: {}", epLocationId.getValue());
+            return;
+        }
+        info.setLswId(lswId);
+    }
+
+    public void setLswPortIdOnEpLocation(EndpointLocation epLocation, Uuid lswPortId) {
+        Uuid epLocationId = epLocation.getUuid();
+        EndpointLocationMappingInfo info = this.epLocationStore.get(epLocationId);
+        if (info == null) {
+            LOG.error("FABMGR: ERROR: setLswPortIdOnEpLocation: info is null: {}", epLocationId.getValue());
+            return;
+        }
+        info.setLswPortId(lswPortId);
     }
 }

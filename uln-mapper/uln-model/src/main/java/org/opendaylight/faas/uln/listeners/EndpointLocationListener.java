@@ -54,7 +54,7 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
         // Create
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof EndpointLocation) {
-                LOG.debug("FABMGR: Created EndpointLocation event: {}", ((EndpointLocation) dao).getUuid().getValue());
+                LOG.debug("FABMGR: Create EndpointLocation event: {}", ((EndpointLocation) dao).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper().handleEndpointLocationCreateEvent((EndpointLocation) dao);
             }
         }
@@ -62,7 +62,7 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
         Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof EndpointLocation) {
-                LOG.debug("FABMGR: Updated EndpointLocation event: {}",
+                LOG.debug("FABMGR: Update EndpointLocation event: {}",
                         ((EndpointLocation) entry.getValue()).getUuid().getValue());
                 UserLogicalNetworkManager.getUlnMapper()
                     .handleEndpointLocationUpdateEvent((EndpointLocation) entry.getValue());
@@ -75,7 +75,8 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
                 continue;
             }
             if (old instanceof EndpointLocation) {
-                LOG.debug("FABMGR: Removed EndpointLocation event: {}", ((EndpointLocation) old).getUuid().getValue());
+                LOG.debug("FABMGR: Remove EndpointLocation event: {}", ((EndpointLocation) old).getUuid().getValue());
+                UserLogicalNetworkManager.getUlnMapper().handleEndpointLocationRemoveEvent((EndpointLocation) old);
             }
         }
     }

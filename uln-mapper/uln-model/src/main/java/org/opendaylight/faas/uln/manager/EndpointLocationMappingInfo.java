@@ -10,18 +10,21 @@ package org.opendaylight.faas.uln.manager;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 public class EndpointLocationMappingInfo {
 
     private EndpointLocation epLocation;
     private Uuid renderedDeviceId;
     private boolean serviceHasBeenRendered;
+    private boolean isToBeDeleted;
+    private org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid lswId;
+    private org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid lswPortId;
 
     public EndpointLocationMappingInfo(EndpointLocation epLocation) {
         super();
         this.epLocation = epLocation;
         this.serviceHasBeenRendered = false;
+        this.isToBeDeleted = false;
     }
 
     public void markAsRendered(Uuid renderedEpId) {
@@ -54,4 +57,28 @@ public class EndpointLocationMappingInfo {
         this.epLocation = epLocation;
     }
 
+    public boolean isToBeDeleted() {
+        return this.isToBeDeleted;
+    }
+
+    public void markDeleted() {
+        this.isToBeDeleted = true;
+    }
+
+    public org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid getLswId() {
+        return lswId;
+    }
+
+    public void setLswId(org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid lswId) {
+        this.lswId = lswId;
+    }
+
+    public org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid getLswPortId() {
+        return lswPortId;
+    }
+
+    public void setLswPortId(
+            org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid lswPortId) {
+        this.lswPortId = lswPortId;
+    }
 }
