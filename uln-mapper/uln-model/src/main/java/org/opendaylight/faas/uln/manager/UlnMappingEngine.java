@@ -1012,7 +1012,7 @@ public class UlnMappingEngine {
                      * We are now ready to remove ACL. After ACL is removed, The
                      * LSW can also be removed
                      */
-                    LOG.debug("FABMGR: doSecurityRuleGroupsRemove: calling removeSecurityRuleGroups()");
+                    LOG.debug("FABMGR: doSecurityRuleGroupsRemove: calling removeSecurityRuleGroups");
                     this.removeSecurityRuleGroupsFromFabric(tenantId, uln, nodeId, ruleGroups);
                     uln.removeSecurityRuleGroupsFromLr(lr.getLr(), ruleGroups);
                     uln.removeSecurityRuleGroupsFromCache(ruleGroups);
@@ -1023,8 +1023,49 @@ public class UlnMappingEngine {
 
     private void removeSecurityRuleGroupsFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
             SecurityRuleGroups ruleGroups) {
-        // TODO Auto-generated method stub
+        SecurityRuleGroupsMappingInfo ruleGroupsInfo = uln.findSecurityRuleGroupsFromRuleGroupsId(ruleGroups.getUuid());
+        if (ruleGroupsInfo == null) {
+            LOG.error("FABMGR: ERROR: removeSecurityRuleGroupsFromFabric: ruleGroups not in cache: {}",
+                    ruleGroups.getUuid().getValue());
+            return;
+        }
 
+        if (ruleGroupsInfo.hasServiceBeenRendered() == false) {
+            LOG.error("FABMGR: ERROR: removeSecurityRuleGroupsFromFabric: securityRuleGroups has not been rendered: {}",
+                    ruleGroups.getUuid().getValue());
+            return;
+        }
+
+        /*
+         * One SecurityRuleGroups may be mapped to multiple ACL rules.
+         * So we need to delete ACL in a loop.
+         */
+        List<String> aclNameList = ruleGroupsInfo.getRenderedAclNameList();
+        if (aclNameList == null || aclNameList.isEmpty() == true) {
+            LOG.error("FABMGR: ERROR: removeSecurityRuleGroupsFromFabric: alcNameList is null or empty: {}",
+                    ruleGroups.getUuid().getValue());
+            return;
+        }
+        for (String aclName : aclNameList) {
+            this.removeAclFromFabric(tenantId, uln, nodeId, aclName);
+        }
+    }
+
+    private void removeAclFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId, String aclName) {
+        VcontainerServiceProviderAPI.removeAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
+
+        this.removeAclFromDatastore(aclName);
+    }
+
+    private void removeAclFromDatastore(String aclName) {
+        InstanceIdentifier<Acl> aclPath =
+                InstanceIdentifier.builder(AccessLists.class).child(Acl.class, new AclKey(aclName)).build();
+
+        boolean transactionSuccessful =
+                SfcDataStoreAPI.deleteTransactionAPI(aclPath, LogicalDatastoreType.CONFIGURATION);
+        if (transactionSuccessful == false) {
+            LOG.error("FABMGR: ERROR: removeAclFromDatastore: deleteTransactionAPI failed: {}", aclName);
+        }
     }
 
     private void doEdgeRemove(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
@@ -1126,14 +1167,19 @@ public class UlnMappingEngine {
 
     private void removeLrLswEdgeFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrDevId,
             IpAddress gatewayIp) {
-        // TODO Auto-generated method stub
-
+        VcontainerServiceProviderAPI.removeLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lrDevId, gatewayIp);
     }
 
     private void doEndpointLocationRemove(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
         EndpointLocationMappingInfo epInfo = uln.findEpLocationFromEpLocationId(epLocation.getUuid());
         if (epInfo == null) {
             LOG.error("FABMGR: ERROR: doEndpointLocationRemove: epLocation not in cache: {}",
+                    epLocation.getUuid().getValue());
+            return;
+        }
+
+        if (epInfo.hasServiceBeenRendered() == false) {
+            LOG.error("FABMGR: ERROR: doEndpointLocationRemove: EP has not been rendered: {}",
                     epLocation.getUuid().getValue());
             return;
         }
@@ -1159,21 +1205,31 @@ public class UlnMappingEngine {
          */
         uln.removePortFromLsw(lsw.getLsw(), lswPort.getPort());
 
-        this.removeEpRegistrationFromFabric(tenantId, uln, epLocation);
+        this.removeEpRegistrationFromFabric(tenantId, uln, lsw.getRenderedDeviceId(), epInfo.getRenderedDeviceId());
 
         uln.removeEpLocationFromCache(epLocation);
     }
 
-    private void removeEpRegistrationFromFabric(Uuid tenantId, UserLogicalNetworkCache uln,
-            EndpointLocation epLocation) {
-        // TODO Auto-generated method stub
-
+    private void removeEpRegistrationFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lswDevId,
+            org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid epUuid) {
+        VcontainerServiceProviderAPI.unregisterEpFromLneLayer2(UlnUtil.convertToYangUuid(tenantId), lswDevId, epUuid);
     }
 
     private void doLogicalSwtichRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
         LogicalSwitchMappingInfo lswInfo = uln.findLswFromLswId(lsw.getUuid());
         if (lswInfo == null) {
             LOG.error("FABMGR: ERROR: doLogicalSwtichRemove: lsw not in cache: {}", lsw.getUuid().getValue());
+            return;
+        }
+
+        if (lswInfo.hasServiceBeenRendered() == false) {
+            LOG.error("FABMGR: ERROR: doLogicalSwtichRemove: lsw has not been rendered: {}", lsw.getUuid().getValue());
+            return;
+        }
+
+        int numOfPorts = lswInfo.getPortListSize();
+        if (numOfPorts > 0) {
+            LOG.trace("FABMGR: doLogicalSwtichRemove: numOfPorts={}", numOfPorts);
             return;
         }
 
@@ -1194,20 +1250,24 @@ public class UlnMappingEngine {
          * logical ports on the LSW, but they can be removed together with
          * this LSW). So we can go ahead to remove this LSW.
          */
-        this.removeLswFromFabric(tenantId, uln, lsw);
+        this.removeLswFromFabric(tenantId, uln, lswInfo.getRenderedDeviceId());
 
         uln.removeLswFromCache(lsw);
     }
 
-    private void removeLswFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
-        // TODO Auto-generated method stub
-
+    private void removeLswFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lswDevId) {
+        VcontainerServiceProviderAPI.removeLneLayer2(UlnUtil.convertToYangUuid(tenantId), lswDevId);
     }
 
     private void doLogicalRouterRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
         LogicalRouterMappingInfo lrInfo = uln.findLrFromLrId(lr.getUuid());
         if (lrInfo == null) {
             LOG.error("FABMGR: ERROR: doLogicalRouterRemove: lr not in cache: {}", lr.getUuid().getValue());
+            return;
+        }
+
+        if (lrInfo.hasServiceBeenRendered() == false) {
+            LOG.error("FABMGR: ERROR: doLogicalRouterRemove: lr has not been rendered: {}", lr.getUuid().getValue());
             return;
         }
 
@@ -1228,15 +1288,14 @@ public class UlnMappingEngine {
          * logical ports on the LR, but they can be removed together with
          * this LR). So we can go ahead to remove this LR.
          */
-        this.removeLrFromFabric(tenantId, uln, lr);
+        this.removeLrFromFabric(tenantId, uln, lrInfo.getRenderedDeviceId());
 
         uln.removeLrFromCache(lr);
 
     }
 
-    private void removeLrFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
-        // TODO Auto-generated method stub
-
+    private void removeLrFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrDevId) {
+        VcontainerServiceProviderAPI.removeLneLayer3(UlnUtil.convertToYangUuid(tenantId), lrDevId);
     }
 
     private void renderSecurityRule(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
@@ -1658,6 +1717,7 @@ public class UlnMappingEngine {
         return true;
     }
 
+    @SuppressWarnings("unused")
     private synchronized void createUlnCache(Uuid tenantId) {
         if (this.isUlnAlreadyInCache(tenantId) == true) {
             LOG.warn("FABMGR: ERROR: createUlnCache: ULN already cached: {}", tenantId.getValue());

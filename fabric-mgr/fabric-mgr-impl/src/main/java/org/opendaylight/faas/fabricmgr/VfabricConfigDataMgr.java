@@ -18,12 +18,12 @@ public class VfabricConfigDataMgr {
     private static final Logger LOG = LoggerFactory.getLogger(VfabricConfigDataMgr.class);
     private NodeId vfabricId;
     private TenantId tenantId;
-    private int availablel2Resource;
+    private int availableL2Resource;
 
     public VfabricConfigDataMgr(NodeId vfabricId) {
         super();
         this.setVfabricId(vfabricId);
-        this.availablel2Resource = 100; // TODO: kludge kludge kludge
+        this.availableL2Resource = 100; // TODO: kludge kludge kludge
     }
 
     public NodeId getVfabricId() {
@@ -42,14 +42,19 @@ public class VfabricConfigDataMgr {
         this.tenantId = tenantId;
     }
 
-    public int getAvailablel2Resource() {
-        this.availablel2Resource++;
-        LOG.info("FABMGR:getAvailablel2Resource: l2resource={}", this.availablel2Resource);
-        return availablel2Resource;
+    public int getAvailableL2Resource() {
+        this.availableL2Resource++;
+        LOG.debug("FABMGR: getAvailablel2Resource: l2resource={}", this.availableL2Resource);
+        return availableL2Resource;
     }
 
-    public void setAvailablel2Resource(int availablel2Resource) {
-        this.availablel2Resource = availablel2Resource;
+    public void setAvailableL2Resource(int availablel2Resource) {
+        this.availableL2Resource = availablel2Resource;
+    }
+
+    public void releaseL2Resource() {
+        this.availableL2Resource--;
+        LOG.debug("FABMGR: releaseL2Resource: l2resource={}", this.availableL2Resource);
     }
 
 }

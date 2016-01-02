@@ -81,7 +81,7 @@ public class VcLdNodeConfigDataMgr {
             return 0;
         }
 
-        return vfabDataMgr.getAvailablel2Resource();
+        return vfabDataMgr.getAvailableL2Resource();
     }
 
     public Map<NodeId, VfabricConfigDataMgr> getVfabricDataMgrStore() {
@@ -90,6 +90,22 @@ public class VcLdNodeConfigDataMgr {
 
     public void setVfabricDataMgrStore(Map<NodeId, VfabricConfigDataMgr> vfabricDataMgrStore) {
         this.vfabricDataMgrStore = vfabricDataMgrStore;
+    }
+
+    public void releaseL2Resource(NodeId vfabricId) {
+        if (this.vfabricDataMgrStore == null || this.vfabricDataMgrStore.isEmpty() == true) {
+            LOG.error("FABMGR: ERROR: releaseL2Resource: vfabricDataMgrStore is null");
+            return;
+        }
+
+        VfabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
+        if (vfabDataMgr == null) {
+            LOG.error("FABMGR: ERROR: releaseL2Resource: vfabDataMgr is null");
+            return;
+        }
+
+        vfabDataMgr.releaseL2Resource();
+
     }
 
 }

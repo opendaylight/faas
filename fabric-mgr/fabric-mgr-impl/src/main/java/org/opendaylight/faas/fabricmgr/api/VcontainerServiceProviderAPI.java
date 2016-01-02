@@ -28,8 +28,16 @@ public class VcontainerServiceProviderAPI {
         return VcontainerServiceProviderAPI.fabricMgrProvider.createLneLayer2(tenantId, lne2Input);
     }
 
+    public static void removeLneLayer2(Uuid tenantId, NodeId lswId) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.removeLneLayer2(tenantId, lswId);
+    }
+
     public static NodeId createLneLayer3(Uuid tenantId, CreateLneLayer3Input lne3Input) {
         return VcontainerServiceProviderAPI.fabricMgrProvider.createLneLayer3(tenantId, lne3Input);
+    }
+
+    public static void removeLneLayer3(Uuid tenantId, NodeId lrId) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.removeLneLayer3(tenantId, lrId);
     }
 
     public static TpId createLogicalPortOnLneLayer2(Uuid tenantId, NodeId lswId) {
@@ -40,6 +48,10 @@ public class VcontainerServiceProviderAPI {
             EndpointAttachInfo endpoint) {
         return VcontainerServiceProviderAPI.fabricMgrProvider.attachEpToLneLayer2(tenantId, lswId, lswLogicalPortId,
                 endpoint);
+    }
+
+    public static void unregisterEpFromLneLayer2(Uuid tenantId, NodeId lswId, Uuid epUuid) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.unregisterEpFromLneLayer2(tenantId, lswId, epUuid);
     }
 
     public static void setFabricMgrProvider(FabricMgrProvider fabricMgrProvider) {
@@ -56,7 +68,15 @@ public class VcontainerServiceProviderAPI {
                 ipPrefix);
     }
 
+    public static void removeLrLswGateway(Uuid tenantId, NodeId lrId, IpAddress gatewayIpAddr) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.removeLrLswGateway(tenantId, lrId, gatewayIpAddr);
+    }
+
     public static void createAcl(Uuid tenantId, NodeId nodeId, String aclName) {
         VcontainerServiceProviderAPI.fabricMgrProvider.createAcl(tenantId, nodeId, aclName);
+    }
+
+    public static void removeAcl(Uuid tenantId, NodeId nodeId, String aclName) {
+        VcontainerServiceProviderAPI.fabricMgrProvider.removeAcl(tenantId, nodeId, aclName);
     }
 }
