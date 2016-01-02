@@ -8,6 +8,8 @@
 
 package org.opendaylight.faas.fabricmgr;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -20,6 +22,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.UnregisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
@@ -29,7 +32,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.DelAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmGatewayInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicRouterInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicSwitchInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
@@ -60,6 +67,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
@@ -229,12 +237,75 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
 
     @Override
     public Future<RpcResult<Void>> rmLneLayer2(RmLneLayer2Input input) {
-        return null;
+        TenantId tenantId = input.getTenantId();
+        NodeId vfabricId = input.getVfabricId();
+        VcLneId lswId = input.getLneId();
+
+        VcConfigDataMgr vcMgr =
+                VcontainerServiceProviderAPI.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: rmLneLayer2: vcMgr is null: {}", tenantId.getValue());
+            return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
+        }
+        vcMgr.getLdNodeConfigDataMgr().releaseL2Resource(vfabricId);
+
+        RmLogicSwitchInputBuilder inputBuilder = new RmLogicSwitchInputBuilder();
+
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setNodeId(new NodeId(lswId));
+
+        LOG.debug("FABMGR: rmLneLayer2: fabricId={}, lswId={}", fabricId.getValue(), lswId.getValue());
+
+        final RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
+        Future<RpcResult<Void>> result = this.fabServiceService.rmLogicSwitch(inputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: rmLneLayer2: rmLogicSwitch RPC success");
+                return result;
+            } else {
+                return Futures
+                    .immediateFuture(resultBuilder.withError(ErrorType.RPC, "rmLogicSwitch RPC failed").build());
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: rmLneLayer2: rmLogicSwitch RPC failed.", e);
+        }
+
+        return Futures.immediateFailedFuture(new IllegalArgumentException("rmLogicSwitch RPC failed"));
     }
 
     @Override
     public Future<RpcResult<Void>> rmLneLayer3(RmLneLayer3Input input) {
-        return null;
+        @SuppressWarnings("unused")
+        TenantId tenantId = input.getTenantId();
+        NodeId vfabricId = input.getVfabricId();
+        VcLneId lrId = input.getLneId();
+
+        RmLogicRouterInputBuilder inputBuilder = new RmLogicRouterInputBuilder();
+
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setNodeId(new NodeId(lrId));
+
+        LOG.debug("FABMGR: rmLneLayer3: fabricId={}, lrId={}", fabricId.getValue(), lrId.getValue());
+
+        final RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
+        Future<RpcResult<Void>> result = this.fabServiceService.rmLogicRouter(inputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: rmLneLayer3: rmLogicRouter RPC success");
+                return result;
+            } else {
+                return Futures
+                    .immediateFuture(resultBuilder.withError(ErrorType.RPC, "rmLogicRouter RPC failed").build());
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: rmLneLayer3: rmLogicRouter RPC failed.", e);
+        }
+
+        return Futures.immediateFailedFuture(new IllegalArgumentException("rmLogicRouter RPC failed"));
     }
 
     @Override
@@ -306,6 +377,26 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         return epId;
     }
 
+    public void unregisterEndpoint(Uuid tenantId, NodeId vfabricId, NodeId lswId, Uuid epUuid) {
+
+        UnregisterEndpointInputBuilder epInputBuilder = new UnregisterEndpointInputBuilder();
+        FabricId fabricId = new FabricId(vfabricId);
+        epInputBuilder.setFabricId(fabricId);
+        List<Uuid> epUuidList = new ArrayList<Uuid>();
+        epUuidList.add(new Uuid(epUuid));
+        epInputBuilder.setIds(epUuidList);
+
+        Future<RpcResult<Void>> result = this.epService.unregisterEndpoint(epInputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: unregisterEndpoint: unregisterEndpoint RPC success");
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: unregisterEndpoint: unregisterEndpoint RPC failed.", e);
+        }
+    }
+
     public void createLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
             IpPrefix ipPrefix) {
         CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
@@ -324,6 +415,24 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed.", e);
+        }
+    }
+
+    public void removeLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, IpAddress gatewayIpAddr) {
+        RmGatewayInputBuilder inputBuilder = new RmGatewayInputBuilder();
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setLogicRouter(new NodeId(lrId));
+        inputBuilder.setIpAddress(new IpAddress(gatewayIpAddr));
+
+        Future<RpcResult<Void>> result = this.fabServiceService.rmGateway(inputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: removeLrLswGateway: rmGateway RPC success");
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: removeLrLswGateway: rmGateway RPC failed.", e);
         }
     }
 
@@ -353,4 +462,29 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         }
     }
 
+    public void removeAcl(Uuid tenantId, NodeId vfabricId, NodeId nodeId, String aclName) {
+        DelAclInputBuilder inputBuilder = new DelAclInputBuilder();
+        FabricId fabricId = new FabricId(vfabricId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setAclName(aclName);
+        /*
+         * NOTE: The NodeId must be new'd before passing to RPC. Otherwise,
+         * addAcl() PRC return failure, because Fabric cannot find the logic
+         * device in its Cache map using the nodeId as search key.
+         */
+        NodeId deviceId = new NodeId(nodeId.getValue());
+        inputBuilder.setLogicDevice(deviceId);
+
+        LOG.debug("FABMGR: removeAcl: fabricId={}, deviceId={}, aclName={}", fabricId.getValue(), deviceId.getValue(),
+                aclName);
+        Future<RpcResult<Void>> result = this.fabServiceService.delAcl(inputBuilder.build());
+        try {
+            RpcResult<Void> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: removeAcl: delAcl RPC success");
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: removeAcl: delAcl RPC failed.", e);
+        }
+    }
 }
