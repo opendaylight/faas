@@ -1,0 +1,10 @@
+* This directory contains test scripts that run integration tests.
+
+* runTests.sh is the executable that runs the tests (All other scripts in
+  this directory are intentionally set as non-executables). 
+  
+* runTests.sh also serves as a test case registery. Please add/register new test cases in
+  that file (The actual implementation of the test cases, however, are in those python 
+  scripts. See testCases.py).
+
+* For the usage of runTests.sh, run: ./runtests.sh -h

@@ -22,3 +22,4 @@ out/
 .metadata
 *.swp
 C\:\\nppdf32Log\\debuglog.txt
+*.pyc
