@@ -23,3 +23,5 @@ out/
 *.swp
 C\:\\nppdf32Log\\debuglog.txt
 *.pyc
+.idea
+*.iml
