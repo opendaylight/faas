@@ -233,7 +233,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         OvsSouthboundUtils.deleteVxlanTunnelPort(bridgeNode, databroker);
 
         // clear all flows
-        String dpId = OvsSouthboundUtils.getDatapathId(bridgeNode);
+        long dpId = OvsSouthboundUtils.getDataPathId(bridgeNode);
         org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId inventoryNodeId 
         	= new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId("openflow:" + dpId);
         

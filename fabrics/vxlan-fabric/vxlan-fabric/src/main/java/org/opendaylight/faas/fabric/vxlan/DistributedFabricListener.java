@@ -80,7 +80,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         epMgr.close();
     }
 
@@ -161,11 +161,11 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         trans.delete(LogicalDatastoreType.OPERATIONAL, deviceIId.augmentation(FabricCapableDevice.class).child(Config.class));
         MdSalUtils.wrapperSubmit(trans, executor);
 
-        fabricCtx.removeDeviceSwitch(deviceId);
+        DeviceKey devKey = DeviceKey.newInstance(deviceIId);
+        fabricCtx.removeDeviceSwitch(devKey);
         Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
-        DeviceKey dkey = DeviceKey.newInstance(deviceIId);
         for (LogicSwitchContext lswCtx : lswCtxs) {
-     	   lswCtx.removeMember(dkey);
+     	   lswCtx.removeMember(devKey);
         }
     }
 
@@ -194,6 +194,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 
         ResourceManager.freeResourceManager(new FabricId(node.getNodeId()));
         fabricCtx.close();
+        this.close();
     }
     
 	@Override

@@ -214,7 +214,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 	                fabricObj.notifyLogicSwitchRemoved(lsw);
 	
 	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-	                wt.delete(LogicalDatastoreType.CONFIGURATION, lswIId);
+	                wt.delete(LogicalDatastoreType.OPERATIONAL, lswIId);
 	                MdSalUtils.wrapperSubmit(wt, executor);
             	}
 
@@ -403,7 +403,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 	                fabricObj.notifyLogicRouterRemoved(lr);
 	
 	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-	                wt.delete(LogicalDatastoreType.CONFIGURATION, routerIId);
+	                wt.delete(LogicalDatastoreType.OPERATIONAL, routerIId);
 	                MdSalUtils.wrapperSubmit(wt, executor);
             	}
 

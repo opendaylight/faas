@@ -127,6 +127,17 @@ def rpc_create_logic_switch_data(name, vni):
          }
     }
 
+def rpc_rm_logic_switch_uri():
+    return "/restconf/operations/fabric-service:rm-logic-switch"
+
+def rpc_rm_logic_switch_data(name, vni):
+    return {
+        "input" : {
+           "fabric-id": "fabric:1",
+           "node-id":name
+         }
+    }
+
 def rpc_create_logic_router_uri():
     return "/restconf/operations/fabric-service:create-logic-router"
 
@@ -135,6 +146,17 @@ def rpc_create_logic_router_data(name):
         "input" : {
            "fabric-id": "fabric:1",
            "name":name
+        }
+    }
+
+def rpc_rm_logic_router_uri():
+    return "/restconf/operations/fabric-service:rm-logic-router"
+
+def rpc_rm_logic_router_data(name):
+    return {
+        "input" : {
+           "fabric-id": "fabric:1",
+           "node-id":name
         }
     }
 
@@ -213,6 +235,18 @@ def rpc_register_endpoint_data4():
        }
     }
 
+def rpc_unregister_endpoint_uri():
+    return "/restconf/operations/fabric-endpoint:unregister-endpoint"
+
+def rpc_unregister_endpoint_data():
+    return {
+        "input" : {
+           "fabric-id": "fabric:1",
+           "ids":(UUID_EP1,UUID_EP2,UUID_EP3,UUID_EP4)
+       }
+    }
+
+
 def rpc_locate_endpoint_uri():
     return "/restconf/operations/fabric-endpoint:locate-endpoint"
 
@@ -282,6 +316,18 @@ def rpc_create_gateway_data(ipaddr, network, switchName):
        }
     }
 
+def rpc_rm_gateway_uri():
+    return "/restconf/operations/fabric-service:rm-gateway"
+
+def rpc_rm_gateway_data(ipaddr):
+    return {
+      "input" : {
+           "fabric-id": "fabric:1",
+           "ip-address":ipaddr,
+           "logic-router":"vrouter-1"
+       }
+    }
+
 def pause():
     print "press Enter key to continue..."
     raw_input()
@@ -308,45 +354,64 @@ if __name__ == "__main__":
     print "compose fabric"
     post(controller, DEFAULT_PORT, rpc_compose_fabric_uri(), rpc_compose_fabric_data(), True)
 
+    print "create_logic_switch ..."
     pause()
-    print "create_logic_switch"
     post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-1", 1), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-2", 2), True)
 
-    pause()
-    print "create_logic_router"
+    print "create_logic_router ..."
+    pause() 
     post(controller, DEFAULT_PORT, rpc_create_logic_router_uri(), rpc_create_logic_router_data("vrouter-1"), True)
 
+    print "create_logic_port ..."
     pause()
-    print "create_logic_port"
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-1"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-2"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-3"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-2", "vswitch-2-p-1"), True)
 
+    print "registering endpoints ..."
     pause()
-    print "registering endpoints"
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data1(), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data2(), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data3(), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data4(), True)
 
+    print "locate endpoints ..."
     pause()
-    print "locate endpoints"
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data1(), True)
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data2(), True)
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data3(), True)
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data4(), True)
 
+    print "create gateway ..."
     pause()
-    print "create gateway"
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("172.16.1.1", "172.16.1.0/24", "vswitch-1"), True)
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("172.16.2.1", "172.16.2.0/24", "vswitch-2"), True)
 
+    print "append a device to fabric ..."
     pause()
-    print "append a device to fabric"
     post(controller, DEFAULT_PORT, rpc_add_node_to_fabric_uri(), rpc_add_node_to_fabric_data("s4", "192.168.20.104"), True)
 
+    print "remove a device from fabric ..."
     pause()
-    print "remove a device from fabric"
     post(controller, DEFAULT_PORT, rpc_rm_node_from_fabric_uri(), rpc_rm_node_from_fabric_data("s3"), True)
+
+    print "unregister endpoints ..."
+    pause()
+    post(controller, DEFAULT_PORT, rpc_unregister_endpoint_uri(), rpc_unregister_endpoint_data(), True)
+
+
+    print "remove gateway ..."
+    pause()
+    post(controller, DEFAULT_PORT, rpc_rm_gateway_uri(), rpc_rm_gateway_data("172.16.1.1"), True)
+    post(controller, DEFAULT_PORT, rpc_rm_gateway_uri(), rpc_rm_gateway_data("172.16.2.1"), True)
+
+    print "remove logic switch ..."
+    pause()
+    post(controller, DEFAULT_PORT, rpc_rm_logic_switch_uri(), rpc_rm_logic_switch_data("vswitch-1", 1), True)
+    post(controller, DEFAULT_PORT, rpc_rm_logic_switch_uri(), rpc_rm_logic_switch_data("vswitch-2", 2), True)
+
+    print "remove logic router ..."
+    pause()
+    post(controller, DEFAULT_PORT, rpc_rm_logic_router_uri(), rpc_rm_logic_router_data("vrouter-1"), True)

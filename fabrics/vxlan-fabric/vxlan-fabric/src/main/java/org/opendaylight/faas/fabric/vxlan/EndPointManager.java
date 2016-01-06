@@ -161,7 +161,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
     	epListener.close();
     }
 

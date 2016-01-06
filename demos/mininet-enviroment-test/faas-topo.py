@@ -61,9 +61,9 @@ if __name__ == '__main__':
     os.system("ifconfig s2 192.168.20.102")
     os.system("ovs-vsctl br-set-external-id s2 vtep-ip 192.168.20.102")
     os.system("ifconfig s3 192.168.20.103")
-    os.system("ovs-vsctl br-set-external-id s1 vtep-ip 192.168.20.103")
+    os.system("ovs-vsctl br-set-external-id s3 vtep-ip 192.168.20.103")
     os.system("ifconfig s4 192.168.20.104")
-    os.system("ovs-vsctl br-set-external-id s2 vtep-ip 192.168.20.104")
+    os.system("ovs-vsctl br-set-external-id s4 vtep-ip 192.168.20.104")
 
     info( "*** Starting CLI (type 'exit' to exit)\n" )
     CLI( network )

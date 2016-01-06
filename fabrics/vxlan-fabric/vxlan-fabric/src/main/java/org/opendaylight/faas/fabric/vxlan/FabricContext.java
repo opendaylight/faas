@@ -77,8 +77,8 @@ public class FabricContext implements AutoCloseable {
         return devCtx;
     }
 
-    public DeviceContext removeDeviceSwitch(NodeId nodeid) {
-    	return devices.remove(nodeid);
+    public DeviceContext removeDeviceSwitch(DeviceKey key) {
+    	return devices.remove(key);
     }
     
     public LogicSwitchContext getLogicSwitchCtx(NodeId nodeId) {
