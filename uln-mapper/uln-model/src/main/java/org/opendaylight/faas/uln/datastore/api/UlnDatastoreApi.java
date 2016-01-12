@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.opendaylight.controller.md.sal.binding.api.ReadTransaction;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
@@ -56,8 +55,8 @@ public class UlnDatastoreApi {
 
     private static final Logger LOG = LoggerFactory.getLogger(UlnDatastoreApi.class);
     private static final LogicalDatastoreType logicalDatastoreType = LogicalDatastoreType.OPERATIONAL;
-    private static final Map<Uuid, RegisterEndpointLocationInput> registerEndpointInputMap = new HashMap();
-    private static final Map<Uuid, EndpointLocationBuilderCache> registerEndpointLocationInfoMap = new HashMap();
+    private static final Map<Uuid, RegisterEndpointLocationInput> registerEndpointInputMap = new HashMap<Uuid, RegisterEndpointLocationInput>();
+    private static final Map<Uuid, EndpointLocationBuilderCache> registerEndpointLocationInfoMap = new HashMap<Uuid, EndpointLocationBuilderCache>();
 
     /*
      * Logical Network and individual elements Read Methods
@@ -922,7 +921,7 @@ public class UlnDatastoreApi {
 
             WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
             if (lRouterPair.getFirst() != null) {
-                if (lRouterPair.getFirst().isPublic() != null && lRouterPair.getFirst().isPublic().booleanValue()) {
+                if (needToAddPublicPort(lRouterPair.getFirst())) {
                     PortBuilder lportb;
                     if (pubSecGroupRules == null) {
                         lportb = buildPort(null, null, null, lRouterPair.getFirst());
@@ -937,7 +936,7 @@ public class UlnDatastoreApi {
                         lRouterPair.getFirst().getUuid()), lRouterPair.getFirst().build(), true);
             }
             if (lRouterPair.getSecond() != null) {
-                if (lRouterPair.getSecond().isPublic() != null && lRouterPair.getSecond().isPublic().booleanValue()) {
+                if (needToAddPublicPort(lRouterPair.getSecond())) {
                     PortBuilder lportb;
                     if (pubSecGroupRules == null) {
                         lportb = buildPort(null, null, null, lRouterPair.getSecond());
@@ -984,6 +983,22 @@ public class UlnDatastoreApi {
 
             return submitToDs(wTx);
         }
+    }
+
+    private static boolean needToAddPublicPort(LogicalRouterBuilder logicalRouter) {
+        if (logicalRouter.isPublic() != null && logicalRouter.isPublic().booleanValue()) {
+            if (logicalRouter.getPort() == null) {
+                return true;
+            }
+            for (Uuid portId : logicalRouter.getPort()) {
+                Port port = readPortFromDs(logicalRouter.getTenantId(), portId);
+                if (port != null && port.isIsPublic() != null && port.isIsPublic().booleanValue()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     private static PortBuilder buildPort(SubnetBuilder subnetBuilder, Uuid securityGroupId,
