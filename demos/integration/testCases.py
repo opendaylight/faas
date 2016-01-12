@@ -9,6 +9,7 @@ import inputsCommon
 import inputsVcontainer
 import inputsFabric
 import inputsGBP
+import inputsSFC
 
 #
 # Manifested constants
@@ -129,9 +130,17 @@ testCases2_ga = {
           'unused param',
           'Get mapped IDs on the GBP FAAS renderer side'),
   'p5': (get_c, 
-          inputsVcontainer.vc004Url_gc, 
+          inputsSFC.get_acl_uri(), 
           'unused param',
           'Get ACL list'),
+  'acl01': (put_c, 
+           inputsSFC.get_acl_uri(), 
+           inputsSFC.get_acl_data(),
+           'Create ACL'),
+  'acl02': (put_c, 
+           inputsSFC.get_acl_uri(), 
+           inputsSFC.get_acl_data2(),
+           'Create ACL')
 }
 
 def main(argv):

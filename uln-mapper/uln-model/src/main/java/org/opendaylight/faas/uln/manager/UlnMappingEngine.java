@@ -1311,9 +1311,9 @@ public class UlnMappingEngine {
         /*
          * create Access List with entries and IID, then write transaction to data store
          */
-        AccessListEntries ace = this.createAceListFromSecurityRule(securityRule);
+        AccessListEntries aceList = this.createAceListFromSecurityRule(securityRule);
         AclBuilder aclBuilder = new AclBuilder();
-        aclBuilder.setAclName(aclName).setKey(new AclKey(aclName)).setAccessListEntries(ace);
+        aclBuilder.setAclName(aclName).setKey(new AclKey(aclName)).setAccessListEntries(aceList);
 
         InstanceIdentifier<Acl> aclPath =
                 InstanceIdentifier.builder(AccessLists.class).child(Acl.class, new AclKey(aclName)).build();
@@ -1351,6 +1351,9 @@ public class UlnMappingEngine {
         aceIpBuilder.setDscp(new Dscp((short) 1)); // TODO: Do we have to setup DSCP?
 
         List<ParameterValue> pvList = classifier.getParameterValue();
+        boolean foundSrcPort = false; // TODO: This is a kludge to work around yangtools mandatory
+                                      // leaf bug
+        boolean foundDestPort = false;
         for (ParameterValue pv : pvList) {
             String pvName = pv.getName().getValue();
             if (pvName.equals(PV_PROTO_TYPE_NAME)) {
@@ -1361,12 +1364,14 @@ public class UlnMappingEngine {
                 destinationPortRangeBuilder.setLowerPort(new PortNumber(portNum));
                 destinationPortRangeBuilder.setUpperPort(new PortNumber(portNum));
                 aceIpBuilder.setDestinationPortRange(destinationPortRangeBuilder.build());
+                foundDestPort = true;
             } else if (pvName.equals(PV_SOURCEPORT_TYPE_NAME)) {
                 int portNum = (int) pv.getIntValue().longValue();
                 SourcePortRangeBuilder sourcePortRangeBuilder = new SourcePortRangeBuilder();
                 sourcePortRangeBuilder.setLowerPort(new PortNumber(portNum));
                 sourcePortRangeBuilder.setUpperPort(new PortNumber(portNum));
                 aceIpBuilder.setSourcePortRange(sourcePortRangeBuilder.build());
+                foundSrcPort = true;
             } else if (pvName.equals("ipv4_prefix_address")) { // TODO: what is the right value ?
                 String ipAddrStr = pv.getStringValue();
                 AceIpv4Builder aceIpv4Builder = new AceIpv4Builder();
@@ -1380,6 +1385,24 @@ public class UlnMappingEngine {
                 aceIpv6Builder.setDestinationIpv6Network(new Ipv6Prefix(ipAddrStr));
                 aceIpBuilder.setAceIpVersion(aceIpv6Builder.build()).setProtocol((short) 41);
             }
+        }
+
+        if (foundDestPort == false) {
+            String aceRuleName = classifier.getName().getValue();
+            LOG.debug("FABMGR: ERROR: createAceFromSecurityRuleEntry: foundDestPort is false: {}", aceRuleName);
+            DestinationPortRangeBuilder destinationPortRangeBuilder = new DestinationPortRangeBuilder();
+            destinationPortRangeBuilder.setLowerPort(new PortNumber(0));
+            destinationPortRangeBuilder.setUpperPort(new PortNumber(65535));
+            aceIpBuilder.setDestinationPortRange(destinationPortRangeBuilder.build());
+        }
+
+        if (foundSrcPort == false) {
+            String aceRuleName = classifier.getName().getValue();
+            LOG.debug("FABMGR: ERROR: createAceFromSecurityRuleEntry: foundSrcPort is false: {}", aceRuleName);
+            SourcePortRangeBuilder sourcePortRangeBuilder = new SourcePortRangeBuilder();
+            sourcePortRangeBuilder.setLowerPort(new PortNumber(0));
+            sourcePortRangeBuilder.setUpperPort(new PortNumber(65535));
+            aceIpBuilder.setSourcePortRange(sourcePortRangeBuilder.build());
         }
 
         MatchesBuilder matchesBuilder = new MatchesBuilder();

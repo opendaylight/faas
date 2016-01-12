@@ -56,8 +56,3 @@ def rpc_netnode_create_lr_data(tenantId, vfabricId):
       }
     }
 
-
-#===============================================================================# 
-vc004Url_gc = 'http://'+inputsCommon.odlIpAddr_gc+'/restconf/config/ietf-access-control-list:access-lists/'
-
-
