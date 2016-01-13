@@ -60,8 +60,27 @@ def getTopology(desc):
   return resp
 
 #===============================================================================# 
+def registerEndpointLocation(desc):
+  nc_id1 = "sw1-eth1"
+  nc_id2 = "sw2-eth1"
+  nodeId1 = util.getOvsdbNodeIdByName("sw1")
+
+  if nodeId1 == constants.ERROR_STR: 
+    return constants.ERROR_STR
+
+  nodeId2 = util.getOvsdbNodeIdByName("sw2")
+  if nodeId1 == constants.ERROR_STR: 
+    return constants.ERROR_STR
+
+  for inputData in inputsGBP.get_endpoint_location_data(nc_id1, nc_id2, nodeId1, nodeId2):
+    result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name) 
+
+  return result
+
+#===============================================================================# 
 testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'p1': (getTopology, 'Print Topology'),
+   'vc05': (registerEndpointLocation, 'Register endpoint locations for Layer 3 ULN'),
 }
 
 testCases2_ga = {
@@ -97,10 +116,6 @@ testCases2_ga = {
            inputsGBP.get_endpoint_uri(), 
            inputsGBP.get_endpoint_data_layer3(inputsCommon.tenant1Id_gc),
            'Register endpoints for Layer 3 ULN'),
-  'vc05': (post_data_array_c, 
-           inputsGBP.get_endpoint_location_uri(), 
-           inputsGBP.get_endpoint_location_data(),
-           'Register endpoint locations for Layer 3 ULN'),
   'vc031': (put_c, 
             inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
             inputsGBP.get_tenant_data(inputsCommon.tenant1Id_gc),

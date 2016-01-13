@@ -623,7 +623,23 @@ def get_endpoint_data_layer3(tenantId):
     }
 }]
 
-def get_endpoint_location_data():
+def get_endpoint_location_data(nc_id1, nc_id2, nodeId1, nodeId2):
+    return [{
+    "input": {
+        "node-connector-id": nc_id1,
+        "node-id": nodeId1,
+        "faas-port-ref-id": "165b3a20-adc7-11e5-bf7f-feff819cdc9f"
+    }
+    },{
+    "input": {
+        "node-connector-id": nc_id2,
+        "node-id": nodeId2,
+        "faas-port-ref-id": "6c82ea5c-ae43-11e5-bf7f-feff819cdc9f"
+    }
+   }]
+
+
+def get_endpoint_location_data_old():
     return [{
     "input": {
         "node-connector-id": "openflow:1:1", 
