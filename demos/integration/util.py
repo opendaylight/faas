@@ -5,6 +5,7 @@ from urllib2 import Request, urlopen, URLError, HTTPError
 import constants
 import json
 import sys
+import inputsCommon
 
 #
 # macros and constants
@@ -218,4 +219,28 @@ def runRequestPOST(url, inputData, callerName):
 
   return resp
 
+
+#===============================================================================#
+def getOvsdbNodeIdByName(nodeName):
+  url = 'http://%s/restconf/operational/network-topology:network-topology/topology/ovsdb:1' % inputsCommon.odlIpAddr_gc
+
+  resp = runRequestGET(url, sys._getframe().f_code.co_name)
+  if resp == constants.ERROR_STR:
+    print "ERROR: getOvsdbNodeIdByName() failed"
+    return constants.ERROR_STR
+
+  jsondata=json.loads(resp)
+  for topo_item in jsondata["topology"]:
+    #print topo_item["topology-id"]
+    if topo_item["node"] is not None:
+      for ovsdb_node in topo_item["node"]:
+        if ovsdb_node.has_key("ovsdb:datapath-id"): #it's a bridge node
+          #print ovsdb_node["ovsdb:bridge-name"]
+          if ovsdb_node["ovsdb:bridge-name"] == nodeName:
+            #print ovsdb_node["node-id"]
+            return ovsdb_node["node-id"]
+    else:
+      print "ERROR: node is None"
+
+  return constants.ERROR_STR
 

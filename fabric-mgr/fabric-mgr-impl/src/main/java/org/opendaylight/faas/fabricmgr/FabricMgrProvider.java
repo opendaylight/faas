@@ -20,6 +20,7 @@ import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicLocationBuilder;
@@ -223,7 +224,7 @@ public class FabricMgrProvider implements AutoCloseable {
         epInputBuilder.setFabricId(fabricId);
         epInputBuilder.setGateway(endpoint.getGatewayIpAddr());
         epInputBuilder.setIpAddress(endpoint.getIpAddress());
-        epInputBuilder.setLocation(FabMgrYangDataUtil.getPhyLocation(new TopologyId(fabricId),
+        epInputBuilder.setLocation(FabMgrYangDataUtil.getPhyLocation(new TopologyId(new Uri("ovsdb:1")),
                 endpoint.getInventoryNodeIdStr(), endpoint.getInventoryNodeConnectorIdStr()));
         epInputBuilder.setMacAddress(endpoint.getMacAddress());
         epInputBuilder.setOwnFabric(fabricId);
