@@ -169,6 +169,23 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 	@Override
 	public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
 
+        Map<InstanceIdentifier<?>, DataObject> createdData = change.getCreatedData();
+        for (Entry<InstanceIdentifier<?>, DataObject> entry : createdData.entrySet()) {
+        	if (entry.getKey().getTargetType().equals(Endpoint.class)) {
+        		
+	        	final Endpoint ep = (Endpoint) entry.getValue();
+	        	if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
+	        		Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
+	
+						@Override
+						public Void call() throws Exception {
+							rendererEndpoint(ep);
+							return null;
+						}}), simpleFutureMonitor, fabricCtx.executor);
+	        	}
+        	}
+        }
+
         Map<InstanceIdentifier<?>, DataObject> updatedData = change.getUpdatedData();
         for (Entry<InstanceIdentifier<?>, DataObject> entry : updatedData.entrySet()) {
         	if (entry.getKey().getTargetType().equals(Endpoint.class)) {

@@ -62,7 +62,7 @@ def getTopology(desc):
 #===============================================================================# 
 def registerEndpointLocation(desc):
   nc_id1 = "sw1-eth1"
-  nc_id2 = "sw2-eth1"
+  nc_id2 = "sw2-eth3"
   nodeId1 = util.getOvsdbNodeIdByName("sw1")
 
   if nodeId1 == constants.ERROR_STR: 
