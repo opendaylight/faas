@@ -1,6 +1,9 @@
 import inputsCommon
 
 #===============================================================================#
+def get_invmgr_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/opendaylight-inventory:nodes/"
+
 def get_acl_uri():
     return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/ietf-access-control-list:access-lists/"
 
