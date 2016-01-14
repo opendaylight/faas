@@ -82,6 +82,12 @@ def get_acl_data():
                     "matches":{
                         "destination-ipv4-network":"172.16.1.0/24",
                         "source-ipv4-network":"172.16.2.0/24",
+                        "source-port-range":{
+                            "lower-port":1,
+                            },
+                        "destination-port-range":{
+                            "lower-port":1
+                            },
                         "protocol":1
                         },
                         "actions": {

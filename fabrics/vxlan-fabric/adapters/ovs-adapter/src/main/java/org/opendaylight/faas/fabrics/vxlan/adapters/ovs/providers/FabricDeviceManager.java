@@ -158,10 +158,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
                 @SuppressWarnings("unchecked")
 				InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
                 InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
-                System.out.println("add routed rpc -->");
-                System.out.println(targetIId);
                 this.rpcRegistration.registerPath(FabricCapableDeviceContext.class, targetIId);
-
 
                 OvsdbBridgeAugmentation ovsdbData = (OvsdbBridgeAugmentation) newBridges.get(bridgeIId);
                 readPredefinedVtepIp(bridgeIId, ovsdbData);
