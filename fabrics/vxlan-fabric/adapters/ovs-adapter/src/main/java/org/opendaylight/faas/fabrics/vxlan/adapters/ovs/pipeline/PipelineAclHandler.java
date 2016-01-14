@@ -276,12 +276,13 @@ public class PipelineAclHandler extends AbstractServiceInstance{
     private void aceIpAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceIp aceIp, boolean writeFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
+        short aceIpProtocol = aceIp.getProtocol();
+        matchBuilder = createIpProtocolMatch(matchBuilder, aceIpProtocol);
+        
         if (aceIp.getAceIpVersion() instanceof AceIpv6) {
             /*TODO IPv6 Support*/
             return;
-        }
-
-        if (aceIp.getAceIpVersion() instanceof AceIpv4) {
+        } else {
             //Match IPv4 protocol and IP Address
             EthernetMatchBuilder eth = new EthernetMatchBuilder();
             EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -292,10 +293,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             createIpAddressMatch(matchBuilder, aceIp);
 
             //Match IP protocol, Now, support TCP, UDP, ICMP
-            short aceIpProtocol = aceIp.getProtocol();
             if (aceIpProtocol != 0) {
-                matchBuilder = createIpProtocolMatch(matchBuilder, aceIpProtocol);
-
                 if (PROTOCOL_TCP == aceIpProtocol) {
                     //Set TCP Port
                     matchBuilder = createTcpMatch(matchBuilder, aceIp);
@@ -306,14 +304,15 @@ public class PipelineAclHandler extends AbstractServiceInstance{
                     matchBuilder = createUdpMatch(matchBuilder, aceIp);
                 }
             }
-
-
         }
 
         syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
     }
 
     private MatchBuilder createIpAddressMatch(MatchBuilder matchBuilder, AceIp aceIp) {
+    	if (aceIp.getAceIpVersion() == null) {
+    		return matchBuilder;
+    	}
         AceIpv4 aceIpv4 = (AceIpv4)aceIp.getAceIpVersion();
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
 

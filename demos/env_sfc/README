@@ -1,0 +1,6 @@
+1. Follow the guide in : https://github.com/opendaylight/groupbasedpolicy/tree/master/demos/gbpsfc-env , to setup gbpsfc environment 
+2. Move the demo-faas directory to the gbpsfc enviroment directory: ~/groupbasedpolicy/demos/gbpsfc-env/
+3. start odl features: odl-restconf odl-sfcofl2 odl-sfc-ui odl-faas-vxlan-fabric odl-faas-vxlan-ovs-adapter
+4. In the gbpsfc-env directory, : #./startdemo.sh env_sfc
+
+
