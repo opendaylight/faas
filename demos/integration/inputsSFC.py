@@ -1,6 +1,18 @@
 import inputsCommon
 
 #===============================================================================#
+def get_sfcList_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/service-function-chain:service-function-chains/"
+
+def get_sfList_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/service-function:service-functions/"
+
+def get_sffList_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/service-function-forwarder:service-function-forwarders/"
+
+def get_sfpList_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/service-function-path:service-function-paths/"
+
 def get_invmgr_uri():
     return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/config/opendaylight-inventory:nodes/"
 
