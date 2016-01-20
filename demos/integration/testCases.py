@@ -10,6 +10,8 @@ import inputsVcontainer
 import inputsFabric
 import inputsGBP
 import inputsSFC
+import tenant_2EPG_SFC
+import tenant_3EPG_SFC
 
 #
 # Manifested constants
@@ -60,7 +62,7 @@ def getTopology(desc):
   return resp
 
 #===============================================================================# 
-def registerEndpointLocation(desc):
+def registerEndpointLocation_acl(desc):
   nc_id1 = "sw1-eth1"
   nc_id2 = "sw2-eth3"
   nodeId1 = util.getOvsdbNodeIdByName("sw1")
@@ -78,9 +80,52 @@ def registerEndpointLocation(desc):
   return result
 
 #===============================================================================# 
+def registerEndpointLocation_sfc(desc):
+  nc_id1 = "vethl-h35_2"
+  nc_id2 = "vethl-h36_4"
+  nodeId1 = util.getOvsdbNodeIdByName("sw1")
+
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId2 = util.getOvsdbNodeIdByName("sw6")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  for inputData in tenant_2EPG_SFC.get_endpoint_location_data(nc_id1, nc_id2, nodeId1, nodeId2):
+    result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name)
+
+  return result
+
+#===============================================================================# 
+def registerEndpointLocation_3epg_sfc(desc):
+  nc_id1 = "vethl-h35_2"
+  nc_id2 = "vethl-h36_4"
+  nc_id3 = "vethl-h37_2"
+
+  nodeId1 = util.getOvsdbNodeIdByName("sw1")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId2 = util.getOvsdbNodeIdByName("sw6")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId3 = util.getOvsdbNodeIdByName("sw7")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  for inputData in tenant_3EPG_SFC.get_endpoint_location_data(nc_id1, nc_id2, nc_id3, nodeId1, nodeId2, nodeId3):
+    result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name)
+
+  return result
+
+#===============================================================================# 
 testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'p1': (getTopology, 'Print Topology'),
-   'vc05': (registerEndpointLocation, 'Register endpoint locations for Layer 3 ULN'),
+   'vc05': (registerEndpointLocation_acl, 'Register endpoint locations for Layer 3 ULN with ACL'),
+   'vc052': (registerEndpointLocation_sfc, 'Register endpoint locations for Layer 3 ULN with SFC'),
+   'vc053': (registerEndpointLocation_3epg_sfc, 'Register endpoint locations for 3EPG-Layer3-ULN with SFC'),
 }
 
 testCases2_ga = {
@@ -110,20 +155,36 @@ testCases2_ga = {
             'Create NetNode LR'),
   'vc03': (put_c, 
            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
-           inputsGBP.get_tenant_data_layer3(inputsCommon.tenant1Id_gc),
-           'Create tenant policy for a Layer 3 ULN'),
+           inputsGBP.get_tenant_data_layer3_acl(inputsCommon.tenant1Id_gc),
+           'Create tenant policy for a Layer 3 ULN with ACL'),
+  'vc031': (put_c, 
+            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
+            inputsGBP.get_tenant_data_layer2_acl(inputsCommon.tenant1Id_gc),
+            'Create tenant of Layer 2 ULN with ACL'),
+  'vc032': (put_c, 
+            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
+            tenant_2EPG_SFC.get_tenant_data(inputsCommon.tenant1Id_gc),
+            'Create tenant of Layer 3 ULN with SFC'),
+  'vc033': (put_c, 
+            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
+            tenant_3EPG_SFC.get_tenant_data(inputsCommon.tenant1Id_gc),
+            'Create 3-EPG tenant of Layer 3 ULN with SFC'),
   'vc04': (post_data_array_c, 
            inputsGBP.get_endpoint_uri(), 
            inputsGBP.get_endpoint_data_layer3(inputsCommon.tenant1Id_gc),
-           'Register endpoints for Layer 3 ULN'),
-  'vc031': (put_c, 
-            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
-            inputsGBP.get_tenant_data(inputsCommon.tenant1Id_gc),
-            'Create tenant of Layer 2 ULN'),
+           'Register endpoints for Layer 3 ULN with ACL'),
   'vc041': (post_c, 
             inputsGBP.get_endpoint_uri(), 
             inputsGBP.get_endpoint_data(inputsCommon.tenant1Id_gc),
-            'Register endpoints on Layer 2 ULN'),
+            'Register endpoints on Layer 2 ULN with ACL'),
+  'vc042': (post_data_array_c, 
+           inputsGBP.get_endpoint_uri(), 
+           tenant_2EPG_SFC.get_endpoint_data(inputsCommon.tenant1Id_gc),
+           'Register endpoints for Layer 3 ULN with SFC'),
+  'vc043': (post_data_array_c, 
+           inputsGBP.get_endpoint_uri(), 
+           tenant_3EPG_SFC.get_endpoint_data(inputsCommon.tenant1Id_gc),
+           'Register endpoints for 3EPG-Layer3-ULN with SFC'),
   'vc06': (post_c, 
            inputsGBP.get_unreg_endpoint_uri(), 
            inputsGBP.get_unreg_endpoint_data_layer3(),
@@ -152,6 +213,22 @@ testCases2_ga = {
           inputsSFC.get_invmgr_uri(), 
           'unused param',
           'Get flow rules'),
+  'p7': (get_c, 
+          inputsSFC.get_sfcList_uri(), 
+          'unused param',
+          'Get SFC list'),
+  'p8': (get_c, 
+          inputsSFC.get_sfList_uri(), 
+          'unused param',
+          'Get SF list'),
+  'p9': (get_c, 
+          inputsSFC.get_sffList_uri(), 
+          'unused param',
+          'Get service function forwarder(SFF) list'),
+  'p10': (get_c, 
+          inputsSFC.get_sfpList_uri(), 
+          'unused param',
+          'Get service function paths'),
   'acl01': (put_c, 
            inputsSFC.get_acl_uri(), 
            inputsSFC.get_acl_data(),
