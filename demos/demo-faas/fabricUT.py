@@ -271,6 +271,21 @@ if __name__ == "__main__":
     if controller == None:
         sys.exit("No controller set.")
 
+    print "get ovsdb node-id"
+    ovsdb_topo = get_jsondata(controller, DEFAULT_PORT,OPER_OVSDB_TOPO)["topology"]
+    for topo_item in ovsdb_topo:
+        if topo_item["node"] is not None:
+            for ovsdb_node in topo_item["node"]:
+                if ovsdb_node.has_key("ovsdb:bridge-name"):
+                    #uuid_ovsdb = ovsdb_node["node-id"][13:]
+                    if ovsdb_node["ovsdb:bridge-name"] == "sw1":
+                        NODE_ID_OVSDB_SW1 = ovsdb_node["node-id"]
+                        print "sw1 node-id= "+NODE_ID_OVSDB_SW1
+                    if ovsdb_node["ovsdb:bridge-name"] == "sw6":
+                        NODE_ID_OVSDB_SW6 = ovsdb_node["node-id"]
+                        print "sw6 node-id= "+NODE_ID_OVSDB_SW6
+
+
     print "create_logic_switch"
     pause()
     post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-1", 1), True)
