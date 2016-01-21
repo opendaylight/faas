@@ -73,28 +73,28 @@ def get_acl_data():
     "ietf-access-control-list:access-lists": {
         "acl": [
             {
-            "acl-name":"acl-sfc-redirect",
+            "acl-name":"acl-sfc-redirect-1",
             "acl-type":"",
             "access-list-entries":{
                 "ace" :[
                     { 
-                    "rule-name":"rule-sfc-redirect",
+                    "rule-name":"rule-sfc-redirect-1",
                     "matches":{
-                        "destination-ipv4-network":"172.16.1.0/24",
-                        "source-ipv4-network":"172.16.3.0/24",
+                        "destination-ipv4-network":"10.0.36.0/24",
+                        "source-ipv4-network":"10.0.35.0/24",
                         "protocol":6,
                         "source-port-range":{
                             "lower-port":0
                             },
                         "destination-port-range":{
-                            "lower-port":11
+                            "lower-port":80
                             },
                      },
                      "actions": {
-                                        "dest-ip":"10.10.10.10",
-                                        "dest-port":10,
-                                        "nsi":11,
-                                        "nsp":44
+                                        "dest-ip":"192.168.50.71",
+                                        "dest-port":6633,
+                                        "nsi":255,
+                                        "nsp":33
                      }
                     }
                 ]}
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     pause()
     print "put acl-tcp-deny ACL to Logic Switch"
-    post(controller, DEFAULT_PORT, rpc_add_acl_uri(), rpc_add_switch_acl_data("vswitch-2", "acl-sfc-redirect"), True)
+    post(controller, DEFAULT_PORT, rpc_add_acl_uri(), rpc_add_switch_acl_data("vswitch-1", "acl-sfc-redirect-1"), True)
 
 
 

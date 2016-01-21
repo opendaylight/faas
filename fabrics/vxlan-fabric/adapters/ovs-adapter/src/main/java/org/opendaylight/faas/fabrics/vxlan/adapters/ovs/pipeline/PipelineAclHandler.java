@@ -193,7 +193,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
     public void programBridgeDomainAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
-        String flowId = "PipelineAcl_BridgeDomain_";
+        String flowId = "PipelineAcl_BridgeDomain_" + segmentationId.toString();
 
         AccessListEntries accessListEntries = acl.getAccessListEntries();
 
@@ -218,7 +218,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
     public void programBridgePortAclEntry(Long dpidLong, Long bridgePort, Acl acl, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
-        String flowId = "PipelineAcl_BridgePort_";
+        String flowId = "PipelineAcl_BridgePort_" + bridgePort.toString();
 
         AccessListEntries accessListEntries = acl.getAccessListEntries();
 
@@ -278,7 +278,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
         short aceIpProtocol = aceIp.getProtocol();
         matchBuilder = createIpProtocolMatch(matchBuilder, aceIpProtocol);
-        
+
         if (aceIp.getAceIpVersion() instanceof AceIpv6) {
             /*TODO IPv6 Support*/
             return;
