@@ -143,7 +143,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 if (result.isPresent()) {
                     Options opt = result.get();
                     TrafficBehavior behavior = opt.getTrafficBehavior();
-                    ctx.setTrafficBehavior(behavior == null ? behavior : TrafficBehavior.Normal);
+                    ctx.setTrafficBehavior(behavior == null ? TrafficBehavior.Normal : behavior);
                 } else {
                     ctx.setTrafficBehavior(TrafficBehavior.Normal);
                 }

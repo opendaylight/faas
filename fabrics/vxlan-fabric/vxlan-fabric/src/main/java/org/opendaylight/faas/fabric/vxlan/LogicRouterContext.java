@@ -34,7 +34,7 @@ public class LogicRouterContext {
     }
 
     public GatewayPort addGatewayPort(IpPrefix ip, long vni, NodeId lsw) {
-        return gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw));
+        return gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw, vrf));
     }
 
     public GatewayPort removeGatewayPort(long vni) {
@@ -52,7 +52,7 @@ public class LogicRouterContext {
 	public void removeAcl(String aclName) {
 		acls.remove(aclName);
 	}
-	
+
 	public List<String> getAcls() {
 		return Collections.unmodifiableList(acls);
 	}

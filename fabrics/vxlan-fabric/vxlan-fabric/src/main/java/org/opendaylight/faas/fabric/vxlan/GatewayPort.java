@@ -17,14 +17,16 @@ public class GatewayPort {
 
     private IpPrefix ip;
     private long vni;
+    private long vrf;
     private MacAddress mac;
 
     private NodeId lsw;
 
-    public GatewayPort (IpPrefix ip, long vni, NodeId lsw) {
+    public GatewayPort (IpPrefix ip, long vni, NodeId lsw, long vrf) {
         this.ip = ip;
         this.vni = vni;
         this.lsw = lsw;
+        this.vrf = (int) vrf;
     }
 
     public void setMac(MacAddress mac) {
@@ -41,6 +43,10 @@ public class GatewayPort {
 
     Long getVni() {
         return vni;
+    }
+
+    Long getVrf() {
+        return vrf;
     }
 
     NodeId getLogicSwitch() {

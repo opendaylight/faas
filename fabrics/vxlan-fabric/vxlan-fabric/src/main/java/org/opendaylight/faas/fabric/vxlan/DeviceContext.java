@@ -46,7 +46,7 @@ public class DeviceContext {
     Map<Long, GatewayPort> bdifs = Maps.newHashMap();
 
     private final ExecutorService executor;
-    
+
     DeviceContext(DataBroker databroker, IpAddress vtep, InstanceIdentifier<Node> deviceIId, ExecutorService executor) {
         this.databroker = databroker;
         this.vtep = vtep;
@@ -61,7 +61,7 @@ public class DeviceContext {
     public DeviceKey getKey() {
     	return DeviceKey.newInstance(deviceIId);
     }
-    
+
     public void createBridgeDomain(LogicSwitchContext switchCtx) {
         long vni = switchCtx.getVni();
         localBD.add(createBdId(vni));
@@ -111,7 +111,7 @@ public class DeviceContext {
 		augBuilder.setVni(vni);
 		builder.addAugmentation(BridgeDomain1.class, augBuilder.build());
 		builder.setKey(new BridgeDomainKey(bdid));
-		
+
 		WriteTransaction trans = databroker.newWriteOnlyTransaction();
 		if (delete) {
 			trans.delete(LogicalDatastoreType.OPERATIONAL, bdIId);
@@ -119,9 +119,9 @@ public class DeviceContext {
 			trans.put(LogicalDatastoreType.OPERATIONAL, bdIId, builder.build());
 		}
 		MdSalUtils.wrapperSubmit(trans, executor);
-    	
+
     }
-    
+
     private void syncToDom(GatewayPort gw, boolean delete) {
         String bdifid = createBdIfId(gw.getVni());
         InstanceIdentifier<Bdif> bdifIId = deviceIId.augmentation(FabricCapableDevice.class)
@@ -134,6 +134,7 @@ public class DeviceContext {
         builder.setIpAddress(getIpAddress(gw.getIp()));
         builder.setMacAddress(gw.getMac());
         builder.setMask(getMask(gw.getIp()));
+        builder.setVrf(gw.getVrf().intValue());
 
         WriteTransaction trans = databroker.newWriteOnlyTransaction();
         if (delete) {
