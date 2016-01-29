@@ -13,6 +13,7 @@ import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.AbstractService
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg0;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg2;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.ActionUtils;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.InstructionUtils;
 import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
@@ -41,6 +42,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
     public final static long REG_VALUE_FROM_REMOTE = 0x2L;
 
     public static final Class<? extends NxmNxReg> REG_FIELD = NxmNxReg0.class;
+    public static final Class<? extends NxmNxReg> REG_SRC_TUN_ID = NxmNxReg2.class;
 
     public PipelineTrafficClassifier(DataBroker dataBroker) {
         super(Service.TRAFFIC_CLASSIFIER, dataBroker);
@@ -92,10 +94,12 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             List<Action> actionList = aac.getApplyActions().getAction();
 
             ActionBuilder ab = new ActionBuilder();
-            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
-                    BigInteger.valueOf(REG_VALUE_FROM_LOCAL)));
-            ab.setOrder(1);
-            ab.setKey(new ActionKey(1));
+
+
+            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+                    BigInteger.valueOf(segmentationId.longValue())));
+            ab.setOrder(2);
+            ab.setKey(new ActionKey(2));
             actionList.add(ab.build());
 
             ib.setOrder(0);
@@ -213,6 +217,12 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             ActionBuilder ab = new ActionBuilder();
             ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
                     BigInteger.valueOf(REG_VALUE_FROM_REMOTE)));
+            ab.setOrder(0);
+            ab.setKey(new ActionKey(0));
+            actionList.add(ab.build());
+
+            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+                    tunnelId));
             ab.setOrder(0);
             ab.setKey(new ActionKey(0));
             actionList.add(ab.build());
