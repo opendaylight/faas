@@ -202,7 +202,9 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             Matches aclMatches = ace.getMatches();
 
             MatchBuilder matchBuilder = new MatchBuilder();
-            matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
+            //matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
+            MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_SRC_TUN_ID,
+                    segmentationId));
 
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
