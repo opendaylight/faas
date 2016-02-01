@@ -104,6 +104,7 @@ public class UlnMappingEngine {
     private Map<Uuid, UserLogicalNetworkCache> ulnStore;
     private final Executor exec;
     private final Semaphore workerThreadLock;
+    private boolean renderOnSingleFabric = true; // TODO: temporary workaround for Bug 5146
 
     public UlnMappingEngine() {
         /*
@@ -149,8 +150,13 @@ public class UlnMappingEngine {
     private void doLogicalSwitchCreate(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
         /*
          * For LSW, we can directly render it on Fabric.
+         *
+         * 29Jan2016: Due to Bug 5144, we cannot just directly render
+         * an incoming LSW onto the fabric. Instead, LSW will be rendered
+         * when EP registration takes place.
+         *
          */
-        this.renderLogicalSwitch(tenantId, uln, lsw);
+        // this.renderLogicalSwitch(tenantId, uln, lsw);
     }
 
     public synchronized void handleLrCreateEvent(LogicalRouter lr) {
@@ -176,8 +182,18 @@ public class UlnMappingEngine {
     private void doLogicalRouterCreate(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
         /*
          * For LR, we can directly render it on Fabric.
+         *
+         * 29Jan2016: Due to Bug 5146, we can create only one LR on Fabric per ULN.
+         * So, we save the first (and only) LR in ULN cache, and skip rendering any
+         * subsequent LRs.
          */
-        this.renderLogicalRouter(tenantId, uln, lr);
+        if (this.renderOnSingleFabric == true) {
+            if (uln.hasLrBeenRenderedOnFabric() == false) {
+                this.renderLogicalRouter(tenantId, uln, lr);
+            }
+        } else {
+            this.renderLogicalRouter(tenantId, uln, lr);
+        }
     }
 
     public synchronized void handleSubnetCreateEvent(Subnet subnet) {
@@ -200,11 +216,13 @@ public class UlnMappingEngine {
         this.workerThreadLock.release();
     }
 
-    @SuppressWarnings("unused")
     private void doSubnetCreate(Uuid tenantId, UserLogicalNetworkCache uln, Subnet subnet) {
         /*
-         * For subnet, we do not need to render it.
+         * For subnet, we do not need to render it, but due to Bug 5144,
+         * we need to add device ID of the rendered LSW to all other
+         * unrendered LSWs that are connected to the given subnet.
          */
+        uln.updateLSWsConnectedToSubnet(subnet);
     }
 
     public synchronized void handlePortCreateEvent(Port port) {
@@ -314,9 +332,9 @@ public class UlnMappingEngine {
             return;
         }
 
-        EdgeMappingInfo subnetLswEdge = uln.findSubnetLswEdge(subnet);
+        EdgeMappingInfo subnetLswEdge = uln.findSingleSubnetLswEdgeFromSubnet(subnet);
         if (subnetLswEdge == null) {
-            LOG.debug("FABMGR: renderEpRegistration: subnetLswEdge not in cache");
+            LOG.debug("FABMGR: renderEpRegistration: cannot find subnetLswEdge in cache");
             return;
         }
 
@@ -366,6 +384,8 @@ public class UlnMappingEngine {
         uln.markPortAsRendered(subnetPort.getPort());
         uln.markPortAsRendered(subnetPort2.getPort());
         uln.markEdgeAsRendered(subnetLswEdge.getEdge());
+        uln.markSubnetAsRendered(subnet.getSubnet()); // subnet being rendered meaning its LSW has
+                                                      // been chosen and rendered.
     }
 
     public synchronized void handleEdgeCreateEvent(Edge edge) {
@@ -402,7 +422,6 @@ public class UlnMappingEngine {
          * multi-fabric.)
          */
         if (uln.isEdgeLrToLrType(edge) || uln.isEdgeLswToLswType(edge)) {
-            uln.markEdgeAsRendered(edge);
             return;
         }
 
@@ -423,7 +442,14 @@ public class UlnMappingEngine {
                     if (lsw != null && uln.isPortLrType(rightPort.getPort().getUuid()) == true) {
                         subnet = uln.findSubnetFromLsw(lsw);
                         lr = uln.findLrFromItsPort(rightPort.getPort());
-                        if (lr != null && subnet != null) {
+                        if (lr != null && subnet != null && lsw.hasServiceBeenRendered() == true) {
+                            /*
+                             * If lsw is already rendered, then that means
+                             * we can safely add the gateway. If lsw is not
+                             * rendered, we do not know if that lsw should be
+                             * created or not (due to bug 5144). So we need to wait
+                             * for EpRegistration to render the correct lsw first.
+                             */
                             canRenderEdge = true;
                         }
                     }
@@ -432,7 +458,7 @@ public class UlnMappingEngine {
                     if (lsw != null && uln.isPortLrType(leftPort.getPort().getUuid()) == true) {
                         subnet = uln.findSubnetFromLsw(lsw);
                         lr = uln.findLrFromItsPort(leftPort.getPort());
-                        if (lr != null && subnet != null) {
+                        if (lr != null && subnet != null && lsw.hasServiceBeenRendered() == true) {
                             canRenderEdge = true;
                         }
                     }
@@ -446,11 +472,13 @@ public class UlnMappingEngine {
             IpAddress gatewayIp = null;
             IpPrefix ipPrefix = null;
 
-            if (lsw.hasServiceBeenRendered() == false) {
-                lswDevId = this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
-            } else {
-                lswDevId = lsw.getRenderedDeviceId();
-            }
+            // if (lsw.hasServiceBeenRendered() == false) {
+            // LOG.error("FABMGR: ERROR: doEdgeCreate: lsw is not rendered. edgeId={}, lswId={}",
+            // edge.getUuid().getValue(), lsw.getLsw().getUuid().getValue());
+            // lswDevId = this.renderLogicalSwitch(tenantId, uln, lsw.getLsw());
+            // } else {
+            lswDevId = lsw.getRenderedDeviceId();
+            // }
 
             if (lswDevId == null) {
                 LOG.error("FABMGR: ERROR: doEdgeCreate: lswDevId is null. edgeId={}, lswId={}",
@@ -458,10 +486,28 @@ public class UlnMappingEngine {
                 return;
             }
 
-            if (lr.hasServiceBeenRendered() == false) {
-                lrDevId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+            /*
+             * One ULN can have only one rendered LR (Bug 5146). If LR is already rendered,
+             * then use it. If not, then render this LR as the first and only LR
+             * to render.
+             */
+            if (this.renderOnSingleFabric == true) {
+                if (uln.hasLrBeenRenderedOnFabric() == false) {
+                    if (lr.hasServiceBeenRendered() == false) {
+                        lrDevId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                    } else {
+                        LOG.error("FABMGR: ERROR: doEdgeCreate: lr is rendered but not cached. edgeId={}, lrId={}",
+                                edge.getUuid().getValue(), lr.getLr().getUuid().getValue());
+                    }
+                } else {
+                    lrDevId = uln.getRenderedLrDeviceId();
+                }
             } else {
-                lrDevId = lr.getRenderedDeviceId();
+                if (lr.hasServiceBeenRendered() == false) {
+                    lrDevId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                } else {
+                    lrDevId = uln.getRenderedLrDeviceId();
+                }
             }
 
             if (lrDevId == null) {
@@ -488,12 +534,29 @@ public class UlnMappingEngine {
                     edge.getUuid().getValue(), lrDevId.getValue(), lswDevId.getValue(),
                     gatewayIp.getIpv4Address().getValue(), ipPrefix.getIpv4Prefix().getValue());
             this.renderLrLswEdge(tenantId, uln, lrDevId, lswDevId, gatewayIp, ipPrefix, edge);
+
+            /*
+             * One subnet can have only one gateway.
+             * Mark this subnet as rendered so that we know no more
+             * gateways can be rendered for this subnet. There is a bug (Bug 5144)
+             * in ULN model that permits subnet to have multiple gateways.
+             */
+            if (subnet.hasServiceBeenRendered() == false) {
+                LOG.error("FABMGR: ERROR: doEdgeCreate: subnet is not rendered. subnetId={}",
+                        subnet.getSubnet().getUuid().getValue());
+                uln.markSubnetAsRendered(subnet.getSubnet());
+            }
+
+            /*
+             * The following calls are for debug info collection purpose
+             */
             uln.addLrLswEdgeToLsw(lsw.getLsw(), edge);
             uln.addLrLswEdgeToLr(lr.getLr(), edge);
             uln.addGatewayIpToLr(lr.getLr(), gatewayIp);
             uln.addLrLswEdgeToPort(leftPort.getPort(), edge);
             uln.addLrLswEdgeToPort(rightPort.getPort(), edge);
         }
+
     }
 
     public synchronized void handleSecurityRuleGroupsCreateEvent(SecurityRuleGroups ruleGroups) {
@@ -558,18 +621,29 @@ public class UlnMappingEngine {
         } else {
             LogicalRouterMappingInfo lr = uln.findLrFromPortId(portId);
             if (lr != null) {
-                if (lr.hasServiceBeenRendered() == false) {
-                    LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lr not rendered: {}",
-                            lr.getLr().getUuid().getValue());
-                    nodeId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                if (this.renderOnSingleFabric == true) {
+                    /*
+                     * Due to Bug 5146, we cannot apply ACL on LR. We need to find
+                     * the LSW which connects to this LR and apply ACL rules there.
+                     */
+                    nodeId = uln.findLswRenderedDeviceIdFromLr(lr);
+                    if (nodeId != null) {
+                        readyToRender = true;
+                    }
                 } else {
-                    nodeId = lr.getRenderedDeviceId();
-                }
-                if (nodeId == null) {
-                    LOG.error("FABMGR:doSecurityRuleGroupsCreate: lr nodeId is null");
-                } else {
-                    uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
-                    readyToRender = true;
+                    if (lr.hasServiceBeenRendered() == false) {
+                        LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lr not rendered: {}",
+                                lr.getLr().getUuid().getValue());
+                        nodeId = this.renderLogicalRouter(tenantId, uln, lr.getLr());
+                    } else {
+                        nodeId = lr.getRenderedDeviceId();
+                    }
+                    if (nodeId == null) {
+                        LOG.error("FABMGR:doSecurityRuleGroupsCreate: lr nodeId is null");
+                    } else {
+                        uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
+                        readyToRender = true;
+                    }
                 }
             }
         }
@@ -590,6 +664,7 @@ public class UlnMappingEngine {
         CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(tenantId, lr);
         NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLrAsRendered(lr, renderedLrId);
+        uln.setRenderedlrOnFabric(uln.getLrMappingInfo(lr));
         return renderedLrId;
     }
 
@@ -830,8 +905,8 @@ public class UlnMappingEngine {
         }
 
         /*
-         * LR addition dependency: None
-         * LR deletion dependency: ACL, Logical Ports, Gateway
+         * LSW addition dependency: None
+         * LSW deletion dependency: ACL, Logical Ports, Gateway
          */
         for (Entry<Uuid, LogicalSwitchMappingInfo> lswEntry : uln.getLswStore().entrySet()) {
             LogicalSwitchMappingInfo info = lswEntry.getValue();
@@ -931,6 +1006,10 @@ public class UlnMappingEngine {
                 LOG.debug("FABMGR: processPendingUlnRequests: delete subnet: {}",
                         subnetEntry.getValue().getSubnet().getUuid().getValue());
                 uln.removeSubnetFromCache(subnetEntry.getValue().getSubnet());
+            } else {
+                LOG.debug("FABMGR: processPendingUlnRequests: create subnet: {}",
+                        subnetEntry.getValue().getSubnet().getUuid().getValue());
+                this.doSubnetCreate(tenantId, uln, subnetEntry.getValue().getSubnet());
             }
         }
 
