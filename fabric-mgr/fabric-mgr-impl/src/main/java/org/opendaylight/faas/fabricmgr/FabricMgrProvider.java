@@ -169,7 +169,8 @@ public class FabricMgrProvider implements AutoCloseable {
                 nodeId = createLswOutput.getLneId();
             }
         } catch (Exception e) {
-            LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed: {}", e);
+            LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed: ", e);
+            return null;
         }
 
         LOG.debug("FABMGR: createLneLayer3: lrId={}", nodeId.getValue());
