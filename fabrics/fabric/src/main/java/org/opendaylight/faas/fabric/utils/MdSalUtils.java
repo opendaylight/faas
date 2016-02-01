@@ -20,6 +20,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.LinkKey;
@@ -38,6 +39,17 @@ import com.google.common.util.concurrent.Futures;
 public class MdSalUtils {
 
 	private static final Logger LOG = LoggerFactory.getLogger(MdSalUtils.class);
+
+    public static InstanceIdentifier<Topology> createTopoIId(String topoId) {
+        return InstanceIdentifier.create(NetworkTopology.class)
+                .child(Topology.class, new TopologyKey(new TopologyId(topoId)));
+    }
+
+    public static Topology newTopo(String topoId) {
+        TopologyBuilder builder = new TopologyBuilder();
+        builder.setKey(new TopologyKey(new TopologyId(topoId)));
+        return builder.build();
+    }
 
     public static InstanceIdentifier<Node> createNodeIId(String topoId, String nodeId) {
         return InstanceIdentifier.create(NetworkTopology.class)
