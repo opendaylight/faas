@@ -154,7 +154,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         }
 
         final NodeId flswid = lswId == null ? null : lswId;
-        
+
         trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, routerid, tpOnRouter));
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
@@ -162,7 +162,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
             	fabricObj.notifyGatewayRemoved(flswid, routerid);
-            	
+
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }}, executor);
     }
@@ -212,7 +212,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             	if (optional.isPresent()) {
 	                Node lsw = optional.get();
 	                fabricObj.notifyLogicSwitchRemoved(lsw);
-	
+
 	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
 	                wt.delete(LogicalDatastoreType.OPERATIONAL, lswIId);
 	                MdSalUtils.wrapperSubmit(wt, executor);
@@ -267,7 +267,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     private LinkId createGatewayLink(NodeId routerId, TpId gwPort) {
     	return new LinkId(String.format("gateway:%s, router:%s", gwPort.getValue(), routerId));
     }
-    
+
     private void createLogicLink(FabricId fabricid, NodeId routeId, NodeId swId, WriteTransaction trans, TpId tpid1,
             TpId tpid2, LinkId lid) {
         final LinkId linkid = lid == null ? new LinkId(UUID.randomUUID().toString()) : lid;
@@ -362,7 +362,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final Node lsw = nodeBuilder.build();
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lsw, true);
+        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lsw);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicSwitchOutput>>(){
 
@@ -401,7 +401,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             	if (optional.isPresent()) {
 	                Node lr = optional.get();
 	                fabricObj.notifyLogicRouterRemoved(lr);
-	
+
 	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
 	                wt.delete(LogicalDatastoreType.OPERATIONAL, routerIId);
 	                MdSalUtils.wrapperSubmit(wt, executor);
@@ -469,7 +469,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final Node lr = nodeBuilder.build();
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lr);
+        trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lr, true);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicRouterOutput>>(){
 
@@ -549,7 +549,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		if (aclIId == null) {
 			return Futures.immediateFailedFuture(new IllegalArgumentException("Can not add acl, maybe the target is not exists !"));
 		}
-		
+
 		FabricAclBuilder aclBuilder = new FabricAclBuilder();
 		aclBuilder.setFabricAclName(aclName);
 		aclBuilder.setKey(new FabricAclKey(aclName));
@@ -595,7 +595,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
 		WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 		trans.delete(LogicalDatastoreType.OPERATIONAL,aclIId);
-		
+
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>(){
 
             @Override
@@ -621,7 +621,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 		long mask = getDefaultMask(ipv4);
 		return new IpPrefix(new Ipv4Prefix(String.format("%s/%d", ipv4, mask)));
 	}
-	
+
 	private static long getDefaultMask(String ipv4Address) {
 		long ipLong = (InetAddresses.coerceToInteger(InetAddresses.forString(ipv4Address))) & 0xFFFFFFFFL;
 		if (ipLong < 2147483647L) {	// 0.0.0.0 - 127.255.255.255

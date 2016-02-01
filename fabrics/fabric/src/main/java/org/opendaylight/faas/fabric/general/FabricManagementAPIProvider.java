@@ -138,11 +138,12 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
             	if (optional.isPresent()) {
 	                Node fabric = optional.get();
 	                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricDeleted(fabric);
-	
+
 	                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
 	                wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
+	                wt.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()));
 	                MdSalUtils.wrapperSubmit(wt, executor);
-	
+
 	                FabricInstanceCache.INSTANCE.removeFabric(fabricId);
             	}
 
@@ -218,10 +219,11 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         final FabricNode fabricNode = fabricBuilder.build();
         fnodeBuilder.addAugmentation(FabricNode.class, fabricNode);
-        
+
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         trans.put(LogicalDatastoreType.OPERATIONAL, fnodepath, fnodeBuilder.build(), true);
+        trans.put(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()), MdSalUtils.newTopo(fabricId.getValue()));
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
@@ -247,7 +249,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
     			InstanceIdentifier<?> nodeRef = device.getDeviceRef().getValue();
     			NodeId nodeid = nodeRef.firstKeyOf(Node.class).getNodeId();
     			TopologyId topoId = nodeRef.firstKeyOf(Topology.class).getTopologyId();
-    			
+
     			SupportingNodeBuilder snodeBuilder = new SupportingNodeBuilder();
     			snodeBuilder.setNodeRef(nodeid);
     			snodeBuilder.setTopologyRef(topoId);
@@ -268,7 +270,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
     	builder.setDeviceNodes(getDeviceNodesInput(input.getDeviceNodes()));
     	builder.setOptions(input.getOptions());
     }
-    
+
     private List<DeviceNodes> getDeviceNodesInput(List<DeviceNodes> input) {
         if (input == null) {
             return null;
@@ -337,7 +339,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         TopologyId topoid = noderef.firstKeyOf(Topology.class).getTopologyId();
         InstanceIdentifier<SupportingNode> suplNodeIid = MdSalUtils.createFNodeIId(input.getFabricId())
         		.child(SupportingNode.class, new SupportingNodeKey(deviceid, topoid));
-        
+
         trans.delete(LogicalDatastoreType.OPERATIONAL, suplNodeIid);
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
@@ -387,7 +389,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         suplNodeBuilder.setTopologyRef(topoid);
         suplNodeBuilder.setKey(new SupportingNodeKey(deviceid, topoid));
         trans.put(LogicalDatastoreType.OPERATIONAL, suplNodeIid, suplNodeBuilder.build(), true);
-        
+
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
         return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>(){
