@@ -38,23 +38,15 @@ if __name__ == "__main__":
     #else:
 	#print "Contacting controller at %s" % controller
 
-    resp=get(controller,DEFAULT_PORT,get_rsps_uri())
-    if len(resp['rendered-service-paths']) > 0:
-       paths=resp['rendered-service-paths']['rendered-service-path']
+    sw_index=int(socket.gethostname().split("gbpsfc",1)[1])-1
+    if sw_index in range(0,len(switches)+1):
 
-       nsps=[]
-       for path in paths:
-           nsps.append(path['path-id'])
-       if len(nsps) > 0:
-           sw_index=int(socket.gethostname().split("gbpsfc",1)[1])-1
-           if sw_index in range(0,len(switches)+1):
-
-              controller=os.environ.get('ODL')
-              sw_type = switches[sw_index]['type']
-              sw_name = switches[sw_index]['name']
-              if sw_type == 'sf':
-                  print "******************************"
-                  print "Adding flows for %s as an SF." % sw_name
-                  print "******************************"
-                  doCmd('sudo /vagrant/utils/sf-flows.sh %s' % min(nsps))
+        controller=os.environ.get('ODL')
+        sw_type = switches[sw_index]['type']
+        sw_name = switches[sw_index]['name']
+        if sw_type == 'sf':
+            print "******************************"
+            print "Adding flows for %s as an SF." % sw_name
+            print "******************************"
+            doCmd('sudo /vagrant/utils/sf-flows.sh' )
 

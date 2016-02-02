@@ -128,6 +128,7 @@ public class Openflow13Provider {
     //For the condition: Add a new vni in a fabric capable device
     public void updateBridgeDomainInDevice(Long dpidLong, Long tunnelOfPort, Long segmentationId, boolean writeFlow) {
         trafficClassifier.programTunnelIn(dpidLong, segmentationId, tunnelOfPort, writeFlow);
+        aclHandler.programTrafficInBridgeDomain(dpidLong, segmentationId, writeFlow);
     }
 
     public void updateSfcTunnelInDevice(Long dpidLong, Long gpeTunnelOfPort, Long segmentationId, boolean writeFlow) {

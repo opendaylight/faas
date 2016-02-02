@@ -65,6 +65,7 @@ import com.google.common.collect.Lists;
 public class PipelineAclHandler extends AbstractServiceInstance{
     private static final Integer ACL_MATCH_PRIORITY = 60000;
     private static final Integer GPE_TUNNEL_IN_PRIORITY = 61001;
+    private static final Integer TRAFFIC_IN_BRIDGE_DOMAIN = 2;
     private static final Integer TRAFFIC_BEHAVIOR_RULE_PRIORITY = 1;
 
     public static final short PROTOCOL_ICMP = 1;
@@ -188,6 +189,62 @@ public class PipelineAclHandler extends AbstractServiceInstance{
             removeFlow(flowBuilder, nodeBuilder);
         }
 
+    }
+
+    public void programTrafficInBridgeDomain(Long dpidLong, Long segmentationId, boolean writeFlow) {
+        String nodeName = OPENFLOW + dpidLong;
+
+        BigInteger tunnelId = BigInteger.valueOf(segmentationId.longValue());
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        MatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build();
+
+        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_SRC_TUN_ID,
+                segmentationId));
+
+        flowBuilder.setMatch(matchBuilder.build());
+
+        if (writeFlow) {
+            // Create the OF Actions and Instructions
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+
+            // Instructions List Stores Individual Instructions
+            List<Instruction> instructions = Lists.newArrayList();
+
+            // Append the default pipeline after the first classification
+            ib = this.getMutablePipelineInstructionBuilder();
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+            instructions.add(ib.build());
+
+            // Add InstructionBuilder to the Instruction(s)Builder List
+            isb.setInstruction(instructions);
+
+            // Add InstructionsBuilder to FlowBuilder
+            flowBuilder.setInstructions(isb.build());
+        }
+
+        String flowId = "TrafficInBridgeDomain_"+segmentationId;
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setPriority(TRAFFIC_IN_BRIDGE_DOMAIN);
+        flowBuilder.setStrict(true);
+        flowBuilder.setBarrier(false);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (writeFlow) {
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
     }
 
     public void programBridgeDomainAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {

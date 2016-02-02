@@ -6,6 +6,7 @@ from subprocess import call
 import time
 import sys
 import os
+from infrastructure_config import *
 
 
 DEFAULT_PORT='8181'
@@ -19,8 +20,6 @@ OPER_NODES='/restconf/operational/opendaylight-inventory:nodes/'
 CONF_TENANT='/restconf/config/policy:tenants'
 OPER_OVSDB_TOPO='/restconf/operational/network-topology:network-topology/topology/ovsdb:1'
 
-NODE_ID_OVSDB_SW1 = ''
-NODE_ID_OVSDB_SW6 = ''
 
 def get_jsondata(host, port, uri):
     url = 'http://' + host + ":" + port + uri
@@ -248,6 +247,9 @@ def get_service_function_paths_data():
     }
 }
 
+
+
+
 # Main definition - constants
 
 # =======================
@@ -271,18 +273,23 @@ def get_topology_oper_uri():
 def rpc_compose_fabric_uri():
     return "/restconf/operations/fabric:compose-fabric"
 
+DEVICE_REF_PATTERN = "/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='%s']"
+
 def rpc_compose_fabric_data():
+    devNodes = list()
+
+    for switch in switches:
+        if switch["type"] == "gbp":
+            devNodes.append({"device-ref" : DEVICE_REF_PATTERN % switch['nodeid'], "vtep-ip":switch['vtep']})
+
     return {
       "input" : {
            "name": "first fabric",
            "type":"VXLAN",
-           "device-nodes" : [
-             {
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']","vtep-ip":"192.168.50.70"
-              },{
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']","vtep-ip":"192.168.50.75"
-             }
-           ]
+           "options": {
+                "traffic-behavior" :"need-acl"
+           },
+           "device-nodes" : devNodes
        }
     }
 
@@ -335,12 +342,16 @@ if __name__ == "__main__":
             for ovsdb_node in topo_item["node"]:
                 if ovsdb_node.has_key("ovsdb:bridge-name"):
                     #uuid_ovsdb = ovsdb_node["node-id"][13:]
-                    if ovsdb_node["ovsdb:bridge-name"] == "sw1":
-                        NODE_ID_OVSDB_SW1 = ovsdb_node["node-id"]
-                        print "sw1 node-id= "+NODE_ID_OVSDB_SW1
-                    if ovsdb_node["ovsdb:bridge-name"] == "sw6":
-                        NODE_ID_OVSDB_SW6 = ovsdb_node["node-id"]
-                        print "sw6 node-id= "+NODE_ID_OVSDB_SW6
+		    switchname = ovsdb_node["ovsdb:bridge-name"]
+                    for switch in switches:
+                        if switchname == switch["name"]:
+                            if switch["type"] == "gbp":
+                                switch["nodeid"] = ovsdb_node["node-id"]
+
+    SUBNET = os.environ.get("SUBNET")
+    for sw_index in range(0, len(switches)-1):
+        switches[sw_index]["vtep"] = SUBNET + str(70 + sw_index)
+			
 
     pause()
     print "compose fabric"

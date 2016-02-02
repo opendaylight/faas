@@ -19,7 +19,7 @@ switches = [
              'type': 'gbp',
              'dpid': '6'},
             {'name': 'sw7',
-             'type': 'none',
+             'type': 'gbp',
              'dpid': '7'},
             {'name': 'sw8',
              'type': 'none',
@@ -61,5 +61,9 @@ hosts = [{'name': 'h35_2',
          {'name': 'h36_5',
           'ip': '10.0.36.5/24',
           'mac': '00:00:00:00:36:05',
-          'switch': 'sw6'}
+          'switch': 'sw6'},
+	 {'name':'h37_2',
+	  'ip': '10.0.37.2/24',
+	  'mac': '00:00:00:00:37:02',
+	  'switch': 'sw7'}
           ]
