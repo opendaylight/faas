@@ -105,6 +105,8 @@ public class UlnMappingEngine {
     private final Executor exec;
     private final Semaphore workerThreadLock;
     private boolean renderOnSingleFabric = true; // TODO: temporary workaround for Bug 5146
+    private boolean applyAclToBothEpgs = true; // TODO: temporary workaround for Bug 5191
+    private Map<Uuid, Uuid> lswLswPairStore;
 
     public UlnMappingEngine() {
         /*
@@ -116,6 +118,7 @@ public class UlnMappingEngine {
         } else {
             this.ulnStore = new ConcurrentHashMap<Uuid, UserLogicalNetworkCache>();
         }
+        this.lswLswPairStore = new HashMap<Uuid, Uuid>();
         this.exec = Executors.newSingleThreadExecutor();
         /*
          * Releases must occur before any acquires will be
@@ -421,7 +424,19 @@ public class UlnMappingEngine {
          * Fabric's createGateway() API. (Other types are applicable only to
          * multi-fabric.)
          */
-        if (uln.isEdgeLrToLrType(edge) || uln.isEdgeLswToLswType(edge)) {
+        if (uln.isEdgeLrToLrType(edge)) {
+            /*
+             * We need to apply ACL to both consumer and producer EPG (Bug 5191).
+             * So, when we detect a LR-LR edge, we use it to find the LSW-to-LSW
+             * pair, and cache that information. Note that we do not cache this
+             * information in UlserLogicalNetworkCache. Instead we cache it in this
+             * class. Also note that one EPG may contain multiple LSWs, so really we
+             * should find a set of LSws to a set of LSW mapping. But since the real
+             * fix for Bug 5191 is to change the ULN model, we only put a simple fix here.
+             */
+            if (this.renderOnSingleFabric && this.applyAclToBothEpgs) {
+                this.doFindLswToLswPair(tenantId, uln, edge);
+            }
             return;
         }
 
@@ -625,10 +640,18 @@ public class UlnMappingEngine {
                     /*
                      * Due to Bug 5146, we cannot apply ACL on LR. We need to find
                      * the LSW which connects to this LR and apply ACL rules there.
+                     *
+                     * Due to Bug 5191, we have to apply ACL to both EPGs. So, we
+                     * cannot render ACL until both LSWs are rendered.
                      */
-                    nodeId = uln.findLswRenderedDeviceIdFromLr(lr);
-                    if (nodeId != null) {
-                        readyToRender = true;
+                    if (this.applyAclToBothEpgs == true) {
+                        this.doAclCreateOnLswPair(tenantId, uln, lr, ruleGroups);
+                        return;
+                    } else {
+                        nodeId = uln.findLswRenderedDeviceIdFromLr(lr);
+                        if (nodeId != null) {
+                            readyToRender = true;
+                        }
                     }
                 } else {
                     if (lr.hasServiceBeenRendered() == false) {
@@ -651,6 +674,40 @@ public class UlnMappingEngine {
         if (readyToRender == true) {
             this.renderSecurityRuleGroups(tenantId, uln, nodeId, ruleGroups);
         }
+    }
+
+    private void doAclCreateOnLswPair(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr,
+            SecurityRuleGroups ruleGroups) {
+        NodeId nodeId = null;
+        NodeId nodeId2 = null;
+
+        EdgeMappingInfo lrLswEdge = uln.findLrLswEdge(lr);
+        if (lrLswEdge == null) {
+            return;
+        }
+        PortMappingInfo lswPort = uln.findLswPortOnEdge(lrLswEdge);
+        if (lswPort == null) {
+            return;
+        }
+        LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(lswPort.getPort());
+        if (lsw == null) {
+            return;
+        }
+        nodeId = lsw.getRenderedDeviceId();
+        if (nodeId == null) {
+            return;
+        }
+
+        Uuid lswId = lsw.getLsw().getUuid();
+        Uuid lswId2 = this.lswLswPairStore.get(lswId);
+        LogicalSwitchMappingInfo lsw2 = uln.findLswFromLswId(lswId2);
+        nodeId2 = lsw2.getRenderedDeviceId();
+        if (nodeId2 == null) {
+            return;
+        }
+
+        this.renderSecurityRuleGroupsOnPair(tenantId, uln, nodeId, nodeId2, ruleGroups);
+
     }
 
     private NodeId renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
@@ -718,7 +775,34 @@ public class UlnMappingEngine {
         for (SecurityRuleGroup ruleGroup : ruleGroupList) {
             List<SecurityRule> ruleList = ruleGroup.getSecurityRule();
             for (SecurityRule rule : ruleList) {
-                this.renderSecurityRule(tenantId, uln, nodeId, ruleGroupsMappingInfo, rule);
+                String aclName = this.createAclFromSecurityRule(rule);
+                this.renderSecurityRule(tenantId, uln, nodeId, ruleGroupsMappingInfo, aclName);
+            }
+        }
+
+        uln.markSecurityRuleGroupsAsRendered(ruleGroups);
+    }
+
+    private void renderSecurityRuleGroupsOnPair(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
+            NodeId nodeId2, SecurityRuleGroups ruleGroups) {
+        /*
+         * One SecurityRuleGroups contains a list SecurityRuleGroup.
+         * One SecurityRuleGroup contains a list of SecurityRule.
+         * One SecurityRule can be mapped to one ietf-acl.
+         */
+        SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo =
+                uln.findSecurityRuleGroupsFromRuleGroupsId(ruleGroups.getUuid());
+        if (ruleGroupsMappingInfo == null) {
+            LOG.error("FABMGR: ERROR: renderSecurityRuleGroups: ruleGroupsMappingInfo is null");
+            return;
+        }
+        List<SecurityRuleGroup> ruleGroupList = ruleGroups.getSecurityRuleGroup();
+        for (SecurityRuleGroup ruleGroup : ruleGroupList) {
+            List<SecurityRule> ruleList = ruleGroup.getSecurityRule();
+            for (SecurityRule rule : ruleList) {
+                String aclName = this.createAclFromSecurityRule(rule);
+                this.renderSecurityRule(tenantId, uln, nodeId, ruleGroupsMappingInfo, aclName);
+                this.renderSecurityRule(tenantId, uln, nodeId2, ruleGroupsMappingInfo, aclName);
             }
         }
 
@@ -1378,8 +1462,7 @@ public class UlnMappingEngine {
     }
 
     private void renderSecurityRule(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
-            SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo, SecurityRule securityRule) {
-        String aclName = this.createAclFromSecurityRule(securityRule);
+            SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo, String aclName) {
         VcontainerServiceProviderAPI.createAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
         ruleGroupsMappingInfo.addRenderedAclName(aclName);
     }
@@ -2025,5 +2108,58 @@ public class UlnMappingEngine {
          * Notify worker thread to start work
          */
         this.workerThreadLock.release();
+    }
+
+    private void doFindLswToLswPair(Uuid tenantId, UserLogicalNetworkCache uln, Edge lrToLrEdge) {
+        if (uln.isEdgeLrToLrType(lrToLrEdge) == false) {
+            return;
+        }
+
+        PortMappingInfo leftLrPort = uln.findLeftPortOnEdge(lrToLrEdge);
+        if (leftLrPort == null) {
+            return;
+        }
+        LogicalRouterMappingInfo leftLr = uln.findLrFromItsPort(leftLrPort.getPort());
+        if (leftLr == null) {
+            return;
+        }
+        EdgeMappingInfo leftLrLswEdge = uln.findLrLswEdge(leftLr);
+        if (leftLrLswEdge == null) {
+            return;
+        }
+        PortMappingInfo leftLswPort = uln.findLswPortOnEdge(leftLrLswEdge);
+        if (leftLswPort == null) {
+            return;
+        }
+        LogicalSwitchMappingInfo leftLsw = uln.findLswFromItsPort(leftLswPort.getPort());
+        if (leftLsw == null) {
+            return;
+        }
+
+        PortMappingInfo rightLrPort = uln.findRightPortOnEdge(lrToLrEdge);
+        if (rightLrPort == null) {
+            return;
+        }
+        LogicalRouterMappingInfo rightLr = uln.findLrFromItsPort(rightLrPort.getPort());
+        if (rightLr == null) {
+            return;
+        }
+        EdgeMappingInfo rightLrLswEdge = uln.findLrLswEdge(rightLr);
+        if (rightLrLswEdge == null) {
+            return;
+        }
+        PortMappingInfo rightLswPort = uln.findLswPortOnEdge(rightLrLswEdge);
+        if (rightLswPort == null) {
+            return;
+        }
+        LogicalSwitchMappingInfo rightLsw = uln.findLswFromItsPort(rightLswPort.getPort());
+        if (rightLsw == null) {
+            return;
+        }
+
+        Uuid leftLswId = leftLsw.getLsw().getUuid();
+        Uuid rightLswId = rightLsw.getLsw().getUuid();
+        this.lswLswPairStore.put(leftLswId, rightLswId);
+        this.lswLswPairStore.put(rightLswId, leftLswId);
     }
 }
