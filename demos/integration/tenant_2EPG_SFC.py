@@ -163,7 +163,7 @@ def get_tenant_data(tenantId):
                   "action-definition-id": "Action-Chain",
                   "parameter-value": [
                     {
-                      "name": "sfc_chain_name",
+                      "name": "sfc-chain-name",
                       "string-value": "SFCGBP"
                     }
                   ]

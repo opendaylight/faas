@@ -31,8 +31,8 @@ createLogicalNetwork_layer3_demo()
   sleep 2
   python testCases.py -t vc04
   sleep 4
-  python testCases.py -t vc05
-  sleep 4
+  #python testCases.py -t vc05
+  #sleep 4
   echo; echo "Retrieve Topology:"; echo
   python testCases.py -t p1
   echo; echo; echo "Retrieve ACL:"; echo;
