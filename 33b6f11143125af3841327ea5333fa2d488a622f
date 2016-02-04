@@ -1,0 +1,7 @@
+Verified+1: jenkins-releng <jenkins-releng@opendaylight.org>
+Code-Review+2: Henry Yu <henry.yu1@huawei.com>
+Submitted-by: Henry Yu <henry.yu1@huawei.com>
+Submitted-at: Thu, 04 Feb 2016 14:07:56 +0000
+Reviewed-on: https://git.opendaylight.org/gerrit/34057
+Project: faas
+Branch: refs/heads/stable/beryllium
