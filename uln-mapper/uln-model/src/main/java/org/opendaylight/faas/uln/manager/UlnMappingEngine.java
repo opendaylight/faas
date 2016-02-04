@@ -93,7 +93,7 @@ import com.google.common.collect.Iterables;
 public class UlnMappingEngine {
 
     private static final Logger LOG = LoggerFactory.getLogger(UlnMappingEngine.class);
-    private static final String PV_SFC_TYPE_NAME = "sfc_chain_name";
+    private static final String PV_SFC_TYPE_NAME = "sfc-chain-name";
     private static final String PV_PERMIT_TYPE_NAME = "action-definition-id";
     private static final String PV_ACTION_VALUE_ALLOW = "Action-Allow";
     private static final String PV_ACTION_VALUE_DENY = "Action-Deny";

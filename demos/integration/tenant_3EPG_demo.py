@@ -5,7 +5,7 @@ def get_tenant_data(tenantId):
   return {
         "policy:tenant": {
           "id": tenantId,
-          "name": "GBPPOC",
+          "name": "GBP-FAAS-POC",
           "forwarding-context": {
             "l2-bridge-domain": [
               {
@@ -68,9 +68,10 @@ def get_tenant_data(tenantId):
                 "id": "webToAppContract",
                 "clause": [
                   {
-                    "name": "sfc-clause",
+                    "name": "web2app-clause",
                     "subject-refs": [
-                      "allow-http-subject"
+                      "allow-http-subject",
+                      "allow-icmp-subject"
                     ]
                   }
                 ],
@@ -111,6 +112,26 @@ def get_tenant_data(tenantId):
                         ]
                       }
                     ]
+                  },
+                  {
+                    "name": "allow-icmp-subject",
+                    "rule": [
+                      {
+                        "name": "allow-icmp-rule",
+                        "classifier-ref": [
+                          {
+                            "name": "icmp",
+                            "instance-name": "icmp"
+                          }
+                        ],
+                        "action-ref": [
+                          {
+                            "name": "allow1",
+                            "order": 0
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               },
@@ -118,22 +139,24 @@ def get_tenant_data(tenantId):
                 "id": "appToDbContract",
                 "clause": [
                   {
-                    "name": "sfc-clause",
+                    "name": "app2db-clause",
                     "subject-refs": [
-                      "allow-http-subject"
+                      "allow-sql-subject",
+                      "allow-icmp-subject"
                     ]
                   }
                 ],
                 "subject": [
                   {
-                    "name": "allow-http-subject",
+                    "name": "allow-sql-subject",
                     "rule": [
                       {
+                        "name": "sql-sfc-rule-in",
                         "classifier-ref": [
                           {
                             "direction": "in",
-                            "name": "http-dest",
-                            "instance-name": "http-dest"
+                            "name": "sql-dest",
+                            "instance-name": "sql-dest"
                           }
                         ],
                         "action-ref": [
@@ -141,23 +164,42 @@ def get_tenant_data(tenantId):
                             "name": "chain1",
                             "order": 0
                           }
-                        ],
-                        "name": "http-sfc-rule-in"
+                        ]
                       },
                       {
-                        "name": "http-out-rule",
+                        "name": "sql-out-rule",
                         "classifier-ref": [
-                        {
-                              "name": "http-src",
-                              "instance-name": "http-src",
+                          {
+                              "name": "sql-src",
+                              "instance-name": "sql-src",
                               "direction": "out"
-                        }
+                          }
                         ],
-                          "action-ref": [
+                        "action-ref": [
                             {
                               "name": "allow1",
                               "order": 0
                             }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "allow-icmp-subject",
+                    "rule": [
+                      {
+                        "name": "allow-icmp-rule",
+                        "classifier-ref": [
+                          {
+                            "name": "icmp",
+                            "instance-name": "icmp"
+                          }
+                        ],
+                        "action-ref": [
+                          {
+                            "name": "allow1",
+                            "order": 0
+                          }
                         ]
                       }
                     ]
@@ -227,6 +269,20 @@ def get_tenant_data(tenantId):
                   ]
                 },
                 {
+                  "classifier-definition-id": "Classifier-L4",
+                  "name": "sql-dest",
+                  "parameter-value": [
+                    {
+                      "int-value": "6",
+                      "name": "proto"
+                    },
+                    {
+                      "int-value": "1433",
+                      "name": "destport"
+                    }
+                  ]
+                },
+                {
                   "name": "http-src",
                   "classifier-definition-id": "Classifier-L4",
                   "parameter-value": [
@@ -238,6 +294,30 @@ def get_tenant_data(tenantId):
                         "int-value": "80",
                         "name": "sourceport"
                       }
+                  ]
+                },
+                {
+                  "name": "sql-src",
+                  "classifier-definition-id": "Classifier-L4",
+                  "parameter-value": [
+                      {
+                        "int-value": "6",
+                        "name": "proto"
+                      },
+                      {
+                        "int-value": "1433",
+                        "name": "sourceport"
+                      }
+                  ]
+                },
+                {
+                  "name": "icmp",
+                  "classifier-definition-id": "Classifier-IP-Protocol",
+                  "parameter-value": [
+                    {
+                      "int-value": "1",
+                      "name": "proto"
+                    }
                   ]
                 }
               ],
@@ -282,6 +362,22 @@ def get_endpoint_data(tenantId):
   },
   {
     "input": {
+        "endpoint-group": "web",
+        "network-containment" : "subnet-10.0.35.0/24",
+        "l2-context": "bridge-domain2",
+        "mac-address": "00:00:00:00:35:03",
+        "l3-address": [
+            {
+                "ip-address": "10.0.35.3",
+                "l3-context": "l3-context-vrf-red"
+            }
+        ],
+        "faas-port-ref-id": "265b3a20-adc7-11e5-bf7f-feff819cdc9a",
+        "tenant": tenantId
+    }
+  },
+  {
+    "input": {
         "endpoint-group": "app", 
         "network-containment" : "subnet-10.0.36.0/24",
         "l2-context": "bridge-domain1", 
@@ -293,6 +389,22 @@ def get_endpoint_data(tenantId):
             }
         ], 
         "faas-port-ref-id": "6c82ea5c-ae43-11e5-bf7f-feff819cdc9f",
+        "tenant": tenantId
+    }
+  },
+  {
+    "input": {
+        "endpoint-group": "app",
+        "network-containment" : "subnet-10.0.36.0/24",
+        "l2-context": "bridge-domain1",
+        "mac-address": "00:00:00:00:36:05",
+        "l3-address": [
+            {
+                "ip-address": "10.0.36.5",
+                "l3-context": "l3-context-vrf-red"
+            }
+        ],
+        "faas-port-ref-id": "7c82ea5c-ae43-11e5-bf7f-feff819cdc8a",
         "tenant": tenantId
     }
   },
@@ -311,30 +423,68 @@ def get_endpoint_data(tenantId):
         "faas-port-ref-id": "24eb3395-6c59-443a-9048-4c0b02ce1471",
         "tenant": tenantId
     }
-  }]
+  },
+  {
+    "input": {
+        "endpoint-group": "db",
+        "network-containment" : "subnet-10.0.37.0/24",
+        "l2-context": "bridge-domain3",
+        "mac-address": "00:00:00:00:37:03",
+        "l3-address": [
+            {
+                "ip-address": "10.0.37.3",
+                "l3-context": "l3-context-vrf-red"
+            }
+        ],
+        "faas-port-ref-id": "34eb3395-6c59-443a-9048-4c0b02ce1472",
+        "tenant": tenantId
+    }
+  }
+  ]
 
-def get_endpoint_location_data(nc_id1, nc_id2, nc_id3, nodeId1, nodeId2, nodeId3):
+def get_endpoint_location_data(nc_id1a, nc_id1b, nc_id2a, nc_id2b, nc_id3a, nc_id3b, nodeId1, nodeId2, nodeId3):
     return [{
     "input": {
-        "node-connector-id": nc_id1,
+        "node-connector-id": nc_id1a,
         "node-id": nodeId1,
         "faas-port-ref-id": "165b3a20-adc7-11e5-bf7f-feff819cdc9f"
       }
     },
     {
     "input": {
-        "node-connector-id": nc_id2,
+        "node-connector-id": nc_id1b,
+        "node-id": nodeId1,
+        "faas-port-ref-id": "265b3a20-adc7-11e5-bf7f-feff819cdc9a"
+      }
+    },
+    {
+    "input": {
+        "node-connector-id": nc_id2a,
         "node-id": nodeId2,
         "faas-port-ref-id": "6c82ea5c-ae43-11e5-bf7f-feff819cdc9f"
       }
     },
     {
     "input": {
-        "node-connector-id": nc_id3,
+        "node-connector-id": nc_id2b,
+        "node-id": nodeId2,
+        "faas-port-ref-id": "7c82ea5c-ae43-11e5-bf7f-feff819cdc8a"
+      }
+    },
+    {
+    "input": {
+        "node-connector-id": nc_id3a,
         "node-id": nodeId3,
         "faas-port-ref-id": "24eb3395-6c59-443a-9048-4c0b02ce1471"
       }
-   }
+    },
+    {
+    "input": {
+        "node-connector-id": nc_id3b,
+        "node-id": nodeId3,
+        "faas-port-ref-id": "34eb3395-6c59-443a-9048-4c0b02ce1472"
+      }
+    }
   ]
 
 

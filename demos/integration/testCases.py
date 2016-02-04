@@ -12,6 +12,7 @@ import inputsGBP
 import inputsSFC
 import tenant_2EPG_SFC
 import tenant_3EPG_SFC
+import tenant_3EPG_demo
 
 #
 # Manifested constants
@@ -121,11 +122,38 @@ def registerEndpointLocation_3epg_sfc(desc):
   return result
 
 #===============================================================================# 
+def registerEndpointLocation_3epg_sfc_acl(desc):
+  nc_id1a = "vethl-h35_2"
+  nc_id1b = "vethl-h35_3"
+  nc_id2a = "vethl-h36_4"
+  nc_id2b = "vethl-h36_5"
+  nc_id3a = "vethl-h37_2"
+  nc_id3b = "vethl-h37_3"
+
+  nodeId1 = util.getOvsdbNodeIdByName("sw1")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId2 = util.getOvsdbNodeIdByName("sw6")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId3 = util.getOvsdbNodeIdByName("sw7")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  for inputData in tenant_3EPG_demo.get_endpoint_location_data(nc_id1a, nc_id1b, nc_id2a, nc_id2b, nc_id3a, nc_id3b, nodeId1, nodeId2, nodeId3):
+    result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name)
+
+  return result
+
+#===============================================================================# 
 testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'p1': (getTopology, 'Print Topology'),
    'vc05': (registerEndpointLocation_acl, 'Register endpoint locations for Layer 3 ULN with ACL'),
    'vc052': (registerEndpointLocation_sfc, 'Register endpoint locations for Layer 3 ULN with SFC'),
    'vc053': (registerEndpointLocation_3epg_sfc, 'Register endpoint locations for 3EPG-Layer3-ULN with SFC'),
+   'vc054': (registerEndpointLocation_3epg_sfc_acl, 'Register 6 endpoints locations for 3EPG-Layer3-ULN with SFC'),
 }
 
 testCases2_ga = {
@@ -169,6 +197,10 @@ testCases2_ga = {
             inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
             tenant_3EPG_SFC.get_tenant_data(inputsCommon.tenant1Id_gc),
             'Create 3-EPG tenant of Layer 3 ULN with SFC'),
+  'vc034': (put_c, 
+            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
+            tenant_3EPG_demo.get_tenant_data(inputsCommon.tenant1Id_gc),
+            'Create 3-EPG tenant of Layer 3 ULN with SFC and ACL and 6 endpoints'),
   'vc04': (post_data_array_c, 
            inputsGBP.get_endpoint_uri(), 
            inputsGBP.get_endpoint_data_layer3(inputsCommon.tenant1Id_gc),
@@ -185,6 +217,10 @@ testCases2_ga = {
            inputsGBP.get_endpoint_uri(), 
            tenant_3EPG_SFC.get_endpoint_data(inputsCommon.tenant1Id_gc),
            'Register endpoints for 3EPG-Layer3-ULN with SFC'),
+  'vc044': (post_data_array_c, 
+           inputsGBP.get_endpoint_uri(), 
+           tenant_3EPG_demo.get_endpoint_data(inputsCommon.tenant1Id_gc),
+           'Register 6 endpoints for 3EPG-Layer3-ULN with SFC and ACL'),
   'vc06': (post_c, 
            inputsGBP.get_unreg_endpoint_uri(), 
            inputsGBP.get_unreg_endpoint_data_layer3(),

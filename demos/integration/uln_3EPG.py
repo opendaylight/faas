@@ -36,7 +36,7 @@
                           "additional-info": "Action-Chain",
                           "parameter-value": [
                             {
-                              "name": "sfc_chain_name",
+                              "name": "sfc-chain-name",
                               "string-value": "SFCGBP"
                             }
                           ],
@@ -112,7 +112,7 @@
                           "additional-info": "Action-Chain",
                           "parameter-value": [
                             {
-                              "name": "sfc_chain_name",
+                              "name": "sfc-chain-name",
                               "string-value": "SFCGBP"
                             }
                           ],
