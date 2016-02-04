@@ -270,28 +270,6 @@ def get_tunnel_oper_uri():
 def get_topology_oper_uri():
     return "/restconf/operational/network-topology:network-topology/topology/ovsdb:1/"
 
-def rpc_compose_fabric_uri():
-    return "/restconf/operations/fabric:compose-fabric"
-
-DEVICE_REF_PATTERN = "/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='%s']"
-
-def rpc_compose_fabric_data():
-    devNodes = list()
-
-    for switch in switches:
-        if switch["type"] == "gbp":
-            devNodes.append({"device-ref" : DEVICE_REF_PATTERN % switch['nodeid'], "vtep-ip":switch['vtep']})
-
-    return {
-      "input" : {
-           "name": "first fabric",
-           "type":"VXLAN",
-           "options": {
-                "traffic-behavior" :"need-acl"
-           },
-           "device-nodes" : devNodes
-       }
-    }
 
 def get_create_service_path_uri():
     return "/restconf/operations/rendered-service-path:create-rendered-path"
@@ -331,28 +309,6 @@ if __name__ == "__main__":
     put(controller, DEFAULT_PORT, get_service_function_chains_uri(), get_service_function_chains_data(), True)
     print "sending service function paths"
     put(controller, DEFAULT_PORT, get_service_function_paths_uri(), get_service_function_paths_data(), True)
-    print "create service path"
-    post(controller, DEFAULT_PORT, get_create_service_path_uri(), get_create_service_path_data(), True)
+    #print "create service path"
+    #post(controller, DEFAULT_PORT, get_create_service_path_uri(), get_create_service_path_data(), True)
 
-    pause()
-    print "get ovsdb node-id"
-    ovsdb_topo = get_jsondata(controller, DEFAULT_PORT,OPER_OVSDB_TOPO)["topology"]
-    for topo_item in ovsdb_topo:
-        if topo_item["node"] is not None:
-            for ovsdb_node in topo_item["node"]:
-                if ovsdb_node.has_key("ovsdb:bridge-name"):
-                    #uuid_ovsdb = ovsdb_node["node-id"][13:]
-		    switchname = ovsdb_node["ovsdb:bridge-name"]
-                    for switch in switches:
-                        if switchname == switch["name"]:
-                            if switch["type"] == "gbp":
-                                switch["nodeid"] = ovsdb_node["node-id"]
-
-    SUBNET = os.environ.get("SUBNET")
-    for sw_index in range(0, len(switches)-1):
-        switches[sw_index]["vtep"] = SUBNET + str(70 + sw_index)
-			
-
-    pause()
-    print "compose fabric"
-    post(controller, DEFAULT_PORT, rpc_compose_fabric_uri(), rpc_compose_fabric_data(), True)
