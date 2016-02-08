@@ -1,6 +1,47 @@
 import inputsCommon
 
 #===============================================================================#
+def get_unregister_endpoint_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/fabric-endpoint:unregister-endpoint"
+
+#===============================================================================#
+def get_register_endpoint_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/fabric-endpoint:register-endpoint"
+
+#===============================================================================#
+def get_epList_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operational/fabric-endpoint:endpoints"
+
+#===============================================================================#
+def get_unregister_endpoint_data(fabricId, eplist):
+    return {
+        "input" : {
+           "fabric-id": fabricId,
+           "ids":eplist
+       }
+    }
+
+#===============================================================================#
+def get_register_endpoint_data(fabricId, mac, ip, gw, lsw, lport, nodeRef, tpRef):
+    return {
+        "input" : {
+            "fabric-id":fabricId,
+            "mac-address":mac,
+            "ip-address":ip,
+            "gateway":gw,
+            "logic-location" : {
+                "node-id": lsw,
+                "tp-id": lport
+            },
+            "location" : {
+                "node-ref": nodeRef,
+                "tp-ref": tpRef,
+                "access-type":"exclusive"
+            }
+        }
+    }
+
+#===============================================================================#
 fa001Url_gc = "http://"+inputsCommon.odlIpAddr_gc+'/restconf/operations/fabric:compose-fabric'
 
 def rpc_compose_fabric_data():

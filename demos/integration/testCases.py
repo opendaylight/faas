@@ -147,6 +147,53 @@ def registerEndpointLocation_3epg_sfc_acl(desc):
 
   return result
 
+#===============================================================================#  
+BRIDGE_REF_P="/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='%s']"
+TP_REF_P="/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='%s']/network-topology:termination-point[network-topology:tp-id='%s']"
+def epMigrationDemo(desc):
+   # unregister h35_3
+   fabricId = "fabric:1" 
+   mac = "00:00:00:00:35:03" 
+   ip = "10.0.35.3"
+   resp = util.runRequestGET(inputsFabric.get_epList_uri(), sys._getframe().f_code.co_name)
+   if resp == constants.ERROR_STR:
+      print "ERROR: getOvsdbNodeIdByName() failed"
+      return constants.ERROR_STR
+  
+   eplist = list()
+   lswId = ''
+   lport = ''
+   endpointResp=json.loads(resp)
+   if endpointResp.has_key("endpoints"):
+      endpoints = endpointResp["endpoints"]
+      if endpoints.has_key("endpoint"):
+         for endpoint in endpoints["endpoint"]:
+            if endpoint["ip-address"] == ip:
+               eplist.append(endpoint["endpoint-uuid"])
+               logicLocation = endpoint["logic-location"]
+               lswId = logicLocation["node-id"]
+               lport = logicLocation["tp-id"]
+               break
+
+   result = util.runRequestPOST(inputsFabric.get_unregister_endpoint_uri(), json.dumps(inputsFabric.get_unregister_endpoint_data("fabric:1", eplist)), sys._getframe().f_code.co_name)
+
+   # register h35-4
+   fabricId = "fabric:1"
+   mac = "00:00:00:00:35:04"
+   ip = "10.0.35.4"
+   gw = "10.0.35.1"
+   port = "vethl-h35_4"
+   nodeid = util.getOvsdbNodeIdByName("sw6")
+   nodeRef = BRIDGE_REF_P % (nodeid)
+   tpRef = TP_REF_P % (nodeid, port)
+
+   if nodeid == constants.ERROR_STR:
+      return constants.ERROR_STR
+
+   result = util.runRequestPOST(inputsFabric.get_register_endpoint_uri(), json.dumps(inputsFabric.get_register_endpoint_data(fabricId, mac, ip, gw, lswId, lport, nodeRef, tpRef)), sys._getframe().f_code.co_name) 
+
+   return desc
+
 #===============================================================================# 
 testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'p1': (getTopology, 'Print Topology'),
@@ -154,6 +201,7 @@ testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'vc052': (registerEndpointLocation_sfc, 'Register endpoint locations for Layer 3 ULN with SFC'),
    'vc053': (registerEndpointLocation_3epg_sfc, 'Register endpoint locations for 3EPG-Layer3-ULN with SFC'),
    'vc054': (registerEndpointLocation_3epg_sfc_acl, 'Register 6 endpoints locations for 3EPG-Layer3-ULN with SFC'),
+   'vc064': (epMigrationDemo, 'EP Migration from h35_3 on sw1 to h35_4 on sw6'),
 }
 
 testCases2_ga = {
@@ -265,6 +313,10 @@ testCases2_ga = {
           inputsSFC.get_sfpList_uri(), 
           'unused param',
           'Get service function paths'),
+  'p11': (get_c, 
+          inputsFabric.get_epList_uri(), 
+          'unused param',
+          'Get registered endpoint list'),
   'acl01': (put_c, 
            inputsSFC.get_acl_uri(), 
            inputsSFC.get_acl_data(),
