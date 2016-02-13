@@ -196,57 +196,39 @@ if __name__ == "__main__":
                             if switch["type"] == "gbp":
                                 switch["nodeid"] = ovsdb_node["node-id"]
 
-    print "Ready to create logical switch 1. Hit any key to continue."
+    print "create_logic_switch ..."
     pause()
     post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-1"), True)
+    post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-2"), True)
+    post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-3"), True)
+
+    print "create_logic_port ..."
+    pause()
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-1"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-2"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-3"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-4"), True)
-
-    for host in hosts:
-        if host["name"] == 'h35_2' or host["name"] == 'h35_3' or host["name"] == 'h35_4' or host["name"] == 'h35_5':
-           post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data(host), True)
-
-
-    print "Logical switch 1 has been created."
-    print ""
-
-    print "Ready to create logical switch 2. Hit any key to continue."
-    pause()
-    post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-2"), True)
-
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-2", "vswitch-2-p-1"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-2", "vswitch-2-p-2"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-2", "vswitch-2-p-3"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-2", "vswitch-2-p-4"), True)
+    post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-1"), True)
+    post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-2"), True)
+    post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-3"), True)
+    post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-4"), True)
 
+    print "registering endpoints ..."
+    pause()
     for host in hosts:
-        if host["name"] == 'h36_2' or host["name"] == 'h36_3' or host["name"] == 'h36_4' or host["name"] == 'h36_5':
-           post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data(host), True)
+        post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data(host), True)
 
-    print "Logical switch 2 has been created."
-    print ""
-
-
-    #post(controller, DEFAULT_PORT, rpc_create_logic_switch_uri(), rpc_create_logic_switch_data("vswitch-3"), True)
-    #post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-1"), True)
-    #post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-2"), True)
-    #post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-3"), True)
-    #post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("vswitch-3", "vswitch-3-p-4"), True)
-
-    print "Ready to create Logical Router 1. Hit any key to continue."
+    print "create_logic_router ..."
     pause()
     post(controller, DEFAULT_PORT, rpc_create_logic_router_uri(), rpc_create_logic_router_data("vrouter-1"), True)
-    print "Logical Router 1 has been created."
-    print ""
 
-    print "Ready to connect logical switch 1 and 2 to logical router 1. Hit any key to continue."
+    print "create gateway ..."
     pause()
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("10.0.35.1", "10.0.35.1/24", "vswitch-1"), True)
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("10.0.36.1", "10.0.36.1/24", "vswitch-2"), True)
-
-    print "Demo 1 has finished."
-
-    #post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("10.0.37.1", "10.0.37.1/24", "vswitch-3"), True)
+    post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("10.0.37.1", "10.0.37.1/24", "vswitch-3"), True)
 
