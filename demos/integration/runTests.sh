@@ -51,22 +51,48 @@ removeLogicalNetwork_layer3_demo()
   python testCases.py -t p5
 } 
 
+runGbpFaasIntegrationDemo()
+{
+  read -n1 -r -p "Ready to compose fabric. Press any key to continue..." key
+  ../demo-faas/composeFabric.py
+  sleep 2
+  python testCases.py -t vc02
+
+  read -n1 -r -p "Ready to create Group Based Policy. Press any key to continue..." key
+  python testCases.py -t vc034
+
+  read -n1 -r -p "Ready to register endpoints. Press any key to continue..." key
+  python testCases.py -t vc044
+  sleep 4
+  python testCases.py -t vc054
+
+  read -n1 -r -p "Ready to demo endpoint migration. Press any key to continue..." key
+  python testCases.py -t vc064
+}
+
 showHelp()
 {  
-  echo "$0 -c      # create layer 3 logical network demo"
-  echo "$0 -d      # delete layer 3 logical network"
+  echo "$0 -t 1     # create layer 3 logical network for sanity test"
+  echo "$0 -t 2     # run GBP-FAAS integration demo"
+  echo "$0 -d       # delete layer 3 logical network for sanity test"
 }
 
 main() 
 {
-  while getopts "h?vf:cd" opt; do
+  while getopts "h?vf:t:d" opt; do
     case "$opt" in
     h|\?)
         showHelp
         exit 0
         ;;
-    c)  
-        createLogicalNetwork_layer3_demo
+    t)  
+        if [[ $OPTARG == '1' ]]
+        then
+          createLogicalNetwork_layer3_demo
+        elif [[ $OPTARG == '2' ]]
+        then
+          runGbpFaasIntegrationDemo
+        fi
         exit 0
         ;;
     d)  
