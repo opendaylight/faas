@@ -25,3 +25,4 @@ C\:\\nppdf32Log\\debuglog.txt
 *.pyc
 .idea
 *.iml
+maven-metadata-local.xml
