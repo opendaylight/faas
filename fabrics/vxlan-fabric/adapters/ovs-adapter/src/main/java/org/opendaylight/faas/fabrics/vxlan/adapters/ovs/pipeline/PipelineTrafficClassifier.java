@@ -95,6 +95,11 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
             ActionBuilder ab = new ActionBuilder();
 
+            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
+                    BigInteger.valueOf(REG_VALUE_FROM_LOCAL)));
+            ab.setOrder(1);
+            ab.setKey(new ActionKey(1));
+            actionList.add(ab.build());
 
             ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
                     BigInteger.valueOf(segmentationId.longValue())));
@@ -223,8 +228,8 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
             ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
                     tunnelId));
-            ab.setOrder(0);
-            ab.setKey(new ActionKey(0));
+            ab.setOrder(1);
+            ab.setKey(new ActionKey(1));
             actionList.add(ab.build());
 
             ApplyActionsBuilder aab = new ApplyActionsBuilder();
