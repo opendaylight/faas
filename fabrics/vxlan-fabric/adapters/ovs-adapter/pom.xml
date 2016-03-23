@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>vxlan-adapter-aggreator</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.1-Beryllium-SR1</version>
     <relativePath>../</relativePath>
   </parent>
 
@@ -20,9 +20,9 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <openflowjava-nicira.version>0.2.1-SNAPSHOT</openflowjava-nicira.version>
-    <openflowplugin.version>0.2.1-SNAPSHOT</openflowplugin.version>
-    <ovsdb.utils.mdsal.openflow.version>1.2.2-SNAPSHOT</ovsdb.utils.mdsal.openflow.version>
+    <openflowjava-nicira.version>0.2.1-Beryllium-SR1</openflowjava-nicira.version>
+    <openflowplugin.version>0.2.1-Beryllium-SR1</openflowplugin.version>
+    <ovsdb.utils.mdsal.openflow.version>1.2.2-Beryllium-SR1</ovsdb.utils.mdsal.openflow.version>
   </properties>
 
   <dependencies>
@@ -70,7 +70,7 @@
     <dependency>
       <groupId>org.opendaylight.ovsdb</groupId>
       <artifactId>southbound-api</artifactId>
-      <version>1.2.2-SNAPSHOT</version>
+      <version>1.2.2-Beryllium-SR1</version>
     </dependency>
     <dependency>
       <groupId>commons-net</groupId>
@@ -79,17 +79,17 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>1.0.1-Beryllium-SR1</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-model</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>1.0.1-Beryllium-SR1</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-model</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>1.0.1-Beryllium-SR1</version>
     </dependency>
     <!-- testing dependencies -->
     <dependency>
