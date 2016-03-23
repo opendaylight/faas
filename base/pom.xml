@@ -11,7 +11,7 @@
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>faas.project</artifactId>
-    <version>1.0.1-Beryllium-SR1</version>
+    <version>1.0.2-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
