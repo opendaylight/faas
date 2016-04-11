@@ -29,7 +29,6 @@
     <generated.sources.sal>${project.build.directory}/generated-sources/sal</generated.sources.sal>
     <generated.sources.config>${project.build.directory}/generated-sources/config</generated.sources.config>
     <generated.yang.docs>${project.build.directory}/site/models</generated.yang.docs>
-    <nexusproxy>http://nexus.opendaylight.org/content</nexusproxy>
     <config.configfile.directory>etc/opendaylight/karaf</config.configfile.directory>
     <jung.version>2.0.1</jung.version>
     <yangtools.version>0.8.2-SNAPSHOT</yangtools.version>
