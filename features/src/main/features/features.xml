@@ -22,8 +22,9 @@
     <bundle>mvn:com.fasterxml.jackson.core/jackson-annotations/{{VERSION}}</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-core/{{VERSION}}</bundle>
     <bundle>mvn:com.fasterxml.jackson.core/jackson-databind/{{VERSION}}</bundle>
-    <bundle>mvn:com.sun.jersey/jersey-client/{{VERSION}}</bundle>
+<!--    <bundle>mvn:com.sun.jersey/jersey-client/{{VERSION}}</bundle>
     <bundle>mvn:com.sun.jersey/jersey-core/{{VERSION}}</bundle>
+-->
     <bundle>wrap:mvn:net.sourceforge.collections/collections-generic/{{VERSION}}</bundle>
     <bundle>wrap:mvn:colt/colt/{{VERSION}}</bundle>
     <bundle>wrap:mvn:concurrent/concurrent/{{VERSION}}</bundle>
