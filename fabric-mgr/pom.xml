@@ -8,15 +8,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
- 
+
   <parent>
-    <groupId>org.opendaylight.faas</groupId>
-    <artifactId>faas.project</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
-    <relativePath>../</relativePath>
+    <groupId>org.opendaylight.odlparent</groupId>
+    <artifactId>odlparent-lite</artifactId>
+    <version>1.7.0-SNAPSHOT</version>
+    <relativePath/>
   </parent>
 
+  <groupId>org.opendaylight.faas</groupId>
   <artifactId>fabric-mgr-aggregator</artifactId>
+  <version>1.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -24,4 +26,23 @@
     <module>fabric-mgr-config</module>
     <module>fabric-mgr-impl</module>
   </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
