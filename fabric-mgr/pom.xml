@@ -21,7 +21,6 @@
 
   <modules>
     <module>fabric-mgr-model</module>
-    <module>fabric-mgr-config</module>
     <module>fabric-mgr-impl</module>
   </modules>
 </project>
