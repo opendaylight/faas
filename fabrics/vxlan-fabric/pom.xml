@@ -22,7 +22,6 @@
   <modules>
     <module>adapters</module>
     <module>vxlan-fabric</module>
-    <module>vxlan-fabric-config</module>
   </modules>
 
 </project>
