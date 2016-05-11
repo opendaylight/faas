@@ -72,35 +72,35 @@
       <!-- FAAS configuration -->
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>fabric-config</artifactId>
+        <artifactId>fabric</artifactId>
         <version>${project.version}</version>
         <type>xml</type>
         <classifier>config</classifier>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>vxlan-fabric-config</artifactId>
+        <artifactId>vxlan-fabric</artifactId>
         <version>${project.version}</version>
         <type>xml</type>
         <classifier>config</classifier>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>vxlan-fabric-ovs-adapter-config</artifactId>
+        <artifactId>vxlan-fabric-ovs-adapter</artifactId>
         <version>${project.version}</version>
         <type>xml</type>
         <classifier>config</classifier>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>uln-mapper-config</artifactId>
+        <artifactId>uln-mapper-model</artifactId>
         <version>${project.version}</version>
         <type>xml</type>
         <classifier>config</classifier>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>fabric-mgr-config</artifactId>
+        <artifactId>fabric-mgr-impl</artifactId>
         <version>${project.version}</version>
         <type>xml</type>
         <classifier>config</classifier>

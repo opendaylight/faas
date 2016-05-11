@@ -22,8 +22,6 @@
 
   <properties>
     <odl.version>1.7.0-SNAPSHOT</odl.version>
-    <faas.project.version>1.1.0-SNAPSHOT</faas.project.version>
-    <faas.base.version>1.1.0-SNAPSHOT</faas.base.version>
     <mdsal.version>2.1.0-SNAPSHOT</mdsal.version>
     <mdsal.model.version>0.9.0-SNAPSHOT</mdsal.model.version>
     <controller.mdsal.version>1.4.0-SNAPSHOT</controller.mdsal.version>
@@ -44,7 +42,7 @@
       <dependency>
         <groupId>org.opendaylight.faas</groupId>
         <artifactId>faas-artifacts</artifactId>
-        <version>${faas.project.version}</version>
+        <version>${project.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -92,7 +90,6 @@
     <dependency>
       <groupId>org.opendaylight.mdsal.model</groupId>
       <artifactId>features-mdsal-model</artifactId>
-      <version>${mdsal.model.version}</version>
       <classifier>features</classifier>
       <type>xml</type>
       <scope>runtime</scope>
@@ -181,19 +178,19 @@
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-config</artifactId>
+      <artifactId>fabric</artifactId>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric-config</artifactId>
+      <artifactId>vxlan-fabric</artifactId>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric-ovs-adapter-config</artifactId>
+      <artifactId>vxlan-fabric-ovs-adapter</artifactId>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
@@ -205,7 +202,7 @@
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>uln-mapper-config</artifactId>
+      <artifactId>uln-mapper-model</artifactId>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
@@ -217,7 +214,7 @@
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-mgr-config</artifactId>
+      <artifactId>fabric-mgr-impl</artifactId>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>
