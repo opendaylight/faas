@@ -21,6 +21,5 @@
 
   <modules>
     <module>uln-model</module>
-    <module>uln-mapper-config</module>
   </modules>
 </project>

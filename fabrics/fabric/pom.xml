@@ -9,14 +9,17 @@
  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
  
+
   <parent>
-    <groupId>org.opendaylight.faas</groupId>
-    <artifactId>fabric.parent</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
-    <relativePath>../</relativePath>
+    <groupId>org.opendaylight.controller</groupId>
+    <artifactId>config-parent</artifactId>
+    <version>0.5.0-SNAPSHOT</version>
+    <relativePath />
   </parent>
 
+  <groupId>org.opendaylight.faas</groupId>
   <artifactId>fabric</artifactId>
+  <version>1.1.0-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <dependencies>
@@ -25,14 +28,6 @@
         <artifactId>fabric-model</artifactId>
         <version>${project.version}</version>
       </dependency>
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>config-api</artifactId>
-      </dependency>
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>sal-binding-config</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.apache.servicemix.bundles</groupId>
       <artifactId>org.apache.servicemix.bundles.jung-graph-impl</artifactId>
@@ -74,18 +69,6 @@
                     </instructions>
                 </configuration>
            </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <configuration>
-            <source>${java.version.source}</source>
-            <target>${java.version.target}</target>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.opendaylight.yangtools</groupId>
-          <artifactId>yang-maven-plugin</artifactId>
-        </plugin>
       </plugins>
   </build>
 </project>
