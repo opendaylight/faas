@@ -21,7 +21,6 @@
 
   <modules>
     <module>ovs-adapter</module>
-    <module>ovs-adapter-config</module>
   </modules>
 
 </project>
