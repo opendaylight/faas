@@ -67,8 +67,8 @@
     <bundle>mvn:org.opendaylight.faas/fabric/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric/{{VERSION}}</bundle>
 
-    <configfile finalname="${config.configfile.directory}/fabric-factory.xml">mvn:org.opendaylight.faas/fabric-config/{{VERSION}}/xml/config</configfile>
-    <configfile finalname="${config.configfile.directory}/vxlan-fabric.xml">mvn:org.opendaylight.faas/vxlan-fabric-config/{{VERSION}}/xml/config</configfile>
+    <configfile finalname="${config.configfile.directory}/fabric-factory.xml">mvn:org.opendaylight.faas/fabric/{{VERSION}}/xml/config</configfile>
+    <configfile finalname="${config.configfile.directory}/vxlan-fabric.xml">mvn:org.opendaylight.faas/vxlan-fabric/{{VERSION}}/xml/config</configfile>
   </feature>
 
   <feature name='odl-faas-vxlan-ovs-adapter' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric ovs adapter'>
@@ -82,7 +82,7 @@
     <bundle>mvn:commons-net/commons-net/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/{{VERSION}}</bundle>
 
-    <configfile finalname="${config.configfile.directory}/vxlan-fabric-ovs-adapter.xml">mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter-config/{{VERSION}}/xml/config</configfile>
+    <configfile finalname="${config.configfile.directory}/vxlan-fabric-ovs-adapter.xml">mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/{{VERSION}}/xml/config</configfile>
   </feature>
 
   <feature name='odl-faas-uln-mapper' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
@@ -100,7 +100,7 @@
 
     <bundle>mvn:org.opendaylight.faas/uln-mapper-model/{{VERSION}}</bundle>
 
-    <configfile finalname="${config.configfile.directory}/uln-mapper.xml">mvn:org.opendaylight.faas/uln-mapper-config/{{VERSION}}/xml/config</configfile>
+    <configfile finalname="${config.configfile.directory}/uln-mapper.xml">mvn:org.opendaylight.faas/uln-mapper-model/{{VERSION}}/xml/config</configfile>
   </feature>
 
   <feature name='odl-faas-fabricmgr' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
@@ -114,7 +114,7 @@
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-model/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/fabric-mgr-impl/{{VERSION}}</bundle>
 
-    <configfile finalname="${config.configfile.directory}/fabric-mgr.xml">mvn:org.opendaylight.faas/fabric-mgr-config/{{VERSION}}/xml/config</configfile>
+    <configfile finalname="${config.configfile.directory}/fabric-mgr.xml">mvn:org.opendaylight.faas/fabric-mgr-impl/{{VERSION}}/xml/config</configfile>
   </feature>
 
 </features>
