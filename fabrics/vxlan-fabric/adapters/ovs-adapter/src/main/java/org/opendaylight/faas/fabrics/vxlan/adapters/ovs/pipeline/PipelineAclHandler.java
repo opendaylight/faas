@@ -12,9 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.ovsdb.utils.mdsal.openflow.ActionUtils;
-import org.opendaylight.ovsdb.utils.mdsal.openflow.InstructionUtils;
-import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
+import org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils;
+import org.opendaylight.netvirt.utils.mdsal.openflow.InstructionUtils;
+import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.Acl;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.AccessListEntries;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.acl.access.list.entries.Ace;

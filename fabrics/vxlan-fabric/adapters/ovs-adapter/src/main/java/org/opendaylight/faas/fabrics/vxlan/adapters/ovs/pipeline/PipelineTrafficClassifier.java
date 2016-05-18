@@ -9,14 +9,11 @@ package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline;
 
 import java.math.BigInteger;
 import java.util.List;
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.AbstractServiceInstance;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg0;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg2;
-import org.opendaylight.ovsdb.utils.mdsal.openflow.ActionUtils;
-import org.opendaylight.ovsdb.utils.mdsal.openflow.InstructionUtils;
-import org.opendaylight.ovsdb.utils.mdsal.openflow.MatchUtils;
+import org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils;
+import org.opendaylight.netvirt.utils.mdsal.openflow.InstructionUtils;
+import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
@@ -32,8 +29,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg0;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg2;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxRegCaseBuilder;
-import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import com.google.common.collect.Lists;
 
 public class PipelineTrafficClassifier extends AbstractServiceInstance {
