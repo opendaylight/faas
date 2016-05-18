@@ -22,7 +22,7 @@
   <properties>
     <openflowjava-nicira.version>0.2.3-SNAPSHOT</openflowjava-nicira.version>
     <openflowplugin.version>0.2.3-SNAPSHOT</openflowplugin.version>
-    <ovsdb.utils.mdsal.openflow.version>1.2.4-SNAPSHOT</ovsdb.utils.mdsal.openflow.version>
+    <netvirt.utils.mdsal.openflow.version>1.2.4-SNAPSHOT</netvirt.utils.mdsal.openflow.version>
   </properties>
 
   <dependencies>
@@ -59,9 +59,9 @@
       <version>${openflowplugin.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.opendaylight.ovsdb</groupId>
+      <groupId>org.opendaylight.netvirt</groupId>
       <artifactId>utils.mdsal-openflow</artifactId>
-      <version>${ovsdb.utils.mdsal.openflow.version}</version>
+      <version>${netvirt.utils.mdsal.openflow.version}</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.mdsal.model</groupId>
