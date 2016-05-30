@@ -22,38 +22,38 @@ module fabric-service {
     augment "/topo:network-topology/topo:topology/topo:node" {
         description "Augmentation for logic switch nodes provided by faas.";
 
-        ext:augment-identifier "logic-switch-augment";
+        ext:augment-identifier "logical-switch-augment";
 
         container lsw-attribute {
             config false;
-            uses fabrictype:logic-switch;
+            uses fabrictype:logical-switch;
         }
     }
 
     augment "/topo:network-topology/topo:topology/topo:node" {
-        description "Augmentation for logic router nodes provided by faas.";
+        description "Augmentation for logical router nodes provided by faas.";
 
-        ext:augment-identifier "logic-router-augment";
+        ext:augment-identifier "logical-router-augment";
 
         container lr-attribute {
             config false;
-            uses fabrictype:logic-router;
+            uses fabrictype:logical-router;
         }
     }
 
     augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
-        description "Augmentation for logic port provided by faas.";
+        description "Augmentation for logical port provided by faas.";
 
-        ext:augment-identifier "logic-port-augment";
+        ext:augment-identifier "logical-port-augment";
 
         container lport-attribute {
             config false;
-            uses fabrictype:logic-port;
+            uses fabrictype:logical-port;
         }
     }
 
     /**************servic api*******************/
-    rpc create-logic-switch {
+    rpc create-logical-switch {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
@@ -62,6 +62,7 @@ module fabric-service {
                 type string;
             }
             leaf vni {
+            	description "virtual network identifier.usually it is allocated by fabric itself. ";
                 type int32;
             }
         }
@@ -69,11 +70,11 @@ module fabric-service {
             leaf node-id {
                 type topo:node-id;
             }
-            uses fabrictype:logic-switch;
+            uses fabrictype:logical-switch;
         }
     }
 
-    rpc rm-logic-switch {
+    rpc rm-logical-switch {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
@@ -84,7 +85,7 @@ module fabric-service {
         }
     }
 
-    rpc create-logic-router {
+    rpc create-logical-router {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
@@ -97,11 +98,11 @@ module fabric-service {
             leaf node-id {
                 type topo:node-id;
             }
-            uses fabrictype:logic-router;
+            uses fabrictype:logical-router;
         }
     }
 
-    rpc rm-logic-router {
+    rpc rm-logical-router {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
@@ -112,7 +113,21 @@ module fabric-service {
         }
     }
 
-    rpc create-logic-port {
+	rpc add-static-route {
+		input {
+			leaf fabric-id {
+				type fabric:fabric-id;
+			}
+			leaf node-id {
+				type topo:node-id;
+			}
+			container static-route {
+				uses fabrictype:route;
+			}
+		}
+	}
+
+    rpc create-logical-port {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
@@ -122,22 +137,25 @@ module fabric-service {
             }
             leaf logic-device {
                 type topo:node-id;
+            }
+            container attribute {
+                uses fabrictype:logical-port;
             }
         }
         output {
             leaf tp-id {
                 type topo:tp-id;
             }
-            uses fabrictype:logic-port;
+            uses fabrictype:logical-port;
         }
     }
 
-    rpc rm-logic-port {
+    rpc rm-logical-port {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
             }
-            leaf logic-device {
+            leaf logical-device {
                 type topo:node-id;
             }
             leaf tp-id {
@@ -157,13 +175,33 @@ module fabric-service {
             leaf network {
                 type inet:ip-prefix;
             }
-            leaf logic-router {
+            leaf logical-router {
                 type topo:node-id;
             }
-            leaf logic-switch {
+            leaf logical-switch {
                 type topo:node-id;
             }
         }
+        output {
+            leaf tp-id {
+                type topo:tp-id;
+            }
+            uses fabrictype:logical-port;
+        }
+    }
+
+    rpc add-port-function {
+    	input {
+    		leaf fabric-id {
+    			type fabric:fabric-id;
+    		}
+    		leaf logical-port-id {
+    			type topo:tp-id;
+    		}
+    		container functions {
+    			uses fabrictype:port-function;
+    		}
+    	}
     }
 
     rpc rm-gateway {
@@ -174,21 +212,49 @@ module fabric-service {
             leaf ip-address {
                 type inet:ip-address;
             }
-            leaf logic-router {
+            leaf logical-router {
                 type topo:node-id;
             }
         }
     }
+
+	rpc port-binding-logical-to-fabric {
+		input {
+			leaf fabric-id {
+				type fabric:fabric-id;
+			}
+			leaf logical-port-id {
+				type topo:tp-id;
+			}
+			leaf fabric-port {
+				type topo:tp-id;
+			}
+		}
+	}
+
+	rpc add-port-function {
+		input {
+			leaf fabric-id {
+				type fabric:fabric-id;
+			}
+			leaf logical-port-id {
+				type topo:tp-id;
+			}
+			container function {
+				uses fabrictype:port-function;
+			}
+		}
+	}
 
     rpc add-acl {
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
             }
-            leaf logic-device {
+            leaf logical-device {
                 type topo:node-id;
             }
-            leaf logic-port {
+            leaf logical-port {
                 type topo:tp-id;
             }
             leaf acl-name {
@@ -202,10 +268,10 @@ module fabric-service {
             leaf fabric-id {
                 type fabric:fabric-id;
             }
-            leaf logic-device {
+            leaf logical-device {
                 type topo:node-id;
             }
-            leaf logic-port {
+            leaf logical-port {
                 type topo:tp-id;
             }
             leaf acl-name {
