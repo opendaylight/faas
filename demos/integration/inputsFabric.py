@@ -60,7 +60,7 @@ def rpc_compose_fabric_data():
     }
 
 #===============================================================================#  
-fa002Url_gc = "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/fabric-service:create-logic-switch"
+fa002Url_gc = "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/fabric-service:create-logical-switch"
 
 def rpc_create_logic_switch_data(name, vni, fabricId):
     return {
@@ -72,7 +72,7 @@ def rpc_create_logic_switch_data(name, vni, fabricId):
     }
 
 #===============================================================================#
-fa003Url_gc = "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/fabric-service:create-logic-router"
+fa003Url_gc = "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/fabric-service:create-logical-router"
 
 def rpc_create_logic_router_data(name, fabricId):
     return {

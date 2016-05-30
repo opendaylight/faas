@@ -18,7 +18,7 @@ public class ResourceManager implements SegmentManager, VrfCtxManager {
 
     private VrfCtxManager vrfMgr = null;
 
-    private final static Map<FabricId, ResourceManager> cache = new HashMap<FabricId, ResourceManager>();
+    private static final Map<FabricId, ResourceManager> cache = new HashMap<FabricId, ResourceManager>();
 
     public static synchronized void initResourceManager(FabricId fabricId) {
         cache.put(fabricId, new ResourceManager());

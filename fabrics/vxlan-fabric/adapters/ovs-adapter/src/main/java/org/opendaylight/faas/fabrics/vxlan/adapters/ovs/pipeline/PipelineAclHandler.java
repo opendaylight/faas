@@ -62,7 +62,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.ni
 
 import com.google.common.collect.Lists;
 
-public class PipelineAclHandler extends AbstractServiceInstance{
+public class PipelineAclHandler extends AbstractServiceInstance {
     private static final Integer ACL_MATCH_PRIORITY = 60000;
     private static final Integer GPE_TUNNEL_IN_PRIORITY = 61001;
     private static final Integer TRAFFIC_BEHAVIOR_RULE_PRIORITY = 1;
@@ -70,7 +70,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
     public static final short PROTOCOL_ICMP = 1;
     public static final short PROTOCOL_TCP = 6;
     public static final short PROTOCOL_UDP = 17;
-    public final static long REG_VALUE_SFC_REDIRECT = 0x5L;
+    public static final long REG_VALUE_SFC_REDIRECT = 0x5L;
 
     //User NXM REG1 to identify the SFC redirect traffic
     public static final Class<? extends NxmNxReg> REG_SFC_FIELD = NxmNxReg1.class;
@@ -97,7 +97,7 @@ public class PipelineAclHandler extends AbstractServiceInstance{
 
         // Call the InstructionBuilder Methods Containing Actions
         InstructionBuilder ib = new InstructionBuilder();
-        if (trafficBehavior == TrafficBehavior.NeedAcl) {
+        if (trafficBehavior == TrafficBehavior.PolicyDriven) {
             //If Traffic Behavior is NeedAcl, the Default action is drop, need Acl to allow traffic
             ib = InstructionUtils.createDropInstructions(ib);
         }

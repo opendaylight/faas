@@ -23,12 +23,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicPortAugment;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterAugment;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalRouterInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalSwitchInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalPortAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalRouterAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
@@ -57,7 +57,7 @@ public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer 
     private final ListeningExecutorService executor;
     private final FabricContext fabricCtx;
 
-    public DistributedFabricRenderer (final DataBroker dataProvider,
+    public DistributedFabricRenderer(final DataBroker dataProvider,
                              final FabricContext fabricCtx) {
         this.dataBroker = dataProvider;
         this.executor = fabricCtx.executor;
@@ -66,18 +66,18 @@ public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer 
 
     @Override
     public void close() throws Exception {
-    	// do nothing
+        // do nothing
     }
 
 
     @Override
-    public void buildLogicSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicSwitchInput input) {
+    public void buildLogicalSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicalSwitchInput input) {
         long segmentId = ResourceManager.getInstance(input.getFabricId()).allocSeg();
         lsw.setSegmentId(segmentId);
     }
 
     @Override
-    public void buildLogicRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicRouterInput input) {
+    public void buildLogicalRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicalRouterInput input) {
         long vrfctx = ResourceManager.getInstance(input.getFabricId()).allocVrfCtx();
         lr.setVrfCtx(vrfctx);
 
@@ -85,13 +85,13 @@ public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer 
     }
 
     @Override
-    public void buildLogicPort(TpId tpid, LportAttributeBuilder lp, CreateLogicPortInput input) {
-    	// do nothing
+    public void buildLogicalPort(TpId tpid, LportAttributeBuilder lp, CreateLogicalPortInput input) {
+        //do nothing
     }
 
     @Override
     public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
-    	fabricCtx.associateSwitchToRouter(fabricid, switchid, routerid, ip);
+        fabricCtx.associateSwitchToRouter(fabricid, switchid, routerid, ip);
     }
 
     @Override
@@ -122,41 +122,41 @@ public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer 
         MdSalUtils.wrapperSubmit(trans, executor);
     }
 
-	@Override
-	public InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName) {
-		return createAclIId(deviceid, tpid, aclName);
-	}
+    @Override
+    public InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName) {
+        return createAclIId(deviceid, tpid, aclName);
+    }
 
-	private InstanceIdentifier<FabricAcl> createAclIId(NodeId deviceid, TpId tpid, String aclName) {
-		FabricId fabricid = fabricCtx.getFabricId();
-		InstanceIdentifier<FabricAcl> aclIId = null;
-		boolean isLsw = fabricCtx.isValidLogicSwitch(deviceid);
-		boolean isLr = fabricCtx.isValidLogicRouter(deviceid);
+    private InstanceIdentifier<FabricAcl> createAclIId(NodeId deviceid, TpId tpid, String aclName) {
+        FabricId fabricid = fabricCtx.getFabricId();
+        InstanceIdentifier<FabricAcl> aclIId = null;
+        boolean isLsw = fabricCtx.isValidLogicSwitch(deviceid);
+        boolean isLr = fabricCtx.isValidLogicRouter(deviceid);
 
-		if (tpid != null) {
-			aclIId = MdSalUtils.createLogicPortIId(fabricid, deviceid, tpid)
-					.augmentation(LogicPortAugment.class)
-		            .child(LportAttribute.class)
-		            .child(FabricAcl.class, new FabricAclKey(aclName));
-		 } else {
-			 if (isLsw) {
-				 aclIId = MdSalUtils.createNodeIId(fabricid, deviceid)
-						 .augmentation(LogicSwitchAugment.class)
-						 .child(LswAttribute.class)
-						 .child(FabricAcl.class, new FabricAclKey(aclName));
-			 }
-			 if (isLr) {
-				 aclIId = MdSalUtils.createNodeIId(fabricid, deviceid)
-						 .augmentation(LogicRouterAugment.class)
-						 .child(LrAttribute.class)
-						 .child(FabricAcl.class, new FabricAclKey(aclName));
-			 }
-		 }
-		return aclIId;
-	}
+        if (tpid != null) {
+            aclIId = MdSalUtils.createLogicPortIId(fabricid, deviceid, tpid)
+                    .augmentation(LogicalPortAugment.class)
+                    .child(LportAttribute.class)
+                    .child(FabricAcl.class, new FabricAclKey(aclName));
+        } else {
+            if (isLsw) {
+                aclIId = MdSalUtils.createNodeIId(fabricid, deviceid)
+                         .augmentation(LogicalSwitchAugment.class)
+                         .child(LswAttribute.class)
+                         .child(FabricAcl.class, new FabricAclKey(aclName));
+            }
+            if (isLr) {
+                aclIId = MdSalUtils.createNodeIId(fabricid, deviceid)
+                         .augmentation(LogicalRouterAugment.class)
+                         .child(LrAttribute.class)
+                         .child(FabricAcl.class, new FabricAclKey(aclName));
+            }
+        }
+        return aclIId;
+    }
 
-	@Override
-	public InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName) {
-		return createAclIId(deviceid, tpid, aclName);
-	}
+    @Override
+    public InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName) {
+        return createAclIId(deviceid, tpid, aclName);
+    }
 }

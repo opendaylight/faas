@@ -171,7 +171,7 @@ def rpc_add_switch_acl_data(switchName, aclName):
     return {
       "input" : {
            "fabric-id": "fabric:1",
-           "logic-device":switchName,
+           "logical-device":switchName,
            "acl-name":aclName
         }
     }
@@ -180,8 +180,8 @@ def rpc_add_port_acl_data(switchName, portName, aclName):
     return {
       "input" : {
            "fabric-id": "fabric:1",
-           "logic-device":switchName,
-           "logic-port":portName,
+           "logical-device":switchName,
+           "logical-port":portName,
            "acl-name":aclName
         }
     }

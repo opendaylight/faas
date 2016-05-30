@@ -66,7 +66,7 @@ public class LogicSwitchContext implements AutoCloseable {
     private final ExecutorService executor;
 
     LogicSwitchContext(DataBroker databroker, FabricId fabricid, long vni, NodeId nodeid, ExecutorService executor) {
-    	this.databroker = databroker;
+        this.databroker = databroker;
         this.vni = vni;
         this.fabricid = fabricid;
         this.nodeid = nodeid;
@@ -78,20 +78,20 @@ public class LogicSwitchContext implements AutoCloseable {
     }
 
     public boolean checkAndSetNewMember(DeviceKey key, IpAddress vtepIp) {
-    	if (!members.containsKey(key)) {
-    		members.put(key, vtepIp);
-    		writeToDom(key, vtepIp);
-    		return true;
-    	} else {
-    		return false;
-    	}
+        if (!members.containsKey(key)) {
+            members.put(key, vtepIp);
+            writeToDom(key, vtepIp);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void removeMember(DeviceKey key) {
-    	IpAddress vtep = null;
-    	if ((vtep = members.remove(key)) != null) {
-    		deleteFromDom(key, vtep);
-    	}
+        IpAddress vtep = null;
+        if ((vtep = members.remove(key)) != null) {
+            deleteFromDom(key, vtep);
+        }
     }
 
     public void associateToRouter(LogicRouterContext vrfCtx, IpPrefix ip) {
@@ -103,16 +103,16 @@ public class LogicSwitchContext implements AutoCloseable {
     }
 
     public GatewayPort unAssociateToRouter(LogicRouterContext vrfCtx) {
-    	LogicRouterContext oldVrfCtx = this.vrfCtx;
-    	this.vrfCtx = null;
+        LogicRouterContext oldVrfCtx = this.vrfCtx;
+        this.vrfCtx = null;
 
-    	GatewayPort gwPort = oldVrfCtx.removeGatewayPort(vni);
-    	List<String> oldAcls = Collections.unmodifiableList(inhertAcls);
-    	inhertAcls.clear();
-    	if (!oldAcls.isEmpty()) {
-    		writeToDom(true, oldAcls);
-    	}
-    	return gwPort;
+        GatewayPort gwPort = oldVrfCtx.removeGatewayPort(vni);
+        List<String> oldAcls = Collections.unmodifiableList(inhertAcls);
+        inhertAcls.clear();
+        if (!oldAcls.isEmpty()) {
+            writeToDom(true, oldAcls);
+        }
+        return gwPort;
     }
 
     public LogicRouterContext getVrfCtx() {
@@ -120,119 +120,119 @@ public class LogicSwitchContext implements AutoCloseable {
     }
 
     public Set<DeviceKey> getMembers() {
-    	return members.keySet();
+        return members.keySet();
     }
 
-	@Override
-	public void close() {
-    	InstanceIdentifier<VniMembers> vniMembersIId = createVniMemberIId(fabricid, vni);
+    @Override
+    public void close() {
+        InstanceIdentifier<VniMembers> vniMembersIId = createVniMemberIId(fabricid, vni);
 
-		WriteTransaction trans = databroker.newWriteOnlyTransaction();
-		trans.delete(LogicalDatastoreType.OPERATIONAL, vniMembersIId);
-		MdSalUtils.wrapperSubmit(trans, executor);
-		
-	}
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        trans.delete(LogicalDatastoreType.OPERATIONAL, vniMembersIId);
+        MdSalUtils.wrapperSubmit(trans, executor);
 
-	public void addAcl(String aclName) {
-		acls.add(aclName);
-		writeToDom(false, aclName, null);
-	}
+    }
 
-	public void removeAcl(String aclName) {
-		acls.remove(aclName);
-		writeToDom(true, aclName, null);
-	}
+    public void addAcl(String aclName) {
+        acls.add(aclName);
+        writeToDom(false, aclName, null);
+    }
 
-	public void removeVrfAcl(String aclName) {
-		inhertAcls.remove(aclName);
-		writeToDom(true, aclName, null);
-	}
+    public void removeAcl(String aclName) {
+        acls.remove(aclName);
+        writeToDom(true, aclName, null);
+    }
 
-	public void addVrfAcl(String aclName) {
-		inhertAcls.add(aclName);
-		writeToDom(false, aclName, null);
-	}
+    public void removeVrfAcl(String aclName) {
+        inhertAcls.remove(aclName);
+        writeToDom(true, aclName, null);
+    }
 
-	private boolean writeToDom(boolean delete, String aclName, WriteTransaction wt) {
-		if (delete && (acls.contains(aclName) || inhertAcls.contains(aclName))) {
-			return false;
-		}
-		InstanceIdentifier<FabricAcl> aclIid = InstanceIdentifier.create(FabricRenderedMapping.class)
-				.child(Fabric.class, new FabricKey(this.fabricid))
-				.child(Acls.class, new AclsKey(this.vni))
-				.child(FabricAcl.class, new FabricAclKey(aclName));
+    public void addVrfAcl(String aclName) {
+        inhertAcls.add(aclName);
+        writeToDom(false, aclName, null);
+    }
 
-		WriteTransaction trans = wt == null ? databroker.newWriteOnlyTransaction() : wt;
+    private boolean writeToDom(boolean delete, String aclName, WriteTransaction wt) {
+        if (delete && (acls.contains(aclName) || inhertAcls.contains(aclName))) {
+            return false;
+        }
+        InstanceIdentifier<FabricAcl> aclIid = InstanceIdentifier.create(FabricRenderedMapping.class)
+                .child(Fabric.class, new FabricKey(this.fabricid))
+                .child(Acls.class, new AclsKey(this.vni))
+                .child(FabricAcl.class, new FabricAclKey(aclName));
 
-		if (delete) {
-			trans.delete(LogicalDatastoreType.OPERATIONAL, aclIid);
-		} else {
-			FabricAclBuilder builder = new FabricAclBuilder();
-			builder.setFabricAclName(aclName);
-			trans.merge(LogicalDatastoreType.OPERATIONAL, aclIid, builder.build(), true);
-		}
+        WriteTransaction trans = wt == null ? databroker.newWriteOnlyTransaction() : wt;
 
-		if (wt == null) {
-			MdSalUtils.wrapperSubmit(trans);
-		}
-		return true;
-	}
-	
-	private void writeToDom(boolean delete, List<String> acls) {
+        if (delete) {
+            trans.delete(LogicalDatastoreType.OPERATIONAL, aclIid);
+        } else {
+            FabricAclBuilder builder = new FabricAclBuilder();
+            builder.setFabricAclName(aclName);
+            trans.merge(LogicalDatastoreType.OPERATIONAL, aclIid, builder.build(), true);
+        }
 
-		boolean upt = false;
-		WriteTransaction trans = databroker.newWriteOnlyTransaction();
-		
-		for (String acl : acls) {
-			upt |= writeToDom(delete, acl, trans);
-		}
+        if (wt == null) {
+            MdSalUtils.wrapperSubmit(trans);
+        }
+        return true;
+    }
 
-		if (upt) {
-			MdSalUtils.wrapperSubmit(trans);
-		}
-	}
-	
+    private void writeToDom(boolean delete, List<String> acls) {
+
+        boolean upt = false;
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+
+        for (String acl : acls) {
+            upt |= writeToDom(delete, acl, trans);
+        }
+
+        if (upt) {
+            MdSalUtils.wrapperSubmit(trans);
+        }
+    }
+
     private void writeToDom(DeviceKey key, IpAddress vtepIp) {
-    	InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
+        InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
 
-    	MembersBuilder vbuilder = new MembersBuilder();
-		vbuilder.setVtep(vtepIp);
-		vbuilder.setKey(new MembersKey(vtepIp));
+        MembersBuilder vbuilder = new MembersBuilder();
+        vbuilder.setVtep(vtepIp);
+        vbuilder.setKey(new MembersKey(vtepIp));
 
-		InstanceIdentifier<SupportingNode> suplNodeIId = createSuplNodeIId(key);
-		SupportingNodeBuilder sbuilder = new SupportingNodeBuilder();
-		sbuilder.setNodeRef(key.nodeid);
-		sbuilder.setTopologyRef(key.topoid);		
+        InstanceIdentifier<SupportingNode> suplNodeIId = createSuplNodeIId(key);
+        SupportingNodeBuilder sbuilder = new SupportingNodeBuilder();
+        sbuilder.setNodeRef(key.nodeid);
+        sbuilder.setTopologyRef(key.topoid);
 
-		WriteTransaction trans = databroker.newWriteOnlyTransaction();
-		trans.merge(LogicalDatastoreType.OPERATIONAL, vniMembersIId, vbuilder.build(), true);
-		trans.merge(LogicalDatastoreType.OPERATIONAL, suplNodeIId, sbuilder.build(), false);
-		MdSalUtils.wrapperSubmit(trans, executor);
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        trans.merge(LogicalDatastoreType.OPERATIONAL, vniMembersIId, vbuilder.build(), true);
+        trans.merge(LogicalDatastoreType.OPERATIONAL, suplNodeIId, sbuilder.build(), false);
+        MdSalUtils.wrapperSubmit(trans, executor);
     }
 
     private void deleteFromDom(DeviceKey key, IpAddress vtepIp) {
-    	InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
-    	InstanceIdentifier<SupportingNode> suplNodeIId = createSuplNodeIId(key);
+        InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
+        InstanceIdentifier<SupportingNode> suplNodeIId = createSuplNodeIId(key);
 
-		WriteTransaction trans = databroker.newWriteOnlyTransaction();
-		trans.delete(LogicalDatastoreType.OPERATIONAL, vniMembersIId);
-		trans.delete(LogicalDatastoreType.OPERATIONAL, suplNodeIId);
-		MdSalUtils.wrapperSubmit(trans, executor);
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        trans.delete(LogicalDatastoreType.OPERATIONAL, vniMembersIId);
+        trans.delete(LogicalDatastoreType.OPERATIONAL, suplNodeIId);
+        MdSalUtils.wrapperSubmit(trans, executor);
     }
 
     private InstanceIdentifier<Members> createVniVtepIId(FabricId fabricId, long vni, IpAddress vtep) {
         return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
                 .child(VniMembers.class, new VniMembersKey(vni))
-        		.child(Members.class, new MembersKey(vtep));
+                .child(Members.class, new MembersKey(vtep));
     }
 
     private InstanceIdentifier<SupportingNode> createSuplNodeIId(DeviceKey key) {
-    	return InstanceIdentifier.create(NetworkTopology.class)
-    			.child(Topology.class, new TopologyKey(new TopologyId(this.fabricid.getValue())))
-    			.child(Node.class, new NodeKey(this.nodeid))
-    			.child(SupportingNode.class, new SupportingNodeKey(key.nodeid, key.topoid));
+        return InstanceIdentifier.create(NetworkTopology.class)
+                .child(Topology.class, new TopologyKey(new TopologyId(this.fabricid.getValue())))
+                .child(Node.class, new NodeKey(this.nodeid))
+                .child(SupportingNode.class, new SupportingNodeKey(key.nodeid, key.topoid));
     }
-    
+
     private InstanceIdentifier<VniMembers> createVniMemberIId(FabricId fabricId, long vni) {
         return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
                 .child(VniMembers.class, new VniMembersKey(vni));

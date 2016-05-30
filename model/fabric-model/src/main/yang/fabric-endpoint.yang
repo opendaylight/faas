@@ -68,7 +68,7 @@ module fabric-endpoint {
             uses device-location;
         }
 
-        container logic-location {
+        container logical-location {
             description "The location for this endpoint in the logical network.";
 
             leaf node-id {

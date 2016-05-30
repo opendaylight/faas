@@ -52,7 +52,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
     private final ExecutorService executor;
 
-    public EndPointRegister (final DataBroker dataBroker,
+    public EndPointRegister(final DataBroker dataBroker,
             final RpcProviderRegistry rpcRegistry, ExecutorService executor) {
         this.dataBroker = dataBroker;
         this.rpcRegistry = rpcRegistry;
@@ -118,7 +118,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         epBuilder.setGateway(input.getGateway());
         epBuilder.setIpAddress(input.getIpAddress());
         epBuilder.setLocation(input.getLocation());
-        epBuilder.setLogicLocation(input.getLogicLocation());
+        epBuilder.setLogicalLocation(input.getLogicalLocation());
         epBuilder.setMacAddress(input.getMacAddress());
         epBuilder.setPublicIp(input.getPublicIp());
         epBuilder.setOwnFabric(fabricid);

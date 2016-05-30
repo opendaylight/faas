@@ -22,7 +22,7 @@ public enum FabricInstanceCache {
     private Map<FabricId, FabricInstance> cache = new HashMap<FabricId, FabricInstance>();
 
     FabricInstance addFabric(FabricId fabricId, UnderlayerNetworkType type, FabricRenderer renderer) {
-    	FabricInstance newInstance = new FabricInstance(fabricId, type, renderer); 
+        FabricInstance newInstance = new FabricInstance(fabricId, type, renderer);
         cache.put(fabricId, newInstance);
         return newInstance;
     }

@@ -15,36 +15,36 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public class DeviceKey {
 
-	TopologyId topoid;
-	NodeId nodeid;
+    TopologyId topoid;
+    NodeId nodeid;
 
-	private DeviceKey() {
-	}
-	
-	public DeviceKey(TopologyId topoid, NodeId nodeid) {
-		this.topoid = topoid;
-		this.nodeid = nodeid;
-	}
+    private DeviceKey() {
+    }
 
-	public static DeviceKey newInstance(InstanceIdentifier<Node> iid) {
-		DeviceKey obj = new DeviceKey();
-		obj.topoid = iid.firstKeyOf(Topology.class).getTopologyId();
-		obj.nodeid = iid.firstKeyOf(Node.class).getNodeId();
-		return obj;
-	}
+    public DeviceKey(TopologyId topoid, NodeId nodeid) {
+        this.topoid = topoid;
+        this.nodeid = nodeid;
+    }
 
-	@Override
-	public boolean equals(Object val) {
-		if (val instanceof DeviceKey) {
-			DeviceKey o = (DeviceKey) val;
-			return topoid.equals(o.topoid) && nodeid.equals(o.nodeid);
-		} else {
-			return false;
-		}
-	}
+    public static DeviceKey newInstance(InstanceIdentifier<Node> iid) {
+        DeviceKey obj = new DeviceKey();
+        obj.topoid = iid.firstKeyOf(Topology.class).getTopologyId();
+        obj.nodeid = iid.firstKeyOf(Node.class).getNodeId();
+        return obj;
+    }
 
-	@Override
-	public int hashCode() {
-		return topoid.hashCode() + nodeid.hashCode();
-	}
+    @Override
+    public boolean equals(Object val) {
+        if (val instanceof DeviceKey) {
+            DeviceKey o = (DeviceKey) val;
+            return topoid.equals(o.topoid) && nodeid.equals(o.nodeid);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return topoid.hashCode() + nodeid.hashCode();
+    }
 }

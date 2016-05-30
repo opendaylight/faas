@@ -16,9 +16,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalRouterInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalSwitchInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
@@ -39,7 +39,7 @@ public class FabricInstance implements FabricRenderer {
 
     private final FabricRenderer renderer;
 
-    private List<FabricListener> listeners = Lists.newArrayList();;
+    private List<FabricListener> listeners = Lists.newArrayList();
 
     public FabricInstance(FabricId fabricId, UnderlayerNetworkType type, FabricRenderer renderer) {
         this.fabricId = fabricId;
@@ -56,32 +56,32 @@ public class FabricInstance implements FabricRenderer {
     }
 
     public void addListener(FabricListener listener) {
-    	this.listeners.add(listener);
+        this.listeners.add(listener);
     }
 
     public void removeListener(FabricListener listener) {
-    	this.listeners.remove(listener);
-    }
-    
-
-    @Override
-    public void buildLogicSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicSwitchInput input) {
-    	renderer.buildLogicSwitch(nodeid, lsw, input);
+        this.listeners.remove(listener);
     }
 
+
     @Override
-    public void buildLogicRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicRouterInput input) {
-    	renderer.buildLogicRouter(nodeid, lr, input);
+    public void buildLogicalSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicalSwitchInput input) {
+        renderer.buildLogicalSwitch(nodeid, lsw, input);
     }
 
     @Override
-    public void buildLogicPort(TpId tpid, LportAttributeBuilder lp, CreateLogicPortInput input) {
-    	renderer.buildLogicPort(tpid, lp, input);
+    public void buildLogicalRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicalRouterInput input) {
+        renderer.buildLogicalRouter(nodeid, lr, input);
+    }
+
+    @Override
+    public void buildLogicalPort(TpId tpid, LportAttributeBuilder lp, CreateLogicalPortInput input) {
+        renderer.buildLogicalPort(tpid, lp, input);
     }
 
     @Override
     public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
-    	renderer.buildGateway(switchid, ip, routerid, fabricid);
+        renderer.buildGateway(switchid, ip, routerid, fabricid);
 
     }
 
@@ -90,74 +90,74 @@ public class FabricInstance implements FabricRenderer {
         return renderer.addNodeToFabric(node, input);
     }
 
-	@Override
-	public InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName) {
-		return renderer.addAcl(deviceid, tpid, aclName);
-		
-	}
+    @Override
+    public InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName) {
+        return renderer.addAcl(deviceid, tpid, aclName);
 
-	@Override
-	public InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName) {
-		return renderer.delAcl(deviceid, tpid, aclName);
-	}
+    }
+
+    @Override
+    public InstanceIdentifier<FabricAcl> delAcl(NodeId deviceid, TpId tpid, String aclName) {
+        return renderer.delAcl(deviceid, tpid, aclName);
+    }
 
     public void notifyFabricCreated(FabricNode node) {
-    	for (FabricListener listener : listeners) {
-    		listener.fabricCreated(node);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.fabricCreated(node);
+        }
     }
 
     public void notifyGatewayRemoved(NodeId lswId, NodeId lrId) {
-    	for (FabricListener listener : listeners) {
-    		listener.gatewayRemoved(lswId, lrId);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.gatewayRemoved(lswId, lrId);
+        }
     }
-    
+
     public void notifyLogicSwitchCreated(NodeId nodeId, Node lsw) {
-    	for (FabricListener listener : listeners) {
-    		listener.logicSwitchCreated(nodeId, lsw);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.logicSwitchCreated(nodeId, lsw);
+        }
     }
 
     public void notifyLogicSwitchRemoved(Node lsw) {
-    	for (FabricListener listener : listeners) {
-    		listener.logicSwitchRemoved(lsw);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.logicSwitchRemoved(lsw);
+        }
     }
 
     public void notifyLogicRouterCreated(NodeId nodeId, Node lr) {
-    	for (FabricListener listener : listeners) {
-    		listener.logicRouterCreated(nodeId, lr);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.logicRouterCreated(nodeId, lr);
+        }
     }
 
     public void notifyLogicRouterRemoved(Node lr) {
-    	for (FabricListener listener : listeners) {
-    		listener.logicRouterRemoved(lr);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.logicRouterRemoved(lr);
+        }
     }
 
     public void notifyDeviceAdded(InstanceIdentifier<Node> device) {
-    	for (FabricListener listener : listeners) {
-    		listener.deviceAdded(device);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.deviceAdded(device);
+        }
     }
 
     public void notifyDeviceRemoved(InstanceIdentifier<Node> device) {
-    	for (FabricListener listener : listeners) {
-    		listener.deviceRemoved(device);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.deviceRemoved(device);
+        }
     }
 
     public void notifyFabricDeleted(Node fabric) {
-    	for (FabricListener listener : listeners) {
-    		listener.fabricDeleted(fabric);
-    	}
+        for (FabricListener listener : listeners) {
+            listener.fabricDeleted(fabric);
+        }
     }
 
-	public void notifyAclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete) {
-    	for (FabricListener listener : listeners) {
-    		listener.aclUpdate(iid, delete);
-    	}
-	}
+    public void notifyAclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete) {
+        for (FabricListener listener : listeners) {
+            listener.aclUpdate(iid, delete);
+        }
+    }
 }

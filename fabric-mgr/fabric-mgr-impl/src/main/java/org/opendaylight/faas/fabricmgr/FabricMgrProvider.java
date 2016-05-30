@@ -23,7 +23,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicLocationBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
@@ -230,11 +230,11 @@ public class FabricMgrProvider implements AutoCloseable {
         epInputBuilder.setMacAddress(endpoint.getMacAddress());
         epInputBuilder.setOwnFabric(fabricId);
 
-        LogicLocationBuilder llb = new LogicLocationBuilder();
+        LogicalLocationBuilder llb = new LogicalLocationBuilder();
         llb.setNodeId(lswId);
         llb.setTpId(lswLogicalPortId);
 
-        epInputBuilder.setLogicLocation(llb.build());
+        epInputBuilder.setLogicalLocation(llb.build());
 
         Uuid epId = this.netNodeServiceProvider.registerEndpoint(tenantId, vfabricId, epInputBuilder.build());
 

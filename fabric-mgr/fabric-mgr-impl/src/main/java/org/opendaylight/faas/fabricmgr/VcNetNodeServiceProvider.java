@@ -26,17 +26,18 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicPortOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicRouterOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicSwitchOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalRouterInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalRouterOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalSwitchInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalSwitchOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.DelAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmGatewayInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicRouterInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicSwitchInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalRouterInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalSwitchInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
@@ -108,7 +109,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         NodeId vfabricId = input.getVfabricId();
         String lswName = input.getName();
 
-        CreateLogicSwitchInputBuilder lswInputBuilder = new CreateLogicSwitchInputBuilder();
+        CreateLogicalSwitchInputBuilder lswInputBuilder = new CreateLogicalSwitchInputBuilder();
 
         FabricId fabricId = new FabricId(vfabricId);
         lswInputBuilder.setFabricId(fabricId);
@@ -128,14 +129,14 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
                 vni.intValue());
 
         final RpcResultBuilder<CreateLneLayer2Output> resultBuilder = RpcResultBuilder.<CreateLneLayer2Output>success();
-        Future<RpcResult<CreateLogicSwitchOutput>> result =
-                this.fabServiceService.createLogicSwitch(lswInputBuilder.build());
+        Future<RpcResult<CreateLogicalSwitchOutput>> result =
+                this.fabServiceService.createLogicalSwitch(lswInputBuilder.build());
         try {
-            RpcResult<CreateLogicSwitchOutput> output = result.get();
+            RpcResult<CreateLogicalSwitchOutput> output = result.get();
             if (output.isSuccessful()) {
                 LOG.debug("FABMGR: createLneLayer2: createLogicSwitch RPC success");
                 CreateLneLayer2OutputBuilder builder = new CreateLneLayer2OutputBuilder();
-                CreateLogicSwitchOutput createLswOutput = output.getResult();
+                CreateLogicalSwitchOutput createLswOutput = output.getResult();
 
                 NodeId nodeId = createLswOutput.getNodeId();
                 // VcLneRef lswRef = new
@@ -160,7 +161,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         NodeId vfabricId = input.getVfabricId();
         String lrName = input.getName();
 
-        CreateLogicRouterInputBuilder lrInputBuilder = new CreateLogicRouterInputBuilder();
+        CreateLogicalRouterInputBuilder lrInputBuilder = new CreateLogicalRouterInputBuilder();
 
         FabricId fabricId = new FabricId(vfabricId);
         lrInputBuilder.setFabricId(fabricId);
@@ -169,14 +170,14 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         LOG.debug("FABMGR: createLneLayer3: lrName={}, fabricId={}", lrName, fabricId.getValue());
 
         final RpcResultBuilder<CreateLneLayer3Output> resultBuilder = RpcResultBuilder.<CreateLneLayer3Output>success();
-        Future<RpcResult<CreateLogicRouterOutput>> result =
-                this.fabServiceService.createLogicRouter(lrInputBuilder.build());
+        Future<RpcResult<CreateLogicalRouterOutput>> result =
+                this.fabServiceService.createLogicalRouter(lrInputBuilder.build());
         try {
-            RpcResult<CreateLogicRouterOutput> output = result.get();
+            RpcResult<CreateLogicalRouterOutput> output = result.get();
             if (output.isSuccessful()) {
                 LOG.debug("FABMGR: createLneLayer3: createLogicRouter RPC success");
                 CreateLneLayer3OutputBuilder builder = new CreateLneLayer3OutputBuilder();
-                CreateLogicRouterOutput createLrOutput = output.getResult();
+                CreateLogicalRouterOutput createLrOutput = output.getResult();
                 NodeId nodeId = createLrOutput.getNodeId();
                 // VcLneRef lrRef = new
                 // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
@@ -249,7 +250,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         }
         vcMgr.getLdNodeConfigDataMgr().releaseL2Resource(vfabricId);
 
-        RmLogicSwitchInputBuilder inputBuilder = new RmLogicSwitchInputBuilder();
+        RmLogicalSwitchInputBuilder inputBuilder = new RmLogicalSwitchInputBuilder();
 
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
@@ -258,7 +259,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         LOG.debug("FABMGR: rmLneLayer2: fabricId={}, lswId={}", fabricId.getValue(), lswId.getValue());
 
         final RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
-        Future<RpcResult<Void>> result = this.fabServiceService.rmLogicSwitch(inputBuilder.build());
+        Future<RpcResult<Void>> result = this.fabServiceService.rmLogicalSwitch(inputBuilder.build());
         try {
             RpcResult<Void> output = result.get();
             if (output.isSuccessful()) {
@@ -282,7 +283,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         NodeId vfabricId = input.getVfabricId();
         VcLneId lrId = input.getLneId();
 
-        RmLogicRouterInputBuilder inputBuilder = new RmLogicRouterInputBuilder();
+        RmLogicalRouterInputBuilder inputBuilder = new RmLogicalRouterInputBuilder();
 
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
@@ -291,7 +292,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         LOG.debug("FABMGR: rmLneLayer3: fabricId={}, lrId={}", fabricId.getValue(), lrId.getValue());
 
         final RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
-        Future<RpcResult<Void>> result = this.fabServiceService.rmLogicRouter(inputBuilder.build());
+        Future<RpcResult<Void>> result = this.fabServiceService.rmLogicalRouter(inputBuilder.build());
         try {
             RpcResult<Void> output = result.get();
             if (output.isSuccessful()) {
@@ -335,19 +336,19 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
 
     public TpId createLogicalPortOnLsw(Uuid tenantId, NodeId vfabricId, NodeId lswId) {
         TpId tpId = null;
-        CreateLogicPortInputBuilder inputBuilder = new CreateLogicPortInputBuilder();
+        CreateLogicalPortInputBuilder inputBuilder = new CreateLogicalPortInputBuilder();
 
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
         inputBuilder.setLogicDevice(lswId);
         inputBuilder.setName("LswLogicalPort");
 
-        Future<RpcResult<CreateLogicPortOutput>> result = this.fabServiceService.createLogicPort(inputBuilder.build());
+        Future<RpcResult<CreateLogicalPortOutput>> result = this.fabServiceService.createLogicalPort(inputBuilder.build());
         try {
-            RpcResult<CreateLogicPortOutput> output = result.get();
+            RpcResult<CreateLogicalPortOutput> output = result.get();
             if (output.isSuccessful()) {
                 LOG.debug("FABMGR: createLogicalPortOnLsw: createLogicPort RPC success");
-                CreateLogicPortOutput createLogicPortOutput = output.getResult();
+                CreateLogicalPortOutput createLogicPortOutput = output.getResult();
                 tpId = createLogicPortOutput.getTpId();
             }
         } catch (Exception e) {
@@ -402,14 +403,14 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
-        inputBuilder.setLogicRouter(new NodeId(lrId));
-        inputBuilder.setLogicSwitch(new NodeId(lswId));
+        inputBuilder.setLogicalRouter(new NodeId(lrId));
+        inputBuilder.setLogicalSwitch(new NodeId(lswId));
         inputBuilder.setIpAddress(new IpAddress(gatewayIpAddr));
         inputBuilder.setNetwork(new IpPrefix(ipPrefix));
 
-        Future<RpcResult<Void>> result = this.fabServiceService.createGateway(inputBuilder.build());
+        Future<RpcResult<CreateGatewayOutput>> result = this.fabServiceService.createGateway(inputBuilder.build());
         try {
-            RpcResult<Void> output = result.get();
+            RpcResult<CreateGatewayOutput> output = result.get();
             if (output.isSuccessful()) {
                 LOG.debug("FABMGR: createLrLswGateway: createGateway RPC success");
             }
@@ -422,7 +423,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         RmGatewayInputBuilder inputBuilder = new RmGatewayInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
-        inputBuilder.setLogicRouter(new NodeId(lrId));
+        inputBuilder.setLogicalRouter(new NodeId(lrId));
         inputBuilder.setIpAddress(new IpAddress(gatewayIpAddr));
 
         Future<RpcResult<Void>> result = this.fabServiceService.rmGateway(inputBuilder.build());
@@ -447,7 +448,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
          * device in its Cache map using the nodeId as search key.
          */
         NodeId deviceId = new NodeId(nodeId.getValue());
-        inputBuilder.setLogicDevice(deviceId);
+        inputBuilder.setLogicalDevice(deviceId);
 
         LOG.debug("FABMGR: createAcl: fabricId={}, deviceId={}, aclName={}", fabricId.getValue(), deviceId.getValue(),
                 aclName);
@@ -473,7 +474,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
          * device in its Cache map using the nodeId as search key.
          */
         NodeId deviceId = new NodeId(nodeId.getValue());
-        inputBuilder.setLogicDevice(deviceId);
+        inputBuilder.setLogicalDevice(deviceId);
 
         LOG.debug("FABMGR: removeAcl: fabricId={}, deviceId={}, aclName={}", fabricId.getValue(), deviceId.getValue(),
                 aclName);

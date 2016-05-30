@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class FabricContext implements AutoCloseable {
 
-	private final FabricId fabricId;
+    private final FabricId fabricId;
 
     private final Map<NodeId, LogicSwitchContext> logicSwitches = Maps.newConcurrentMap();
 
@@ -40,62 +40,62 @@ public class FabricContext implements AutoCloseable {
     protected final ListeningExecutorService executor;
 
     public FabricContext(FabricId fabricId, DataBroker databroker) {
-    	this.fabricId = fabricId;
+        this.fabricId = fabricId;
         this.databroker = databroker;
 
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
-        		.setNameFormat(fabricId.getValue() + " - %d")
-        		.build();
+                .setNameFormat(fabricId.getValue() + " - %d")
+                .build();
         this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor(threadFactory));;
     }
 
     public FabricId getFabricId() {
-    	return fabricId;
+        return fabricId;
     }
-    
+
     public void addLogicRouter(NodeId routerId, long vrf) {
         logicRouters.put(routerId, new LogicRouterContext(vrf));
     }
 
     public void removeLogicRouter(NodeId routerId) {
-    	logicRouters.remove(routerId);
+        logicRouters.remove(routerId);
     }
-    
+
     public LogicSwitchContext addLogicSwitch(NodeId nodeId, long vni) {
-    	LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vni, nodeId, executor);
+        LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vni, nodeId, executor);
         logicSwitches.put(nodeId, lswCtx);
         return lswCtx;
     }
 
     public LogicSwitchContext removeLogicSwitch(NodeId nodeId) {
-    	return logicSwitches.remove(nodeId);
+        return logicSwitches.remove(nodeId);
     }
-    
+
     public DeviceContext addDeviceSwitch(InstanceIdentifier<Node> deviceIId, IpAddress vtep) {
-    	DeviceContext devCtx = new DeviceContext(databroker, vtep, deviceIId, executor);
+        DeviceContext devCtx = new DeviceContext(databroker, vtep, deviceIId, executor);
         devices.put(DeviceKey.newInstance(deviceIId), devCtx);
         return devCtx;
     }
 
     public DeviceContext removeDeviceSwitch(DeviceKey key) {
-    	return devices.remove(key);
+        return devices.remove(key);
     }
-    
+
     public LogicSwitchContext getLogicSwitchCtx(NodeId nodeId) {
         return logicSwitches.get(nodeId);
     }
-    
+
     public Collection<LogicSwitchContext> getLogicSwitchCtxs() {
-    	return logicSwitches.values();
+        return logicSwitches.values();
     }
-    
+
     public void associateSwitchToRouter(FabricId fabricid, NodeId lsw, NodeId lr, IpPrefix ip) {
         LogicRouterContext routerCtx = getLogicRouterCtx(lr);
         LogicSwitchContext switchCtx = getLogicSwitchCtx(lsw);
         switchCtx.associateToRouter(routerCtx, ip);
 
         for (DeviceKey device : switchCtx.getMembers()) {
-        	devices.get(device).createBDIF(switchCtx.getVni(), routerCtx);
+            devices.get(device).createBDIF(switchCtx.getVni(), routerCtx);
         }
     }
 
@@ -105,35 +105,35 @@ public class FabricContext implements AutoCloseable {
 
         GatewayPort gwPort = switchCtx.unAssociateToRouter(routerCtx);
         for (DeviceKey device : switchCtx.getMembers()) {
-        	devices.get(device).removeBDIF(switchCtx.getVni(), gwPort);
+            devices.get(device).removeBDIF(switchCtx.getVni(), gwPort);
         }
     }
-    
+
     public DeviceContext getDeviceCtx(DeviceKey key) {
         return devices.get(key);
     }
 
     public Collection<DeviceContext> getDeviceCtxs() {
-    	return devices.values();
+        return devices.values();
     }
-    
+
     public LogicRouterContext getLogicRouterCtx(NodeId routerId) {
         return logicRouters.get(routerId);
     }
 
     public boolean isValidLogicSwitch(NodeId nodeid) {
-    	return logicSwitches.containsKey(nodeid);
+        return logicSwitches.containsKey(nodeid);
     }
 
     public boolean isValidLogicRouter(NodeId nodeid) {
-    	return logicRouters.containsKey(nodeid);
+        return logicRouters.containsKey(nodeid);
     }
 
-	@Override
-	public void close() {
-		executor.shutdown();
-		logicSwitches.clear();
-		logicRouters.clear();
-		devices.clear();
-	}
+    @Override
+    public void close() {
+        executor.shutdown();
+        logicSwitches.clear();
+        logicRouters.clear();
+        devices.clear();
+    }
 }

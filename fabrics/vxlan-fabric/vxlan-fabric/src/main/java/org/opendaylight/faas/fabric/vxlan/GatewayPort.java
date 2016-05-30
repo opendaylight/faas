@@ -22,7 +22,7 @@ public class GatewayPort {
 
     private NodeId lsw;
 
-    public GatewayPort (IpPrefix ip, long vni, NodeId lsw, long vrf) {
+    public GatewayPort(IpPrefix ip, long vni, NodeId lsw, long vrf) {
         this.ip = ip;
         this.vni = vni;
         this.lsw = lsw;
@@ -50,6 +50,6 @@ public class GatewayPort {
     }
 
     NodeId getLogicSwitch() {
-    	return lsw;
+        return lsw;
     }
 }

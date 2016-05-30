@@ -83,7 +83,7 @@ def post(host, port, uri, data, debug=False):
 # Main Program
 
 def rpc_create_logic_switch_uri():
-    return "/restconf/operations/fabric-service:create-logic-switch"
+    return "/restconf/operations/fabric-service:create-logical-switch"
 
 def rpc_create_logic_switch_data(name, vni):
     return {
@@ -95,7 +95,7 @@ def rpc_create_logic_switch_data(name, vni):
     }
 
 def rpc_create_logic_router_uri():
-    return "/restconf/operations/fabric-service:create-logic-router"
+    return "/restconf/operations/fabric-service:create-logical-router"
 
 def rpc_create_logic_router_data(name):
     return {
@@ -106,14 +106,14 @@ def rpc_create_logic_router_data(name):
     }
 
 def rpc_create_logic_port_uri():
-    return "/restconf/operations/fabric-service:create-logic-port"
+    return "/restconf/operations/fabric-service:create-logical-port"
 
 def rpc_create_logic_port_data(deviceName, portName):
     return {
         "input" : {
            "fabric-id": "fabric:1",
            "name":portName,
-           "logic-device":deviceName
+           "logical-device":deviceName
        }
     }
 
@@ -128,7 +128,7 @@ def rpc_register_endpoint_data1():
            "mac-address":"00:00:00:00:35:02",
            "ip-address":"10.0.35.2",
            "gateway":"10.0.35.1",
-            "logic-location": {
+            "logical-location": {
                 "node-id":"vswitch-1",
                 "tp-id":"vswitch-1-p-1"
             }
@@ -143,7 +143,7 @@ def rpc_register_endpoint_data2():
            "mac-address":"00:00:00:00:35:03",
            "ip-address":"10.0.35.3",
            "gateway":"10.0.35.1",
-            "logic-location": {
+            "logical-location": {
                 "node-id":"vswitch-1",
                 "tp-id":"vswitch-1-p-2"
             }
@@ -158,7 +158,7 @@ def rpc_register_endpoint_data3():
            "mac-address":"00:00:00:00:35:04",
            "ip-address":"10.0.35.4",
            "gateway":"10.0.35.1",
-            "logic-location": {
+            "logical-location": {
                 "node-id":"vswitch-1",
                 "tp-id":"vswitch-1-p-3"
             }
@@ -173,7 +173,7 @@ def rpc_register_endpoint_data4():
            "mac-address":"00:00:00:00:36:04",
            "ip-address":"10.0.36.4",
            "gateway":"10.0.36.1",
-            "logic-location": {
+            "logical-location": {
                 "node-id":"vswitch-2",
                 "tp-id":"vswitch-2-p-1"
             }
@@ -244,8 +244,8 @@ def rpc_create_gateway_data(ipaddr, network, switchName):
            "fabric-id": "fabric:1",
            "ip-address":ipaddr,
            "network":network,
-           "logic-router":"vrouter-1",
-           "logic-switch":switchName
+           "logical-router":"vrouter-1",
+           "logical-switch":switchName
        }
     }
 

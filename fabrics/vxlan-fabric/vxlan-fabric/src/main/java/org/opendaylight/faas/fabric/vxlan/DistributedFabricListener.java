@@ -31,8 +31,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicRouterAugment;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicSwitchAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalRouterAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
@@ -65,11 +65,11 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     private final FabricContext fabricCtx;
 
     public DistributedFabricListener (InstanceIdentifier<FabricNode> fabricIId,
-    						final DataBroker dataProvider,
+                            final DataBroker dataProvider,
                              final RpcProviderRegistry rpcRegistry,
                              final FabricContext fabricCtx) {
-    	this.fabricIId = fabricIId;
-    	this.fabricid = new FabricId(fabricIId.firstKeyOf(Node.class).getNodeId());
+        this.fabricIId = fabricIId;
+        this.fabricid = new FabricId(fabricIId.firstKeyOf(Node.class).getNodeId());
         this.dataBroker = dataProvider;
         this.rpcRegistry = rpcRegistry;
 
@@ -131,7 +131,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
                DeviceContext devCtx = fabricCtx.addDeviceSwitch(deviceIId, vtep);
                Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
                for (LogicSwitchContext lswCtx : lswCtxs) {
-            	   lswCtx.checkAndSetNewMember(DeviceKey.newInstance(deviceIId), vtep);
+                   lswCtx.checkAndSetNewMember(DeviceKey.newInstance(deviceIId), vtep);
                    devCtx.createBridgeDomain(lswCtx);
                }
             }
@@ -146,8 +146,8 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     @Override
     public void deviceRemoved(final InstanceIdentifier<Node> deviceIId) {
 
-    	NodeId deviceId = deviceIId.firstKeyOf(Node.class).getNodeId();
-    	
+        NodeId deviceId = deviceIId.firstKeyOf(Node.class).getNodeId();
+
         RmFromVxlanFabricInputBuilder builder = new RmFromVxlanFabricInputBuilder();
         builder.setNodeId(deviceIId);
         builder.setFabricId(fabricIId.firstKeyOf(Node.class).getNodeId());
@@ -165,7 +165,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         fabricCtx.removeDeviceSwitch(devKey);
         Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
         for (LogicSwitchContext lswCtx : lswCtxs) {
-     	   lswCtx.removeMember(devKey);
+            lswCtx.removeMember(devKey);
         }
     }
 
@@ -196,89 +196,89 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         fabricCtx.close();
         this.close();
     }
-    
-	@Override
-	public void aclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete) {
-		InstanceIdentifier<TerminationPoint> tpiid = iid.firstIdentifierOf(TerminationPoint.class);
-		String aclName = iid.firstKeyOf(FabricAcl.class).getFabricAclName();
-		if (tpiid != null) {
-			if (delete) {
-				executor.submit(AclRenderer.newRmAclTask(dataBroker, tpiid, aclName));	
-			} else {
-				executor.submit(AclRenderer.newAddAclTask(dataBroker, tpiid, aclName));
-			}
-			return;
-		}
-		
-		NodeId nodeId = iid.firstKeyOf(Node.class).getNodeId();
-		if (fabricCtx.isValidLogicSwitch(nodeId)) {
-			if (delete) {
-				fabricCtx.getLogicSwitchCtx(nodeId).removeAcl(aclName);
-			} else {
-				fabricCtx.getLogicSwitchCtx(nodeId).addAcl(aclName);;
-			}
-		} else {
-			LogicRouterContext lrCtx = fabricCtx.getLogicRouterCtx(nodeId);
-			lrCtx.addAcl(aclName);;
-			for (Long vni : lrCtx.getVnis()) {
-				NodeId lsw = lrCtx.getGatewayPortByVni(vni).getLogicSwitch();
-				LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(lsw);
-				if (lswCtx != null) {
-					if (delete) {
-						lswCtx.removeVrfAcl(aclName);
-					} else {
-						lswCtx.addVrfAcl(aclName);
-					}
-				}
-			}
-		}
-	}
 
-	@Override
-	public void logicSwitchCreated(NodeId nodeId, Node lse) {
-		// for distributed Fabric, we add logic switch to all device
+    @Override
+    public void aclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete) {
+        InstanceIdentifier<TerminationPoint> tpiid = iid.firstIdentifierOf(TerminationPoint.class);
+        String aclName = iid.firstKeyOf(FabricAcl.class).getFabricAclName();
+        if (tpiid != null) {
+            if (delete) {
+                executor.submit(AclRenderer.newRmAclTask(dataBroker, tpiid, aclName));
+            } else {
+                executor.submit(AclRenderer.newAddAclTask(dataBroker, tpiid, aclName));
+            }
+            return;
+        }
 
-		long segmentId = lse.getAugmentation(LogicSwitchAugment.class).getLswAttribute().getSegmentId();
-		LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, segmentId);
+        NodeId nodeId = iid.firstKeyOf(Node.class).getNodeId();
+        if (fabricCtx.isValidLogicSwitch(nodeId)) {
+            if (delete) {
+                fabricCtx.getLogicSwitchCtx(nodeId).removeAcl(aclName);
+            } else {
+                fabricCtx.getLogicSwitchCtx(nodeId).addAcl(aclName);;
+            }
+        } else {
+            LogicRouterContext lrCtx = fabricCtx.getLogicRouterCtx(nodeId);
+            lrCtx.addAcl(aclName);;
+            for (Long vni : lrCtx.getVnis()) {
+                NodeId lsw = lrCtx.getGatewayPortByVni(vni).getLogicSwitch();
+                LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(lsw);
+                if (lswCtx != null) {
+                    if (delete) {
+                        lswCtx.removeVrfAcl(aclName);
+                    } else {
+                        lswCtx.addVrfAcl(aclName);
+                    }
+                }
+            }
+        }
+    }
 
-		Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
-		if (devices != null) {
-			for (DeviceContext devCtx : devices) {
-				lswCtx.checkAndSetNewMember(devCtx.getKey(), devCtx.getVtep());
-				devCtx.createBridgeDomain(lswCtx);
-			}
-		}
-	}
+    @Override
+    public void logicSwitchCreated(NodeId nodeId, Node lse) {
+        // for distributed Fabric, we add logic switch to all device
 
-	@Override
-	public void logicSwitchRemoved(Node lsw) {
+        long segmentId = lse.getAugmentation(LogicalSwitchAugment.class).getLswAttribute().getSegmentId();
+        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, segmentId);
 
-		LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(lsw.getNodeId());
-		
-		Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
-		if (devices != null) {
-			for (DeviceContext devCtx : devices) {
-				devCtx.removeBridgeDomain(lswCtx);
-			}
-		}
-		fabricCtx.removeLogicSwitch(lsw.getNodeId());
-		lswCtx.close();
-	}
+        Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
+        if (devices != null) {
+            for (DeviceContext devCtx : devices) {
+                lswCtx.checkAndSetNewMember(devCtx.getKey(), devCtx.getVtep());
+                devCtx.createBridgeDomain(lswCtx);
+            }
+        }
+    }
 
-	@Override
-	public void logicRouterCreated(NodeId nodeId, Node lr) {
-		long vrfctx = lr.getAugmentation(LogicRouterAugment.class).getLrAttribute().getVrfCtx();
-		fabricCtx.addLogicRouter(nodeId, vrfctx);
-	}
+    @Override
+    public void logicSwitchRemoved(Node lsw) {
 
-	@Override
-	public void logicRouterRemoved(Node lr) {
-		fabricCtx.removeLogicSwitch(lr.getNodeId());
-	}
+        LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(lsw.getNodeId());
 
-	@Override
-	public void gatewayRemoved(NodeId lswId, NodeId lrId) {
-		fabricCtx.unAssociateSwitchToRouter(lswId, lrId);
-		
-	}
+        Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
+        if (devices != null) {
+            for (DeviceContext devCtx : devices) {
+                devCtx.removeBridgeDomain(lswCtx);
+            }
+        }
+        fabricCtx.removeLogicSwitch(lsw.getNodeId());
+        lswCtx.close();
+    }
+
+    @Override
+    public void logicRouterCreated(NodeId nodeId, Node lr) {
+        long vrfctx = lr.getAugmentation(LogicalRouterAugment.class).getLrAttribute().getVrfCtx();
+        fabricCtx.addLogicRouter(nodeId, vrfctx);
+    }
+
+    @Override
+    public void logicRouterRemoved(Node lr) {
+        fabricCtx.removeLogicSwitch(lr.getNodeId());
+    }
+
+    @Override
+    public void gatewayRemoved(NodeId lswId, NodeId lrId) {
+        fabricCtx.unAssociateSwitchToRouter(lswId, lrId);
+
+    }
 }

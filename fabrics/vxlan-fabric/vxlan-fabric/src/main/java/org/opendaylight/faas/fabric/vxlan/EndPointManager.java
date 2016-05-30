@@ -61,17 +61,17 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 
     private static FutureCallback<Void> simpleFutureMonitor = new FutureCallback<Void> () {
 
-		@Override
-		public void onSuccess(Void result) {
-			// do nothing
-		}
+        @Override
+        public void onSuccess(Void result) {
+            // do nothing
+        }
 
-		@Override
-		public void onFailure(Throwable t) {
-			LOG.error("Exception in onDataChanged", t); 			
-		}
-		
-	};
+        @Override
+        public void onFailure(Throwable t) {
+            LOG.error("Exception in onDataChanged", t);
+        }
+
+    };
 
     public EndPointManager (DataBroker databroker, RpcProviderRegistry rpcRegistry, FabricContext fabricCtx) {
         this.databroker = databroker;
@@ -82,27 +82,27 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
     }
 
     public void removeEndPointIId(final InstanceIdentifier<Endpoint> epIId, Endpoint ep) {
-    	InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
-    	WriteTransaction wt = databroker.newWriteOnlyTransaction();
-    	wt.delete(LogicalDatastoreType.OPERATIONAL, hostRouteIId);
-    	MdSalUtils.wrapperSubmit(wt);
+        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
+        WriteTransaction wt = databroker.newWriteOnlyTransaction();
+        wt.delete(LogicalDatastoreType.OPERATIONAL, hostRouteIId);
+        MdSalUtils.wrapperSubmit(wt);
     }
 
     private void rendererEndpoint(Endpoint ep) throws Exception {
 
-    	// 1, create bridge domain port
-    	CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
-    	builder.setNodeId(ep.getLocation().getNodeRef().getValue());
-    	builder.setTpId(ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId());
-    	builder.setAccessType(ep.getLocation().getAccessType());
-    	builder.setAccessTag(ep.getLocation().getAccessSegment());
-    	RpcResult<CreateBridgeDomainPortOutput> rpcResult = getVlanDeviceAdapter().createBridgeDomainPort(builder.build()).get();
+        // 1, create bridge domain port
+        CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
+        builder.setNodeId(ep.getLocation().getNodeRef().getValue());
+        builder.setTpId(ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId());
+        builder.setAccessType(ep.getLocation().getAccessType());
+        builder.setAccessTag(ep.getLocation().getAccessSegment());
+        RpcResult<CreateBridgeDomainPortOutput> rpcResult = getVlanDeviceAdapter().createBridgeDomainPort(builder.build()).get();
 
-    	TpId bridgeDomainPort = rpcResult.getResult().getBridgeDomainPort();
+        TpId bridgeDomainPort = rpcResult.getResult().getBridgeDomainPort();
 
-    	// 2, use bridge domain port to renderer logic port
+        // 2, use bridge domain port to renderer logic port
         WriteTransaction trans = databroker.newWriteOnlyTransaction();
-        
+
         EpAccessPortRenderer portRender = EpAccessPortRenderer.newCreateTask(databroker);
         portRender.createEpAccessPort(trans, ep, bridgeDomainPort);
 
@@ -111,7 +111,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 
         HostRouteBuilder hrBuilder = new HostRouteBuilder();
         if (!buildHostRoute(hrBuilder, ep, bridgeDomainPort)) {
-        	return;
+            return;
         }
         trans.merge(LogicalDatastoreType.OPERATIONAL, hostRouteIId, hrBuilder.build(), true);
 
@@ -120,7 +120,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 
     private boolean buildHostRoute(HostRouteBuilder builder, Endpoint ep, TpId bridgeDomainPort) {
         // VNI
-        NodeId logicNode = ep.getLogicLocation().getNodeId();
+        NodeId logicNode = ep.getLogicalLocation().getNodeId();
 
         LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
         if (switchCtx == null) {
@@ -162,63 +162,66 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 
     @Override
     public void close() {
-    	epListener.close();
+        epListener.close();
     }
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
 
         Map<InstanceIdentifier<?>, DataObject> createdData = change.getCreatedData();
         for (Entry<InstanceIdentifier<?>, DataObject> entry : createdData.entrySet()) {
-        	if (entry.getKey().getTargetType().equals(Endpoint.class)) {
-        		
-	        	final Endpoint ep = (Endpoint) entry.getValue();
-	        	if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
-	        		Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
-	
-						@Override
-						public Void call() throws Exception {
-							rendererEndpoint(ep);
-							return null;
-						}}), simpleFutureMonitor, fabricCtx.executor);
-	        	}
-        	}
+            if (entry.getKey().getTargetType().equals(Endpoint.class)) {
+
+                final Endpoint ep = (Endpoint) entry.getValue();
+                if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
+                    Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
+
+                        @Override
+                        public Void call() throws Exception {
+                            rendererEndpoint(ep);
+                            return null;
+                        }
+                    }), simpleFutureMonitor, fabricCtx.executor);
+                }
+            }
         }
 
         Map<InstanceIdentifier<?>, DataObject> updatedData = change.getUpdatedData();
         for (Entry<InstanceIdentifier<?>, DataObject> entry : updatedData.entrySet()) {
-        	if (entry.getKey().getTargetType().equals(Endpoint.class)) {
-        		
-	        	final Endpoint ep = (Endpoint) entry.getValue();
-	        	if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
-	        		Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
-	
-						@Override
-						public Void call() throws Exception {
-							rendererEndpoint(ep);
-							return null;
-						}}), simpleFutureMonitor, fabricCtx.executor);
-	        	}
-        	}
+            if (entry.getKey().getTargetType().equals(Endpoint.class)) {
+
+                final Endpoint ep = (Endpoint) entry.getValue();
+                if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
+                    Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
+
+                        @Override
+                        public Void call() throws Exception {
+                            rendererEndpoint(ep);
+                            return null;
+                        }
+                    }), simpleFutureMonitor, fabricCtx.executor);
+                }
+            }
         }
 
         for (final InstanceIdentifier<?> iid: change.getRemovedPaths()) {
             if (iid.getTargetType().equals(Endpoint.class)) {
-            	DataObject oldData = change.getOriginalData().get(iid);
-            	final Endpoint ep = (Endpoint) oldData;
-            	if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
-            		Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>(){
-	
-						@Override
-						public Void call() throws Exception {
-							removeEndPointIId((InstanceIdentifier<Endpoint>) iid, ep);
-							return null;
-						}}), simpleFutureMonitor, fabricCtx.executor);
-	        	}
+                DataObject oldData = change.getOriginalData().get(iid);
+                final Endpoint ep = (Endpoint) oldData;
+                if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
+                    Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
+
+                        @Override
+                        public Void call() throws Exception {
+                            removeEndPointIId((InstanceIdentifier<Endpoint>) iid, ep);
+                            return null;
+                        }
+                    }), simpleFutureMonitor, fabricCtx.executor);
+                }
             }
         }
-	}
+    }
 
     private FabricVxlanDeviceAdapterService getVlanDeviceAdapter() {
         return rpcRegistry.getRpcService(FabricVxlanDeviceAdapterService.class);
