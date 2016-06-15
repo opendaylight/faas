@@ -166,6 +166,10 @@
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
+      <artifactId>vlan-fabric-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
     </dependency>
     <dependency>
@@ -174,11 +178,21 @@
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
+      <artifactId>vlan-fabric</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-ovs-adapter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
+      <type>xml</type>
+      <classifier>config</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>vlan-fabric</artifactId>
       <type>xml</type>
       <classifier>config</classifier>
     </dependency>

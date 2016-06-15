@@ -81,6 +81,7 @@ module fabric-capable-device {
                 type yang:mac-address;
             }
             uses fabrictype:acl-list;
+            uses fabrictype:port-function;
         }
     }
 
