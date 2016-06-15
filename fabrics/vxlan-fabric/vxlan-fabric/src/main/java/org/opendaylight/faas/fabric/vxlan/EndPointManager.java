@@ -59,7 +59,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 
     private final ListenerRegistration<DataChangeListener> epListener;
 
-    private static FutureCallback<Void> simpleFutureMonitor = new FutureCallback<Void> () {
+    private static FutureCallback<Void> simpleFutureMonitor = new FutureCallback<Void>() {
 
         @Override
         public void onSuccess(Void result) {
@@ -73,7 +73,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
 
     };
 
-    public EndPointManager (DataBroker databroker, RpcProviderRegistry rpcRegistry, FabricContext fabricCtx) {
+    public EndPointManager(DataBroker databroker, RpcProviderRegistry rpcRegistry, FabricContext fabricCtx) {
         this.databroker = databroker;
         this.rpcRegistry = rpcRegistry;
         this.fabricCtx = fabricCtx;
@@ -96,7 +96,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
         builder.setTpId(ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId());
         builder.setAccessType(ep.getLocation().getAccessType());
         builder.setAccessTag(ep.getLocation().getAccessSegment());
-        RpcResult<CreateBridgeDomainPortOutput> rpcResult = getVlanDeviceAdapter().createBridgeDomainPort(builder.build()).get();
+        RpcResult<CreateBridgeDomainPortOutput> rpcResult = getVxlanDeviceAdapter().createBridgeDomainPort(builder.build()).get();
 
         TpId bridgeDomainPort = rpcResult.getResult().getBridgeDomainPort();
 
@@ -149,8 +149,6 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
         builder.setIp(ip);
         builder.setDestVtep(vtepIp);
         builder.setDestBridgePort(bridgeDomainPort);
-        builder.setAccessType(ep.getLocation().getAccessType());
-        builder.setAccessTag(ep.getLocation().getAccessSegment());
 
         return true;
     }
@@ -223,7 +221,7 @@ public class EndPointManager implements AutoCloseable, DataChangeListener {
         }
     }
 
-    private FabricVxlanDeviceAdapterService getVlanDeviceAdapter() {
+    private FabricVxlanDeviceAdapterService getVxlanDeviceAdapter() {
         return rpcRegistry.getRpcService(FabricVxlanDeviceAdapterService.class);
     }
 }

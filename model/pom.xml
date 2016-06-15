@@ -24,6 +24,7 @@
   <modules>
     <module>fabric-model</module>
     <module>vxlan-fabric-model</module>
+    <module>vlan-fabric-model</module>
   </modules>
 
   <build>

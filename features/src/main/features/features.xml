@@ -45,23 +45,43 @@
   <feature name='odl-faas-all' version='${project.version}' description='OpenDaylight :: faas :: Starts All Faas features'>
     <feature version="${project.version}">odl-faas-base</feature>
     <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
+    <feature version="${project.version}">odl-faas-vlan-fabric</feature>
     <feature version="${project.version}">odl-faas-vxlan-ovs-adapter</feature>
     <feature version="${project.version}">odl-faas-fabricmgr</feature>
     <feature version="${project.version}">odl-faas-uln-mapper</feature>
   </feature>
 
+
+  <feature name='odl-faas-fabric' version='${project.version}' description='OpenDaylight :: faas :: fabric base'>
+    <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
+    <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+
+    <bundle>mvn:org.opendaylight.faas/fabric-model/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/fabric/{{VERSION}}</bundle>
+
+    <configfile finalname="${config.configfile.directory}/fabric-factory.xml">mvn:org.opendaylight.faas/fabric/{{VERSION}}/xml/config</configfile>
+  </feature>
+
+  <feature name='odl-faas-vlan-fabric' version='${project.version}' description='OpenDaylight :: faas :: vlan fabric'>
+    <feature version="${project.version}">odl-faas-fabric</feature>
+
+    <bundle>mvn:org.opendaylight.faas/fabric-model/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/vlan-fabric-model/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/fabric/{{VERSION}}</bundle>
+
+	<configfile finalname="${config.configfile.directory}/vlan-fabric.xml">mvn:org.opendaylight.faas/vlan-fabric/{{VERSION}}/xml/config</configfile>
+  </feature>
+
   <feature name='odl-faas-vxlan-fabric' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
-       <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
-       <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
        <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
        <feature version='${sfc.version}'>odl-sfc-model</feature>
+       <feature version="${project.version}">odl-faas-fabric</feature>
 
     <bundle>mvn:org.opendaylight.faas/fabric-model/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric-model/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/fabric/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/vxlan-fabric/{{VERSION}}</bundle>
 
-    <configfile finalname="${config.configfile.directory}/fabric-factory.xml">mvn:org.opendaylight.faas/fabric/{{VERSION}}/xml/config</configfile>
     <configfile finalname="${config.configfile.directory}/vxlan-fabric.xml">mvn:org.opendaylight.faas/vxlan-fabric/{{VERSION}}/xml/config</configfile>
   </feature>
 
