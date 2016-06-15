@@ -1,0 +1,65 @@
+module vlan-fabric-impl {
+
+    yang-version 1;
+    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:vlan-fabric:impl";
+    prefix "vlan-fabric-impl";
+
+    import config { prefix config; revision-date 2013-04-05; }
+    import opendaylight-md-sal-binding { prefix mdsal; revision-date 2013-10-28; }
+    import fabric-impl { prefix fabric-impl; revision-date 2015-09-30; }
+
+    revision "2016-06-15" {
+        description "initial revision.";
+    }
+
+    // This is the definition of the service implementation as a module identity.
+    identity vlan-fabric-impl {
+        base config:module-type;
+
+        // Specifies the prefix for generated java classes.
+        config:java-name-prefix VlanFabric;
+    }
+
+    // Augment the 'configuration' choice node under modules/module.
+    augment "/config:modules/config:module/config:configuration" {
+        case vlan-fabric-impl {
+            when "/config:modules/config:module/config:type = 'vlan-fabric-impl'";
+
+            container data-broker {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity mdsal:binding-async-data-broker;
+                    }
+                }
+            }
+
+            container rpc-registry {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity mdsal:binding-rpc-registry;
+                    }
+                }
+            }
+
+            container notification-service {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity mdsal:binding-notification-service;
+                    }
+                }
+            }
+
+            container renderer-registry {
+                uses config:service-ref {
+                    refine type {
+                        mandatory true;
+                        config:required-identity fabric-impl:fabric-renderer-registry;
+                    }
+                }
+            }
+        }
+    }
+}

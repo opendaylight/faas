@@ -1,0 +1,74 @@
+module fabric-vlan-device-adapter {
+
+    yang-version 1;
+    namespace "urn:opendaylight:faas:fabric:device:adapter:vxlan";
+    prefix vxlan-adapter;
+
+    import network-topology { prefix "topo"; revision-date "2013-10-21"; }
+    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import fabric-capable-device { prefix "device"; revision-date "2015-09-30"; }
+    import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
+
+    description
+        "This module contains the config model for vlan capable fabric devices.";
+
+    revision "2016-06-15" {
+        description
+            "Initial revision of faas.";
+    }
+
+    augment "/topo:network-topology/topo:topology/topo:node/device:config/device:bridge-domain" {
+
+        leaf vlan {
+            type uint16;
+        }
+    }
+
+	rpc addToVlanFabric {
+		input {
+            leaf node-id {
+                type instance-identifier;
+                ext:context-reference "device:fabric-capable-device-context";
+            }
+            leaf fabric-id {
+                type topo:node-id;
+            }
+        }
+	}
+
+	rpc rmFromVlanFabric {
+		input {
+            leaf node-id {
+                type instance-identifier;
+                ext:context-reference "device:fabric-capable-device-context";
+            }
+            leaf fabric-id {
+                type topo:node-id;
+            }
+        }
+	}
+
+	rpc createBridgeDomainPort{
+		input {
+            leaf node-id {
+                type instance-identifier;
+                ext:context-reference "device:fabric-capable-device-context";
+            }
+            leaf tp-id {
+                type topo:tp-id;
+            }
+			leaf access-type {
+                type fabrictype:access-type;
+            }
+            leaf access-tag {
+                type uint32;
+            }
+        }
+        output {
+        	leaf bridge-domain-port {
+        		type topo:tp-id;
+        	}
+        }
+	}
+}

@@ -1,0 +1,38 @@
+/**
+ * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+package org.opendaylight.controller.config.yang.config.vlan_fabric.impl;
+
+import org.opendaylight.controller.config.api.ModuleIdentifier;
+
+public class VlanFabricModule extends org.opendaylight.controller.config.yang.config.vlan_fabric.impl.AbstractVlanFabricModule {
+    public VlanFabricModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver) {
+        super(identifier, dependencyResolver);
+    }
+
+    public VlanFabricModule(ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver, VlanFabricModule oldModule, AutoCloseable oldInstance) {
+        super(identifier, dependencyResolver, oldModule, oldInstance);
+    }
+
+    @Override
+    public void customValidation() {
+        // add custom validation form module attributes here.
+    }
+
+    @Override
+    public java.lang.AutoCloseable createInstance() {
+        // TODO:implement
+        return new AutoCloseable() {
+
+            @Override
+            public void close() throws Exception {
+
+            }
+        };
+    }
+
+}
