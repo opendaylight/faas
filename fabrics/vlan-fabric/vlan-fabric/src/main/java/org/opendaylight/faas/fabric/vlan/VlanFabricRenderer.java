@@ -5,23 +5,14 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
+package org.opendaylight.faas.fabric.vlan;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
-import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Attributes;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.VtepAttribute;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.network.topology.topology.node.attributes.Vtep;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.network.topology.topology.node.attributes.VtepBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;
@@ -37,27 +28,24 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.vxlan.rev150930.VxlanDeviceAddInput;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer {
+public class VlanFabricRenderer implements AutoCloseable, FabricRenderer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DistributedFabricRenderer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VlanFabricRenderer.class);
 
     private final DataBroker dataBroker;
 
     private final ListeningExecutorService executor;
     private final FabricContext fabricCtx;
 
-    public DistributedFabricRenderer(final DataBroker dataProvider,
+    public VlanFabricRenderer(final DataBroker dataProvider,
                              final FabricContext fabricCtx) {
         this.dataBroker = dataProvider;
         this.executor = fabricCtx.executor;
@@ -72,16 +60,12 @@ public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer 
 
     @Override
     public void buildLogicalSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicalSwitchInput input) {
-        long segmentId = ResourceManager.getInstance(input.getFabricId()).allocSeg();
-        lsw.setSegmentId(segmentId);
+
     }
 
     @Override
     public void buildLogicalRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicalRouterInput input) {
-        long vrfctx = ResourceManager.getInstance(input.getFabricId()).allocVrfCtx();
-        lr.setVrfCtx(vrfctx);
 
-        fabricCtx.addLogicRouter(nodeid, vrfctx);
     }
 
     @Override
@@ -96,30 +80,8 @@ public class DistributedFabricRenderer implements AutoCloseable, FabricRenderer 
 
     @Override
     public boolean addNodeToFabric(DeviceNodesBuilder node, AddNodeToFabricInput input) {
-        VxlanDeviceAddInput augment = input.getAugmentation(VxlanDeviceAddInput.class);
-        IpAddress vtep = null;
-        if (augment != null) {
-            vtep = augment.getVtepIp();
-        }
-        if (vtep != null) {
-            setVtep2Device(node.getDeviceRef(), vtep);
-        }
+
         return true;
-    }
-
-    private void setVtep2Device(NodeRef node, IpAddress vtep) {
-        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-
-        @SuppressWarnings("unchecked")
-        InstanceIdentifier<Node> nodeIId = (InstanceIdentifier<Node>) node .getValue();
-        InstanceIdentifier<Vtep> vtepIId = nodeIId.augmentation(FabricCapableDevice.class).child(Attributes.class)
-                .augmentation(VtepAttribute.class).child(Vtep.class);
-
-        VtepBuilder builder = new VtepBuilder();
-        builder.setIp(vtep);
-
-        trans.put(LogicalDatastoreType.OPERATIONAL, vtepIId, builder.build(), true);
-        MdSalUtils.wrapperSubmit(trans, executor);
     }
 
     @Override

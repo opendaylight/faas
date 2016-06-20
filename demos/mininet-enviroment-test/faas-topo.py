@@ -42,15 +42,15 @@ topos = { 'fabric' : FabricTopo}
 if __name__ == '__main__':
     lg.setLogLevel( 'info' )
 
-    os.system("ovs-vsctl set-manager tcp:192.168.2.244:6640")
+    os.system("ovs-vsctl set-manager tcp:127.0.0.1:6640")
 
     info( "*** Initializing Mininet and kernel modules\n" )
     OVSKernelSwitch.setup()
 
     info( "*** Creating network\n" )
-    network = Mininet( FabricTopo( ), switch=OVSKernelSwitch ,controller=RemoteController)
+    network = Mininet( FabricTopo( ), switch=OVSKernelSwitch ,controller=None)
 
-    network.addController(name='c0', controller=RemoteController, ip='192.168.2.244')
+    network.addController(name='c0', controller=RemoteController, ip='127.0.0.1')
 
     info( "*** Starting network\n" )
     network.start()

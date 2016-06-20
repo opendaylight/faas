@@ -8,6 +8,11 @@
 package org.opendaylight.controller.config.yang.config.vlan_fabric.impl;
 
 import org.opendaylight.controller.config.api.ModuleIdentifier;
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.NotificationPublishService;
+import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.general.FabricRendererRegistry;
+import org.opendaylight.faas.fabric.vlan.VlanFabricProvider;
 
 public class VlanFabricModule extends org.opendaylight.controller.config.yang.config.vlan_fabric.impl.AbstractVlanFabricModule {
     public VlanFabricModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver) {
@@ -25,14 +30,13 @@ public class VlanFabricModule extends org.opendaylight.controller.config.yang.co
 
     @Override
     public java.lang.AutoCloseable createInstance() {
-        // TODO:implement
-        return new AutoCloseable() {
+        DataBroker databroker = this.getDataBrokerDependency();
+        NotificationPublishService notificationPubService = this.getNotificationPublishServiceDependency();
+        RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
 
-            @Override
-            public void close() throws Exception {
+        FabricRendererRegistry rendererRegistry = this.getRendererRegistryDependency();
 
-            }
-        };
+        return new VlanFabricProvider(databroker, rpcRegistry, notificationPubService, rendererRegistry);
     }
 
 }

@@ -81,7 +81,7 @@ module fabric-capable-device {
                 type yang:mac-address;
             }
             uses fabrictype:acl-list;
-            uses fabrictype:port-function;
+            uses fabrictype:port-functions;
         }
     }
 
@@ -105,8 +105,15 @@ module fabric-capable-device {
         }
     }
 
-	augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
-		ext:augment-identifier "bridge-domain-port";
+    augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
+        ext:augment-identifier "fabric-port-aug";
+        leaf port-role {
+            type fabrictype:fabric-port-role;
+        }
+    }
+
+    augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
+        ext:augment-identifier "bridge-domain-port";
 
             leaf bd-id {
                 type string;
@@ -117,6 +124,6 @@ module fabric-capable-device {
             leaf access-tag {
                 type uint32;
             }
-			uses fabrictype:acl-list;
-	}
+            uses fabrictype:acl-list;
+    }
 }
