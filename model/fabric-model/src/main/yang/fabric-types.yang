@@ -74,22 +74,22 @@ module fabric-types {
                 description "the port used for Endpoint to access fabric.";
             }
             enum reserved {
-            	description " not decided yet. ";
+                description " not decided yet. ";
             }
         }
     }
 
     typedef fabric-port-type {
-    	type enumeration {
-    		enum layer2interface {
-    		}
-    		enum layer3interface {
-    		}
-    		enum layer2Tunnel {
-    		}
-    		enum layer3Tunnel {
-    		}
-    	}
+        type enumeration {
+            enum layer2interface {
+            }
+            enum layer3interface {
+            }
+            enum layer2Tunnel {
+            }
+            enum layer3Tunnel {
+            }
+        }
     }
 
     typedef underlayer-network-type {
@@ -133,17 +133,20 @@ module fabric-types {
             type fabric-port-role;
         }
         leaf type {
-        	type fabric-port-type;
+            type fabric-port-type;
+        }
+        leaf device-port {
+        	type tp-ref;
         }
         choice tunnel-option {
-        	case gre {
-     			leaf src-ip {
+            case gre {
+                 leaf src-ip {
                     type inet:ip-prefix;
                 }
-				leaf dest-ip {
-					type inet:ip-address;
-				}
-        	}
+                leaf dest-ip {
+                    type inet:ip-address;
+                }
+            }
         }
     }
     
@@ -182,11 +185,9 @@ module fabric-types {
         leaf vrf-ctx {
             type uint32;
         }
-        uses acl-list;
 
-		list static-routes {
-			uses route;
-		}
+        uses acl-list;
+        uses route-group;
     }
 
     grouping logical-port {
@@ -196,46 +197,41 @@ module fabric-types {
         leaf name {
             type string;
         }
-        choice port-layer {
-            case layer-1 {
-                container layer-1-info {
-                    leaf location {
-                        type topo:tp-ref;
-                    }
+        container port-layer {
+            container layer-1-info {
+                leaf location {
+                    type topo:tp-id;
                 }
             }
-            case layer-2 {
-                container layer-2-info {
-                    leaf access-type {
-                        type access-type;
-                    }
-                    leaf access-segment {
-                        type uint32;
-                    }
+            container layer-2-info {
+                leaf access-type {
+                    type access-type;
+                }
+                leaf access-segment {
+                    type uint32;
                 }
             }
-            case layer-3 {
-                container layer-3-info {
-                    leaf ip {
-                        type inet:ip-address;
-                    }
-                    leaf network {
-                        type inet:ip-prefix;
-                    }
-                    leaf mac {
-                        type yang:phys-address;
-                    }
-                    leaf forward-enable {
-                        type boolean;
-                    }
-                    leaf logical-switch {
-                        type topo:node-id;
-                    }
+            container layer-3-info {
+                leaf ip {
+                    type inet:ip-address;
+                }
+                leaf network {
+                    type inet:ip-prefix;
+                }
+                leaf mac {
+                    type yang:phys-address;
+                }
+                leaf forward-enable {
+                    type boolean;
+                }
+                leaf logical-switch {
+                    type topo:node-id;
                 }
             }
         }
 
         uses acl-list;
+        uses port-functions;
 
         list underlayer-ports {
             key port-ref;
@@ -248,44 +244,50 @@ module fabric-types {
     grouping logical-link {
     }
 
-	grouping route {
-		leaf description {
-        	type string;
-            description "Textual description of the route.";
-        }
-        leaf destination-prefix {
-            type inet:ipv4-prefix;
-            mandatory true;
-            description "IPv4 destination prefix.";
-        }
-        choice next-hop-options {
-            case simple-next-hop {
-                leaf next-hop {
-                    type inet:ipv4-address;
-                    description "IPv4 address of the next hop.";
-                }
-                leaf outgoing-interface {
-                    type topo:tp-id;
-                    description "Name of the outgoing interface.";
+    grouping route-group {
+        list route {
+            key "destination-prefix";
+
+            leaf description {
+                type string;
+                description "Textual description of the route.";
+            }
+            leaf destination-prefix {
+                type inet:ipv4-prefix;
+                mandatory true;
+                description "IPv4 destination prefix.";
+            }
+            choice next-hop-options {
+                case simple-next-hop {
+                    leaf next-hop {
+                        type inet:ipv4-address;
+                        description "IPv4 address of the next hop.";
+                    }
+                    leaf outgoing-interface {
+                        type topo:tp-id;
+                        description "Name of the outgoing interface.";
+                    }
                 }
             }
         }
-	}
+    }
 
-	grouping port-function {
-		choice port-function {
-			case ip-mapping {
-				list ip-mapping {
-					leaf external-ip {
-						type inet:ipv4-address;
-					}
-					leaf internal-ip {
-						type inet:ipv4-address;
-					}
-				}
-			}
-		}
-	} 
+    grouping port-functions {
+        container port-function {
+            choice function-type {
+                case ip-mapping {
+                    list ip-mapping {
+                        leaf external-ip {
+                            type inet:ipv4-address;
+                        }
+                        leaf internal-ip {
+                            type inet:ipv4-address;
+                        }
+                    }
+                }
+            }
+        }
+    } 
 
     augment "/acl:access-lists/acl:acl/acl:access-list-entries/acl:ace/acl:actions/acl:packet-handling" {
         case redirect {

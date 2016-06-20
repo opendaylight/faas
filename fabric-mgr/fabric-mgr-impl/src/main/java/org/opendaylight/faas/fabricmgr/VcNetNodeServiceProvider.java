@@ -340,7 +340,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
 
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
-        inputBuilder.setLogicDevice(lswId);
+        inputBuilder.setLogicalDevice(lswId);
         inputBuilder.setName("LswLogicalPort");
 
         Future<RpcResult<CreateLogicalPortOutput>> result = this.fabServiceService.createLogicalPort(inputBuilder.build());

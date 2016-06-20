@@ -8,10 +8,9 @@
 package org.opendaylight.controller.config.yang.config.vxlan_fabric.impl;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.sal.binding.api.NotificationProviderService;
+import org.opendaylight.controller.md.sal.binding.api.NotificationPublishService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.FabricRendererRegistry;
-
 import org.opendaylight.faas.fabric.vxlan.VXLANFabricProvider;
 
 public class VxlanFabricModule extends org.opendaylight.controller.config.yang.config.vxlan_fabric.impl.AbstractVxlanFabricModule {
@@ -37,7 +36,7 @@ public class VxlanFabricModule extends org.opendaylight.controller.config.yang.c
     @Override
     public java.lang.AutoCloseable createInstance() {
         DataBroker databroker = this.getDataBrokerDependency();
-        NotificationProviderService notificationService = this.getNotificationServiceDependency();
+        NotificationPublishService notificationService = this.getNotificationPublishServiceDependency();
         RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
 
         FabricRendererRegistry rendererRegistry = this.getRendererRegistryDependency();

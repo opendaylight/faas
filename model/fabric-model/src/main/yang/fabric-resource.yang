@@ -22,12 +22,12 @@ module fabric-resources {
             leaf fabric-id {
                 type fabric:fabric-id;
             }
-			container fabric-port {
-				uses fabrictype:fabric-port;
-			}
-			leaf underlayer-port {
-				type topo:tp-id;
-			}
+            container fabric-port {
+                uses fabrictype:fabric-port;
+            }
+            leaf underlayer-port {
+                type topo:tp-id;
+            }
         }
     }
 }

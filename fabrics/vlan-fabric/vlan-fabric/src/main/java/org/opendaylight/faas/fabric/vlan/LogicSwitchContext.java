@@ -1,0 +1,167 @@
+/**
+ * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+package org.opendaylight.faas.fabric.vlan;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
+import org.opendaylight.faas.fabric.utils.MdSalUtils;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyKey;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeKey;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNode;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeKey;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+public class LogicSwitchContext implements AutoCloseable {
+    private final long vni;
+
+    private Map<DeviceKey, IpAddress> members = Maps.newConcurrentMap();
+
+    private LogicRouterContext vrfCtx = null;
+
+    private List<String> acls = Lists.newArrayList();
+    private List<String> inhertAcls = Lists.newArrayList();
+
+    private final DataBroker databroker;
+
+    private final FabricId fabricid;
+    private final NodeId nodeid;
+
+    private final ExecutorService executor;
+
+    LogicSwitchContext(DataBroker databroker, FabricId fabricid, long vni, NodeId nodeid, ExecutorService executor) {
+        this.databroker = databroker;
+        this.vni = vni;
+        this.fabricid = fabricid;
+        this.nodeid = nodeid;
+        this.executor = executor;
+    }
+
+    public long getVni() {
+        return vni;
+    }
+
+    public boolean checkAndSetNewMember(DeviceKey key, IpAddress vtepIp) {
+        if (!members.containsKey(key)) {
+            members.put(key, vtepIp);
+            writeToDom(key, vtepIp);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void removeMember(DeviceKey key) {
+        IpAddress vtep = null;
+        if ((vtep = members.remove(key)) != null) {
+            deleteFromDom(key, vtep);
+        }
+    }
+
+    public void associateToRouter(LogicRouterContext vrfCtx, IpPrefix ip) {
+        this.vrfCtx = vrfCtx;
+        vrfCtx.addGatewayPort(ip, vni, this.nodeid);
+
+        inhertAcls.addAll(vrfCtx.getAcls());
+        writeToDom(false, vrfCtx.getAcls());
+    }
+
+    public GatewayPort unAssociateToRouter(LogicRouterContext vrfCtx) {
+        LogicRouterContext oldVrfCtx = this.vrfCtx;
+        this.vrfCtx = null;
+
+        GatewayPort gwPort = oldVrfCtx.removeGatewayPort(vni);
+        List<String> oldAcls = Collections.unmodifiableList(inhertAcls);
+        inhertAcls.clear();
+        if (!oldAcls.isEmpty()) {
+            writeToDom(true, oldAcls);
+        }
+        return gwPort;
+    }
+
+    public LogicRouterContext getVrfCtx() {
+        return vrfCtx;
+    }
+
+    public Set<DeviceKey> getMembers() {
+        return members.keySet();
+    }
+
+    @Override
+    public void close() {
+    }
+
+    public void addAcl(String aclName) {
+        acls.add(aclName);
+        writeToDom(false, aclName, null);
+    }
+
+    public void removeAcl(String aclName) {
+        acls.remove(aclName);
+        writeToDom(true, aclName, null);
+    }
+
+    public void removeVrfAcl(String aclName) {
+        inhertAcls.remove(aclName);
+        writeToDom(true, aclName, null);
+    }
+
+    public void addVrfAcl(String aclName) {
+        inhertAcls.add(aclName);
+        writeToDom(false, aclName, null);
+    }
+
+    private boolean writeToDom(boolean delete, String aclName, WriteTransaction wt) {
+        return true;
+    }
+
+    private void writeToDom(boolean delete, List<String> acls) {
+
+        boolean upt = false;
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+
+        for (String acl : acls) {
+            upt |= writeToDom(delete, acl, trans);
+        }
+
+        if (upt) {
+            MdSalUtils.wrapperSubmit(trans);
+        }
+    }
+
+    private void writeToDom(DeviceKey key, IpAddress vtepIp) {
+
+    }
+
+    private void deleteFromDom(DeviceKey key, IpAddress vtepIp) {
+
+    }
+
+    private InstanceIdentifier<SupportingNode> createSuplNodeIId(DeviceKey key) {
+        return InstanceIdentifier.create(NetworkTopology.class)
+                .child(Topology.class, new TopologyKey(new TopologyId(this.fabricid.getValue())))
+                .child(Node.class, new NodeKey(this.nodeid))
+                .child(SupportingNode.class, new SupportingNodeKey(key.nodeid, key.topoid));
+    }
+}

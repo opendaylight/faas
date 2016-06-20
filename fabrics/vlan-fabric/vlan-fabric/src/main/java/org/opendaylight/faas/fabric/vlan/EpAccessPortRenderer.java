@@ -5,7 +5,7 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
+package org.opendaylight.faas.fabric.vlan;
 
 import java.util.List;
 
@@ -41,14 +41,13 @@ public class EpAccessPortRenderer {
     private final DataBroker databroker;
 
     public static EpAccessPortRenderer newCreateTask(DataBroker databroker) {
-        EpAccessPortRenderer o = new EpAccessPortRenderer(databroker);
-        return o;
+        return new EpAccessPortRenderer(databroker);
     }
 
     public static EpAccessPortRenderer newDelTask(DataBroker databroker, InstanceIdentifier<TerminationPoint> lPortIid) {
-        EpAccessPortRenderer o = new EpAccessPortRenderer(databroker);
-        o.lPortIid = lPortIid;
-        return o;
+        EpAccessPortRenderer obj = new EpAccessPortRenderer(databroker);
+        obj.lPortIid = lPortIid;
+        return obj;
     }
 
     private EpAccessPortRenderer(DataBroker databroker) {
@@ -61,14 +60,15 @@ public class EpAccessPortRenderer {
             return;
         }
 
-        InstanceIdentifier<Node> devNode = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
-        InstanceIdentifier<TerminationPoint> devTpIid = devNode.child(TerminationPoint.class, new TerminationPointKey(bridgeDomainPort));
+        InstanceIdentifier<Node> underlayernode = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
+        InstanceIdentifier<TerminationPoint> underlayerTpIid = underlayernode
+                .child(TerminationPoint.class, new TerminationPointKey(bridgeDomainPort));
 
         Optional<TerminationPoint> optional = readTp();
 
         InstanceIdentifier<UnderlayerPorts> iid = lPortIid.augmentation(LogicalPortAugment.class)
                 .child(LportAttribute.class)
-                .child(UnderlayerPorts.class, new UnderlayerPortsKey(new TpRef(devTpIid)));
+                .child(UnderlayerPorts.class, new UnderlayerPortsKey(new TpRef(underlayerTpIid)));
 
         UnderlayerPortsBuilder builder = new UnderlayerPortsBuilder();
         builder.setPortRef(ep.getLocation().getTpRef());
@@ -81,10 +81,11 @@ public class EpAccessPortRenderer {
                 LportAttribute lattr = lpAug.getLportAttribute();
                 List<FabricAcl> acls = lattr.getFabricAcl();
                 if (acls != null && acls.isEmpty()) {
-                    cpAcls(acls, devTpIid, trans);
+                    cpAcls(acls, underlayerTpIid, trans);
                 }
             }
         }
+
     }
 
     void removeEpAccessPort() throws Exception {

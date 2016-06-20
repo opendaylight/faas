@@ -62,7 +62,7 @@ module fabric-service {
                 type string;
             }
             leaf vni {
-            	description "virtual network identifier.usually it is allocated by fabric itself. ";
+                description "virtual network identifier.usually it is allocated by fabric itself. ";
                 type int32;
             }
         }
@@ -113,19 +113,17 @@ module fabric-service {
         }
     }
 
-	rpc add-static-route {
-		input {
-			leaf fabric-id {
-				type fabric:fabric-id;
-			}
-			leaf node-id {
-				type topo:node-id;
-			}
-			container static-route {
-				uses fabrictype:route;
-			}
-		}
-	}
+    rpc add-static-route {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf node-id {
+                type topo:node-id;
+            }
+            uses fabrictype:route-group;
+        }
+    }
 
     rpc create-logical-port {
         input {
@@ -135,7 +133,7 @@ module fabric-service {
             leaf name {
                 type string;
             }
-            leaf logic-device {
+            leaf logical-device {
                 type topo:node-id;
             }
             container attribute {
@@ -190,20 +188,6 @@ module fabric-service {
         }
     }
 
-    rpc add-port-function {
-    	input {
-    		leaf fabric-id {
-    			type fabric:fabric-id;
-    		}
-    		leaf logical-port-id {
-    			type topo:tp-id;
-    		}
-    		container functions {
-    			uses fabrictype:port-function;
-    		}
-    	}
-    }
-
     rpc rm-gateway {
         input {
             leaf fabric-id {
@@ -218,33 +202,54 @@ module fabric-service {
         }
     }
 
-	rpc port-binding-logical-to-fabric {
-		input {
-			leaf fabric-id {
-				type fabric:fabric-id;
-			}
-			leaf logical-port-id {
-				type topo:tp-id;
-			}
-			leaf fabric-port {
-				type topo:tp-id;
-			}
-		}
-	}
+    rpc port-binding-logical-to-fabric {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf logical-device {
+                type topo:node-id;
+            }
+            leaf logical-port {
+                type topo:tp-id;
+            }
+            leaf fabric-port {
+                type topo:tp-id;
+            }
+        }
+    }
 
-	rpc add-port-function {
-		input {
-			leaf fabric-id {
-				type fabric:fabric-id;
-			}
-			leaf logical-port-id {
-				type topo:tp-id;
-			}
-			container function {
-				uses fabrictype:port-function;
-			}
-		}
-	}
+    rpc port-binding-logical-to-device {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf logical-device {
+                type topo:node-id;
+            }
+            leaf logical-port {
+                type topo:tp-id;
+            }
+            leaf physical-port {
+                type fabrictype:tp-ref;
+            }
+        }
+    }
+
+    rpc add-port-function {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf logical-device {
+                type topo:node-id;
+            }
+            leaf logical-port {
+                type topo:tp-id;
+            }
+            uses fabrictype:port-functions;
+        }
+    }
 
     rpc add-acl {
         input {

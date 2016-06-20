@@ -5,16 +5,14 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
+package org.opendaylight.faas.fabric.vlan;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 import com.google.common.collect.Lists;
@@ -27,7 +25,7 @@ public class LogicRouterContext {
 
     private List<String> acls = Lists.newArrayList();
 
-    LogicRouterContext(long vrf, DataBroker databroker) {
+    LogicRouterContext(long vrf) {
         this.vrf = vrf;
     }
 
@@ -40,35 +38,26 @@ public class LogicRouterContext {
     }
 
     public GatewayPort removeGatewayPort(long vni) {
-        return gatewayPorts.remove(vni);
+         return gatewayPorts.remove(vni);
     }
 
     public GatewayPort getGatewayPortByVni(long vni) {
         return gatewayPorts.get(vni);
     }
 
-    public GatewayPort getGatewayPort(IpPrefix ip) {
-        for (GatewayPort port : gatewayPorts.values()) {
-            if (port.containsIp(ip)) {
-                return port;
-            }
-        }
-        return null;
-    }
+     public void addAcl(String aclName) {
+          acls.add(aclName);
+     }
 
-    public void addAcl(String aclName) {
-        acls.add(aclName);
-    }
+     public void removeAcl(String aclName) {
+          acls.remove(aclName);
+     }
 
-    public void removeAcl(String aclName) {
-        acls.remove(aclName);
-    }
+     public List<String> getAcls() {
+          return Collections.unmodifiableList(acls);
+     }
 
-    public List<String> getAcls() {
-        return Collections.unmodifiableList(acls);
-    }
-
-    public Set<Long> getVnis() {
-        return gatewayPorts.keySet();
-    }
+     public Set<Long> getVnis() {
+          return gatewayPorts.keySet();
+     }
 }

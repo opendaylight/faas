@@ -5,7 +5,11 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
+package org.opendaylight.faas.fabric.vlan;
+
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.util.Map;
 import java.util.Set;
@@ -25,13 +29,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1Builder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class DeviceContext {
 
@@ -65,61 +64,36 @@ public class DeviceContext {
     public void createBridgeDomain(LogicSwitchContext switchCtx) {
         long vni = switchCtx.getVni();
         localBD.add(createBdId(vni));
-        syncToDom(vni, false);
 
         LogicRouterContext vrfctx = switchCtx.getVrfCtx();
         if (vrfctx != null) {
-            createBdif(vni, vrfctx);
+            createBDif(vni, vrfctx);
         }
     }
 
     public void removeBridgeDomain(LogicSwitchContext switchCtx) {
         long vni = switchCtx.getVni();
         localBD.remove(createBdId(vni));
-        syncToDom(vni, true);
 
         LogicRouterContext vrfctx = switchCtx.getVrfCtx();
         if (vrfctx != null) {
             GatewayPort gw = vrfctx.getGatewayPortByVni(vni);
             if (gw != null) {
-                removeBdif(vni, gw);
             }
         }
     }
 
-    void createBdif(long vni, LogicRouterContext vrfctx) {
+    void createBDif(long vni, LogicRouterContext vrfctx) {
         GatewayPort gw = vrfctx.getGatewayPortByVni(vni);
 
         bdifs.put(vni, gw);
         syncToDom(gw, false);
     }
 
-    void removeBdif(long vni, GatewayPort gw) {
+    void removeBDif(long vni, GatewayPort gw) {
         bdifs.remove(vni);
 
         syncToDom(gw, true);
-    }
-
-    private void syncToDom(long vni, boolean delete) {
-        String bdid = createBdId(vni);
-        InstanceIdentifier<BridgeDomain> bdIId = deviceIId.augmentation(FabricCapableDevice.class)
-                .child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bdid));
-
-        BridgeDomainBuilder builder = new BridgeDomainBuilder();
-        builder.setId(bdid);
-        BridgeDomain1Builder augBuilder = new BridgeDomain1Builder();
-        augBuilder.setVni(vni);
-        builder.addAugmentation(BridgeDomain1.class, augBuilder.build());
-        builder.setKey(new BridgeDomainKey(bdid));
-
-        WriteTransaction trans = databroker.newWriteOnlyTransaction();
-        if (delete) {
-            trans.delete(LogicalDatastoreType.OPERATIONAL, bdIId);
-        } else {
-            trans.put(LogicalDatastoreType.OPERATIONAL, bdIId, builder.build());
-        }
-        MdSalUtils.wrapperSubmit(trans, executor);
-
     }
 
     private void syncToDom(GatewayPort gw, boolean delete) {

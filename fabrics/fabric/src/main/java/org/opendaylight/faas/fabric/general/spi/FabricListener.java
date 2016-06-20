@@ -7,10 +7,16 @@
  */
 package org.opendaylight.faas.fabric.general.spi;
 
+import java.util.List;
+
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public interface FabricListener {
@@ -35,4 +41,9 @@ public interface FabricListener {
 
     void aclUpdate(InstanceIdentifier<FabricAcl> iid, boolean delete);
 
+    void portFuncUpdate(InstanceIdentifier<PortFunction> iid, PortFunction function, boolean delete);
+
+    void portLocated(InstanceIdentifier<TerminationPoint> iid, TpId fabricPort);
+
+    void routeUpdate(InstanceIdentifier<Node> lrIid, List<Route> routes, boolean delete);
 }

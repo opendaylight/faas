@@ -5,15 +5,11 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
-
-import java.util.Set;
+package org.opendaylight.faas.fabric.vlan;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-
-import com.google.common.collect.Sets;
 
 public class GatewayPort {
 
@@ -24,8 +20,6 @@ public class GatewayPort {
     private long vrf;
     private MacAddress mac;
 
-    private Set<IpPrefix> subips;
-
     private NodeId lsw;
 
     public GatewayPort(IpPrefix ip, long vni, NodeId lsw, long vrf) {
@@ -33,16 +27,10 @@ public class GatewayPort {
         this.vni = vni;
         this.lsw = lsw;
         this.vrf = (int) vrf;
-
-        subips = Sets.newHashSet(ip);
     }
 
     public void setMac(MacAddress mac) {
         this.mac = mac;
-    }
-
-    public boolean containsIp(IpPrefix ip) {
-        return subips.contains(ip);
     }
 
     IpPrefix getIp() {
