@@ -106,6 +106,13 @@ module fabric-capable-device {
     }
 
 	augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
+		ext:augment-identifier "fabric-port-aug";
+		leaf port-role {
+			type fabrictype:fabric-port-role;
+		}
+	}
+
+	augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
 		ext:augment-identifier "bridge-domain-port";
 
             leaf bd-id {

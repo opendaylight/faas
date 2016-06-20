@@ -1,7 +1,7 @@
 module fabric-vlan-device-adapter {
 
     yang-version 1;
-    namespace "urn:opendaylight:faas:fabric:device:adapter:vxlan";
+    namespace "urn:opendaylight:faas:fabric:device:adapter:vlan";
     prefix vxlan-adapter;
 
     import network-topology { prefix "topo"; revision-date "2013-10-21"; }

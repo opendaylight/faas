@@ -26,10 +26,10 @@
                       <name>binding-data-broker</name>
                     </data-broker>
 
-                    <notification-service>
-                      <type xmlns:binding="urn:opendaylight:params:xml:ns:yang:controller:md:sal:binding">binding:binding-notification-service</type>
-                      <name>binding-notification-broker</name>
-                    </notification-service>
+                    <notification-publish-service>
+                      <type xmlns:binding-impl="urn:opendaylight:params:xml:ns:yang:controller:md:sal:binding:impl">binding-impl:binding-new-notification-publish-service</type>
+                      <name>binding-notification-publish-adapter</name>
+                    </notification-publish-service>
 
                     <renderer-registry>
                       <type xmlns:fabric-impl="urn:opendaylight:params:xml:ns:yang:controller:config:fabric:impl">fabric-impl:fabric-renderer-registry</type>
