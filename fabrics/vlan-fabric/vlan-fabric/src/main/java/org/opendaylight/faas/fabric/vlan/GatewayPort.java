@@ -5,59 +5,41 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
-
-import java.util.Set;
+package org.opendaylight.faas.fabric.vlan;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
-import com.google.common.collect.Sets;
-
 public class GatewayPort {
 
-    private static final MacAddress GATEWAY_MAC = new MacAddress("80:38:bC:a1:33:c7");
-
     private IpPrefix ip;
-    private long vni;
-    private long vrf;
+    private int vlan;
+    private int vrf;
     private MacAddress mac;
-
-    private Set<IpPrefix> subips;
 
     private NodeId lsw;
 
-    public GatewayPort(IpPrefix ip, long vni, NodeId lsw, long vrf) {
+    public GatewayPort(IpPrefix ip, int vlan, NodeId lsw, long vrf) {
         this.ip = ip;
-        this.vni = vni;
+        this.vlan = vlan;
         this.lsw = lsw;
-        this.vrf = vrf;
-
-        subips = Sets.newHashSet(ip);
+        this.vrf = (int) vrf;
     }
 
     public void setMac(MacAddress mac) {
         this.mac = mac;
     }
 
-    public boolean containsIp(IpPrefix ip) {
-        return subips.contains(ip);
-    }
-
     IpPrefix getIp() {
         return ip;
     }
 
-    MacAddress getMac() {
-        return mac == null ? GATEWAY_MAC : mac;
+    Integer getVlan() {
+        return vlan;
     }
 
-    Long getVni() {
-        return vni;
-    }
-
-    Long getVrf() {
+    Integer getVrf() {
         return vrf;
     }
 

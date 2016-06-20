@@ -75,30 +75,7 @@ module fabric-vxlan-rendered-mapping {
                     type uint32;
                 }
 
-                list route {
-                    key "id";
-                    description "A RIB route entry.";
-                    leaf id {
-                        type uint32;
-                        description "Unique numeric identifier";
-                    }
-                    leaf destination-prefix {
-                        type inet:ipv4-prefix;
-                        mandatory true;
-                        description "IPv4 destination prefix.";
-                    }
-                    container next-hop-options {
-                        leaf next-hop {
-                            type inet:ipv4-address;
-                        }
-                        leaf outgoing-device {
-                 	        type inet:ip-address;
-                        }
-                        leaf outgoing-interface {
-                            type topo:tp-id;
-                        }
-                    }
-                }
+                uses fabrictype:route-group;
             }
         }
     }

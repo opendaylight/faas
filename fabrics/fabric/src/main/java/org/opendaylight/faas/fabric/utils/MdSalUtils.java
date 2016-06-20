@@ -38,7 +38,7 @@ import com.google.common.util.concurrent.Futures;
 
 public class MdSalUtils {
 
-	private static final Logger LOG = LoggerFactory.getLogger(MdSalUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MdSalUtils.class);
 
     public static InstanceIdentifier<Topology> createTopoIId(String topoId) {
         return InstanceIdentifier.create(NetworkTopology.class)
@@ -91,31 +91,47 @@ public class MdSalUtils {
                 .child(Link.class, new LinkKey(linkid));
     }
 
+    public static InstanceIdentifier<TerminationPoint> createFabricPortIId(FabricId fabricId, TpId tpid) {
+        return Constants.DOM_FABRICS_PATH.child(Node.class, new NodeKey(fabricId))
+                .child(TerminationPoint.class, new TerminationPointKey(new TpId(tpid)));
+    }
+
+    public static NodeId getNodeId(InstanceIdentifier<TerminationPoint> iid) {
+        return iid.firstKeyOf(Node.class).getNodeId();
+    }
+
+    public static TpId getTpId(InstanceIdentifier<TerminationPoint> iid) {
+        return iid.firstKeyOf(TerminationPoint.class).getTpId();
+    }
+
+
     public static void wrapperSubmit(final WriteTransaction trans, ExecutorService executor) {
-    	CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
-    	Futures.addCallback(future, new FutureCallback<Void>(){
+        CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
+        Futures.addCallback(future, new FutureCallback<Void>() {
 
-			@Override
-			public void onSuccess(Void result) {
-			}
+            @Override
+            public void onSuccess(Void result) {
+            }
 
-			@Override
-			public void onFailure(Throwable t) {
-				LOG.error("submit failed.", t);
-			}}, executor);
+            @Override
+            public void onFailure(Throwable th) {
+                LOG.error("submit failed.", th);
+            }
+        }, executor);
     }
 
     public static void wrapperSubmit(final WriteTransaction trans) {
-    	CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
-    	Futures.addCallback(future, new FutureCallback<Void>(){
+        CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
+        Futures.addCallback(future, new FutureCallback<Void>() {
 
-			@Override
-			public void onSuccess(Void result) {
-			}
+            @Override
+            public void onSuccess(Void result) {
+            }
 
-			@Override
-			public void onFailure(Throwable t) {
-				LOG.error("submit failed.", t);
-			}});
+            @Override
+            public void onFailure(Throwable th) {
+                LOG.error("submit failed.", th);
+            }
+        });
     }
 }

@@ -21,10 +21,11 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.utils.InterfaceManager;
+import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInput;
@@ -49,21 +50,27 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalRouterAugmentBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugmentBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.PortBindingLogicalToDeviceInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.PortBindingLogicalToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmGatewayInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalRouterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalSwitchInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.TpRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer3Builder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.layer._3.Layer3InfoBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayerBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer1InfoBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer3InfoBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.LinkId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -93,7 +100,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.google.common.net.InetAddresses;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
@@ -131,13 +137,14 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
     @Override
     public Future<RpcResult<Void>> rmGateway(RmGatewayInput input) {
-        FabricId fabricid = input.getFabricId();
-        final NodeId routerid = input.getLogicalRouter();
-        IpAddress gwip = input.getIpAddress();
+        FabricId fabricId = input.getFabricId();
+        final NodeId routerId = input.getLogicalRouter();
+        IpAddress gwIp = input.getIpAddress();
 
-        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
@@ -147,26 +154,26 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         TpId tpOnSwitch = null;
         Link link = null;
 
-        tpOnRouter = new TpId(String.valueOf(gwip.getValue()));
+        tpOnRouter = new TpId(String.valueOf(gwIp.getValue()));
         if (tpOnRouter != null) {
-            link = findGWLink(trans, fabricid, tpOnRouter, routerid);
-            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLinkIId(fabricid, link.getLinkId()));
+            link = findGWLink(trans, fabricId, tpOnRouter, routerId);
+            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLinkIId(fabricId, link.getLinkId()));
         }
         if (link != null) {
             lswId = link.getDestination().getDestNode();
             tpOnSwitch = link.getDestination().getDestTp();
-            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, lswId, tpOnSwitch));
+            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricId, lswId, tpOnSwitch));
         }
 
         final NodeId flswid = lswId == null ? null : lswId;
 
-        trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricid, routerid, tpOnRouter));
+        trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricId, routerId, tpOnRouter));
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyGatewayRemoved(flswid, routerid);
+                fabricObj.notifyGatewayRemoved(flswid, routerId);
 
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }
@@ -202,7 +209,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         final InstanceIdentifier<Node> lswIId = MdSalUtils.createNodeIId(fabricId.getValue(), nodeid);
@@ -235,42 +243,43 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     public Future<RpcResult<CreateGatewayOutput>> createGateway(CreateGatewayInput input) {
         final RpcResultBuilder<CreateGatewayOutput> resultBuilder = RpcResultBuilder
                 .<CreateGatewayOutput>success();
-        final FabricId fabricid = input.getFabricId();
+        final FabricId fabricId = input.getFabricId();
         final NodeId routerId = input.getLogicalRouter();
         final NodeId swId = input.getLogicalSwitch();
 
         final IpAddress gwIp = input.getIpAddress();
         IpPrefix network = input.getNetwork();
         if (network == null) {
-            network = createDefaultPrefix(gwIp);
+            network = IpAddressUtils.createDefaultPrefix(gwIp);
         } else {
-            network = createGwPrefix(gwIp, network);
+            network = IpAddressUtils.createGwPrefix(gwIp, network);
         }
 
         final IpPrefix ipPrefix = network;
 
-        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 
         // add logic port to Router
-        TpId tpid1 = createGWPortOnRouter(fabricid, routerId, gwIp, ipPrefix, trans);
+        TpId tpid1 = createGWPortOnRouter(fabricId, routerId, gwIp, ipPrefix, trans);
 
         // add logic port to switch
-        TpId tpid2 = createGWPortOnSwitch(fabricid, swId, trans);
+        TpId tpid2 = createGWPortOnSwitch(fabricId, swId, trans);
 
         // add link
         LinkId linkId = createGatewayLink(routerId, tpid1);
-        createLogicLink(fabricid, routerId, swId, trans, tpid1, tpid2, linkId);
+        createLogicLink(fabricId, routerId, swId, trans, tpid1, tpid2, linkId);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<CreateGatewayOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<CreateGatewayOutput>> apply(Void submitResult) throws Exception {
-                fabricObj.buildGateway(swId, ipPrefix, routerId, fabricid);
+                fabricObj.buildGateway(swId, ipPrefix, routerId, fabricId);
                 return Futures.immediateFuture(resultBuilder.build());
             }
         }, executor);
@@ -311,7 +320,6 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         LogicalPortAugmentBuilder lpCtx = new LogicalPortAugmentBuilder();
         LportAttributeBuilder lpAttr = new LportAttributeBuilder();
-        lpAttr.setName("gateway port");
         lpCtx.setLportAttribute(lpAttr.build());
         tpBuilder.addAugmentation(LogicalPortAugment.class, lpCtx.build());
 
@@ -320,7 +328,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         return tpid;
     }
 
-    private TpId createGWPortOnRouter(FabricId fabricid, NodeId routeId, IpAddress gwIp,
+    private TpId createGWPortOnRouter(FabricId fabricid, NodeId routerId, IpAddress gwIp,
             IpPrefix prefix, WriteTransaction trans) {
         final TpId tpid = new TpId(String.valueOf(gwIp.getValue()));
         TerminationPointBuilder tpBuilder = new TerminationPointBuilder();
@@ -328,16 +336,18 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpBuilder.setKey(new TerminationPointKey(tpid));
 
         LportAttributeBuilder lpAttr = new LportAttributeBuilder();
-        lpAttr.setName("gateway port");
-        Layer3InfoBuilder l3InfoBuilder = new Layer3InfoBuilder();
-        l3InfoBuilder.setIp(gwIp).setNetwork(prefix).setNetwork(prefix).setForwardEnable(true);
-        lpAttr.setPortLayer((new Layer3Builder().setLayer3Info(l3InfoBuilder.build()).build()));
+        lpAttr.setPortLayer(
+                new PortLayerBuilder().setLayer3Info(
+                        new Layer3InfoBuilder()
+                            .setIp(gwIp)
+                            .setNetwork(prefix)
+                            .setForwardEnable(true).build()).build());
 
         LogicalPortAugmentBuilder lpCtx = new LogicalPortAugmentBuilder();
         lpCtx.setLportAttribute(lpAttr.build());
         tpBuilder.addAugmentation(LogicalPortAugment.class, lpCtx.build());
 
-        InstanceIdentifier<TerminationPoint> tpIId = MdSalUtils.createLogicPortIId(fabricid, routeId, tpid);
+        InstanceIdentifier<TerminationPoint> tpIId = MdSalUtils.createLogicPortIId(fabricid, routerId, tpid);
         trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
 
         return tpid;
@@ -354,7 +364,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         final String uuid = UUID.randomUUID().toString();
@@ -402,7 +413,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         final InstanceIdentifier<Node> routerIId = MdSalUtils.createNodeIId(fabricId.getValue(), nodeid);
@@ -465,7 +477,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         final String uuid = UUID.randomUUID().toString();
@@ -516,11 +529,12 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final FabricId fabricId = input.getFabricId();
         final String name = input.getName();
-        final NodeId nodeId = input.getLogicDevice();
+        final NodeId nodeId = input.getLogicalDevice();
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         //final TpId tpid = new TpId(UUID.randomUUID().toString());
@@ -558,16 +572,17 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     @Override
     public Future<RpcResult<Void>> addAcl(AddAclInput input) {
         String aclName = input.getAclName();
-        FabricId fabricid = input.getFabricId();
+        FabricId fabricId = input.getFabricId();
         NodeId ldev = input.getLogicalDevice();
-        TpId tpid = input.getLogicalPort();
+        TpId tpId = input.getLogicalPort();
 
-        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("Fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
-        final InstanceIdentifier<FabricAcl> aclIId = fabricObj.addAcl(ldev, tpid, aclName);
+        final InstanceIdentifier<FabricAcl> aclIId = fabricObj.addAcl(ldev, tpId, aclName);
 
         if (aclIId == null) {
             return Futures.immediateFailedFuture(
@@ -585,7 +600,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyAclUpdate(aclIId, false);
+                fabricObj.notifyAclUpdated(aclIId, false);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }
         }, executor);
@@ -594,24 +609,25 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     @Override
     public Future<RpcResult<Void>> delAcl(DelAclInput input) {
         String aclName = input.getAclName();
-        FabricId fabricid = input.getFabricId();
+        FabricId fabricId = input.getFabricId();
         NodeId ldev = input.getLogicalDevice();
         TpId tpid = input.getLogicalPort();
 
-        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricid);
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
         InstanceIdentifier<FabricAcl> aclIId = null;
 
         if (tpid != null) {
-            aclIId = MdSalUtils.createLogicPortIId(fabricid, ldev, tpid)
+            aclIId = MdSalUtils.createLogicPortIId(fabricId, ldev, tpid)
                         .augmentation(LogicalPortAugment.class)
                         .child(LportAttribute.class)
                         .child(FabricAcl.class, new FabricAclKey(aclName));
         } else {
-            aclIId = MdSalUtils.createNodeIId(fabricid, ldev)
+            aclIId = MdSalUtils.createNodeIId(fabricId, ldev)
                      .augmentation(LogicalSwitchAugment.class)
                      .child(LswAttribute.class)
                      .child(FabricAcl.class, new FabricAclKey(aclName));
@@ -625,42 +641,116 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyAclUpdate(tgtAclIId, true);
+                fabricObj.notifyAclUpdated(tgtAclIId, true);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }
         }, executor);
     }
 
-    private IpPrefix createGwPrefix(IpAddress ipAddress, IpPrefix network) {
-        StringBuilder buf = new StringBuilder();
-        buf.append(ipAddress.getValue());
-        String str = network.getIpv4Prefix().getValue();
-        buf.append(str.substring(str.indexOf("/")));
-        return new IpPrefix(new Ipv4Prefix(buf.toString()));
+    @Override
+    public Future<RpcResult<Void>> addPortFunction(AddPortFunctionInput input) {
+        final PortFunction function = input.getPortFunction();
+        FabricId fabricId = input.getFabricId();
+        TpId tpid = input.getLogicalPort();
+        NodeId ldev = input.getLogicalDevice();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
+        }
+
+        final InstanceIdentifier<PortFunction> fncIId = MdSalUtils.createLogicPortIId(fabricId, ldev, tpid)
+                .augmentation(LogicalPortAugment.class)
+                .child(LportAttribute.class)
+                .child(PortFunction.class);
+
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        trans.merge(LogicalDatastoreType.OPERATIONAL,fncIId, function, false);
+
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                fabricObj.notifyPortFuncUpdated(fncIId, function, false);
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }
+        }, executor);
     }
 
-    private IpPrefix createDefaultPrefix(IpAddress ipAddress) {
-        if (ipAddress.getIpv4Address() == null) {
-            return null;
+    @Override
+    public Future<RpcResult<Void>> addStaticRoute(AddStaticRouteInput input) {
+        final List<Route> routes = input.getRoute();
+        FabricId fabricId = input.getFabricId();
+        NodeId ldev = input.getNodeId();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
-        String ipv4 = ipAddress.getIpv4Address().getValue();
-        long mask = getDefaultMask(ipv4);
-        return new IpPrefix(new Ipv4Prefix(String.format("%s/%d", ipv4, mask)));
+
+        final InstanceIdentifier<LrAttribute> attrIId = MdSalUtils.createNodeIId(fabricId, ldev)
+                .augmentation(LogicalRouterAugment.class)
+                .child(LrAttribute.class);
+
+        final List<InstanceIdentifier<Route>> routeKeys = Lists.newArrayList();
+        for (Route route : routes) {
+            routeKeys.add(attrIId.child(Route.class, route.getKey()));
+        }
+
+        LrAttributeBuilder builder = new LrAttributeBuilder();
+        builder.setRoute(routes);
+
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        trans.merge(LogicalDatastoreType.OPERATIONAL,attrIId, builder.build(), false);
+
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                fabricObj.notifyRouteUpdated(attrIId.firstIdentifierOf(Node.class), routes, false);
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }
+        }, executor);
     }
 
-    private static long getDefaultMask(String ipv4Address) {
-        long ipLong = (InetAddresses.coerceToInteger(InetAddresses.forString(ipv4Address))) & 0xFFFFFFFFL;
-        if (ipLong < 2147483647L) {    // 0.0.0.0 - 127.255.255.255
-            return 8;
+    @Override
+    public Future<RpcResult<Void>> portBindingLogicalToFabric(PortBindingLogicalToFabricInput input) {
+
+        FabricId fabricId = input.getFabricId();
+        TpId tpid = input.getLogicalPort();
+        NodeId ldev = input.getLogicalDevice();
+        TpId portId = input.getFabricPort();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
-        if (ipLong < 3221225471L) { // 128.0.0.0 - 191.255.255.255
-            return 16;
-        }
-        if (ipLong < 3758096383L) { // 192.0.0.0 - 223.255.255.255
-            return 24;
-        }
-        return 32;// other
+
+        final InstanceIdentifier<LportAttribute> attrIId = MdSalUtils.createLogicPortIId(fabricId, ldev, tpid)
+                .augmentation(LogicalPortAugment.class)
+                .child(LportAttribute.class);
+
+        LportAttributeBuilder builder = new LportAttributeBuilder();
+        builder.setPortLayer(
+                new PortLayerBuilder().setLayer1Info(
+                        new Layer1InfoBuilder().setLocation(portId).build()).build());
+
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        trans.merge(LogicalDatastoreType.OPERATIONAL,attrIId, builder.build(), false);
+
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                fabricObj.notifyLogicalPortLocated(attrIId.firstIdentifierOf(TerminationPoint.class), portId);
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }
+        }, executor);
     }
+
 
     private List<SupportingNode> createDefaultSuplNode(FabricId fabricid) {
         SupportingNodeBuilder builder = new SupportingNodeBuilder();
@@ -672,17 +762,47 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     }
 
     @Override
-    public Future<RpcResult<Void>> addPortFunction(AddPortFunctionInput input) {
-        return null;
+    public Future<RpcResult<Void>> portBindingLogicalToDevice(PortBindingLogicalToDeviceInput input) {
+
+        FabricId fabricId = input.getFabricId();
+        TpId tpid = input.getLogicalPort();
+        NodeId ldev = input.getLogicalDevice();
+        TpRef physicalPort = input.getPhysicalPort();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
+        }
+
+        InstanceIdentifier<TerminationPoint> fportIid = InterfaceManager.convDevPort2FabricPort(
+                dataBroker, fabricId, (InstanceIdentifier<TerminationPoint>) physicalPort.getValue());
+        final TpId portId = fportIid.firstKeyOf(TerminationPoint.class).getTpId();
+
+
+        final InstanceIdentifier<LportAttribute> attrIId = MdSalUtils.createLogicPortIId(fabricId, ldev, tpid)
+                .augmentation(LogicalPortAugment.class)
+                .child(LportAttribute.class);
+
+        LportAttributeBuilder builder = new LportAttributeBuilder();
+        builder.setPortLayer(
+                new PortLayerBuilder().setLayer1Info(
+                        new Layer1InfoBuilder().setLocation(
+                                fportIid.firstKeyOf(TerminationPoint.class).getTpId())
+                        .build())
+                .build());
+
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        trans.merge(LogicalDatastoreType.OPERATIONAL,attrIId, builder.build(), false);
+
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                fabricObj.notifyLogicalPortLocated(attrIId.firstIdentifierOf(TerminationPoint.class), portId);
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }
+        }, executor);
     }
 
-    @Override
-    public Future<RpcResult<Void>> addStaticRoute(AddStaticRouteInput input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> portBindingLogicalToFabric(PortBindingLogicalToFabricInput input) {
-        return null;
-    }
 }

@@ -44,9 +44,9 @@ module fabric-endpoint {
             type yang:uuid;
         }
 
-		leaf own-fabric {
-			type fabric:fabric-id; 
-		}
+        leaf own-fabric {
+            type fabric:fabric-id; 
+        }
 
         leaf mac-address {
             type yang:mac-address;

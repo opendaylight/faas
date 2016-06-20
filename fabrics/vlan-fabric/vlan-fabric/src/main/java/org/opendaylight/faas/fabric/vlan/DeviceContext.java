@@ -5,7 +5,8 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
+package org.opendaylight.faas.fabric.vlan;
+
 
 import java.util.Map;
 import java.util.Set;
@@ -21,13 +22,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifKey;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1Builder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
@@ -38,25 +33,18 @@ public class DeviceContext {
 
     private final DataBroker databroker;
 
-    private final IpAddress vtep;
-
     private final InstanceIdentifier<Node> deviceIId;
 
     Set<String> localBD = Sets.newHashSet();
 
-    Map<Long, GatewayPort> bdifs = Maps.newHashMap();
+    Map<Integer, GatewayPort> bdifs = Maps.newHashMap();
 
     private final ExecutorService executor;
 
     DeviceContext(DataBroker databroker, IpAddress vtep, InstanceIdentifier<Node> deviceIId, ExecutorService executor) {
         this.databroker = databroker;
-        this.vtep = vtep;
         this.deviceIId = deviceIId;
         this.executor = executor;
-    }
-
-    public IpAddress getVtep() {
-        return vtep;
     }
 
     public DeviceKey getKey() {
@@ -64,88 +52,51 @@ public class DeviceContext {
     }
 
     public void createBridgeDomain(LogicSwitchContext switchCtx) {
-        long vni = switchCtx.getVni();
-        localBD.add(createBdId(vni));
-        syncToDom(vni, false);
+        int vlan = switchCtx.getVlan();
+        localBD.add(createBdId(vlan));
 
         LogicRouterContext vrfctx = switchCtx.getVrfCtx();
         if (vrfctx != null) {
-            createBdif(vni, vrfctx);
+            createBDif(vlan, vrfctx);
         }
     }
 
     public void removeBridgeDomain(LogicSwitchContext switchCtx) {
-        long vni = switchCtx.getVni();
-        localBD.remove(createBdId(vni));
-        syncToDom(vni, true);
+        int vlan = switchCtx.getVlan();
+        localBD.remove(createBdId(vlan));
 
         LogicRouterContext vrfctx = switchCtx.getVrfCtx();
         if (vrfctx != null) {
-            GatewayPort gw = vrfctx.getGatewayPortByVni(vni);
+            GatewayPort gw = vrfctx.getGatewayPortByVlan(vlan);
             if (gw != null) {
-                removeBdif(vni, gw);
+                // FIXME
             }
         }
     }
 
-    void createBdif(long vni, LogicRouterContext vrfctx) {
-        GatewayPort gw = vrfctx.getGatewayPortByVni(vni);
+    void createBDif(int vlan, LogicRouterContext vrfctx) {
+        GatewayPort gw = vrfctx.getGatewayPortByVlan(vlan);
 
-        bdifs.put(vni, gw);
+        bdifs.put(vlan, gw);
         syncToDom(gw, false);
     }
 
-    void addFunction2Bdif(long vni, PortFunction function) {
-        String bdifid = createBdIfId(vni);
-        InstanceIdentifier<Bdif> bdifIId = deviceIId.augmentation(FabricCapableDevice.class)
-                        .child(Config.class).child(Bdif.class, new BdifKey(bdifid));
-
-        BdifBuilder builder = new BdifBuilder().setKey(new BdifKey(bdifid)).setPortFunction(function);
-        WriteTransaction wt = databroker.newWriteOnlyTransaction();
-        wt.put(LogicalDatastoreType.OPERATIONAL, bdifIId, builder.build());
-
-        MdSalUtils.wrapperSubmit(wt, executor);
-    }
-
-    void removeBdif(long vni, GatewayPort gw) {
+    void removeBDif(long vni, GatewayPort gw) {
         bdifs.remove(vni);
 
         syncToDom(gw, true);
     }
 
-    private void syncToDom(long vni, boolean delete) {
-        String bdid = createBdId(vni);
-        InstanceIdentifier<BridgeDomain> bdIId = deviceIId.augmentation(FabricCapableDevice.class)
-                .child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bdid));
-
-        BridgeDomainBuilder builder = new BridgeDomainBuilder();
-        builder.setId(bdid);
-        BridgeDomain1Builder augBuilder = new BridgeDomain1Builder();
-        augBuilder.setVni(vni);
-        builder.addAugmentation(BridgeDomain1.class, augBuilder.build());
-        builder.setKey(new BridgeDomainKey(bdid));
-
-        WriteTransaction trans = databroker.newWriteOnlyTransaction();
-        if (delete) {
-            trans.delete(LogicalDatastoreType.OPERATIONAL, bdIId);
-        } else {
-            trans.put(LogicalDatastoreType.OPERATIONAL, bdIId, builder.build());
-        }
-        MdSalUtils.wrapperSubmit(trans, executor);
-
-    }
-
     private void syncToDom(GatewayPort gw, boolean delete) {
-        String bdifid = createBdIfId(gw.getVni());
+        String bdifid = createBdIfId(gw.getVlan());
         InstanceIdentifier<Bdif> bdifIId = deviceIId.augmentation(FabricCapableDevice.class)
                         .child(Config.class).child(Bdif.class, new BdifKey(bdifid));
 
         BdifBuilder builder = new BdifBuilder();
-        builder.setBdid(createBdId(gw.getVni()));
+        builder.setBdid(createBdId(gw.getVlan()));
         builder.setId(bdifid);
         builder.setKey(new BdifKey(bdifid));
         builder.setIpAddress(IpAddressUtils.getIpAddress(gw.getIp()));
-        builder.setMacAddress(gw.getMac());
         builder.setMask(IpAddressUtils.getMask(gw.getIp()));
         builder.setVrf(gw.getVrf().intValue());
 

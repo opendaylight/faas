@@ -7,6 +7,7 @@
  */
 package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -22,11 +23,15 @@ import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFaile
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RoutedRpcRegistration;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.Constants;
+import org.opendaylight.faas.fabric.utils.InterfaceManager;
+import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OvsSouthboundUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDeviceBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDeviceContext;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricPortAug;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricPortAugBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Attributes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.AttributesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInput;
@@ -39,15 +44,25 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.network.topology.topology.node.attributes.Vtep;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.network.topology.topology.node.attributes.VtepBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricPortAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricPortAugmentBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.termination.point.FportAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.FabricPortRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.TpRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowCapableNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.OvsdbBridgeAugmentation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.ovsdb.bridge.attributes.BridgeExternalIds;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeKey;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -56,6 +71,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
@@ -76,12 +92,13 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
     private final RoutedRpcRegistration<FabricVxlanDeviceAdapterService> rpcRegistration;
 
     final InstanceIdentifier<OvsdbBridgeAugmentation> targetPath = InstanceIdentifier.create(NetworkTopology.class)
-            .child(Topology.class).child(Node.class).augmentation(OvsdbBridgeAugmentation.class);;
+            .child(Topology.class).child(Node.class).augmentation(OvsdbBridgeAugmentation.class);
 
     public FabricDeviceManager(final DataBroker databroker,
             final RpcProviderRegistry rpcRegistry) {
         this.databroker = databroker;
-        executor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+        executor = MoreExecutors.listeningDecorator(
+                Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
 
         rpcRegistration = rpcRegistry.addRoutedRpcImplementation(FabricVxlanDeviceAdapterService.class, this);
 
@@ -113,10 +130,10 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
             return Futures.immediateFailedFuture(new RuntimeException("can not create tunnel port"));
         }
 
-		if (!OvsSouthboundUtils.addVxlanGpeTunnelPort(bridgeNode, databroker)) {
-		    LOG.error("can not create tunnel port!");
-		    return Futures.immediateFailedFuture(new RuntimeException("can not create nsh tunnel port"));
-		}
+        if (!OvsSouthboundUtils.addVxlanGpeTunnelPort(bridgeNode, databroker)) {
+            LOG.error("can not create tunnel port!");
+            return Futures.immediateFailedFuture(new RuntimeException("can not create nsh tunnel port"));
+        }
 
         FabricCapableDeviceBuilder deviceBuilder = new FabricCapableDeviceBuilder();
         AttributesBuilder attributesBuilder = new AttributesBuilder();
@@ -135,18 +152,63 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         WriteTransaction wt = databroker.newWriteOnlyTransaction();
         wt.merge(LogicalDatastoreType.OPERATIONAL, path, deviceBuilder.build(), true);
+        addTp2Fabric(wt, bridgeNode, deviceIId, fabricId);
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>(){
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
                 renderers.put(deviceIId, new DeviceRenderer(executor, databroker, deviceIId, bridgeNode, fabricId));
 
                 return Futures.immediateFuture(result);
-            }}, executor);
+            }
+        }, executor);
 
+    }
+
+    private void addTp2Fabric(WriteTransaction wt, Node bridgeNode, InstanceIdentifier<Node> deviceIId, FabricId fabricId) {
+        NodeBuilder devBuilder = new NodeBuilder().setKey(bridgeNode.getKey());
+
+        NodeBuilder fabricBuilder = new NodeBuilder().setNodeId(fabricId);
+
+        List<TerminationPoint> updTps = Lists.newArrayList();
+        List<TerminationPoint> fabricTps = Lists.newArrayList();
+
+        for (TerminationPoint tp : bridgeNode.getTerminationPoint()) {
+            String bridgeName = OvsSouthboundUtils.getBridgeName(bridgeNode);
+            if (tp.getTpId().getValue().equals(bridgeName)) {
+                continue;
+            }
+            TpId fabricTpid = InterfaceManager.createFabricPort(bridgeNode.getNodeId(), tp.getTpId());
+
+            // add ref to device tp
+            updTps.add(new TerminationPointBuilder()
+                    .setKey(tp.getKey())
+                    .addAugmentation(FabricPortAug.class, new FabricPortAugBuilder()
+                            .setPortRole(FabricPortRole.Access)
+                            .setPortRef(new TpRef(MdSalUtils.createFabricPortIId(fabricId, fabricTpid)))
+                            .build())
+                    .build());
+
+            // add tp on fabric
+            fabricTps.add(new TerminationPointBuilder()
+                    .setKey(new TerminationPointKey(fabricTpid))
+                    .setTpRef(Lists.newArrayList(tp.getTpId()))
+                    .addAugmentation(FabricPortAugment.class, new FabricPortAugmentBuilder()
+                            .setFportAttribute(new FportAttributeBuilder()
+                                    .setDevicePort(
+                                            new TpRef(deviceIId.child(TerminationPoint.class, tp.getKey()))).build())
+                            .build())
+                    .build());
+
+        }
+        devBuilder.setTerminationPoint(updTps);
+        fabricBuilder.setTerminationPoint(fabricTps);
+
+        wt.merge(LogicalDatastoreType.OPERATIONAL, deviceIId, devBuilder.build(), false);
+        wt.merge(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createFNodeIId(fabricId), fabricBuilder.build(), false);
     }
 
     @Override
@@ -156,7 +218,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         if (newBridges != null) {
             for (InstanceIdentifier<?> nodeIId : newBridges.keySet()) {
                 @SuppressWarnings("unchecked")
-				InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
+                InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
                 InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
                 this.rpcRegistration.registerPath(FabricCapableDeviceContext.class, targetIId);
 
@@ -167,41 +229,41 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         Set<InstanceIdentifier<?>> deletedBridges = change.getRemovedPaths();
         if (deletedBridges != null) {
-        	for (InstanceIdentifier<?> nodeIId : deletedBridges) {
+            for (InstanceIdentifier<?> nodeIId : deletedBridges) {
                 @SuppressWarnings("unchecked")
-				InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
+                InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
                 InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
 
                 this.rpcRegistration.unregisterPath(FabricCapableDeviceContext.class, targetIId);
-        	}
+            }
         }
     }
 
     private void readPredefinedVtepIp(final InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId, OvsdbBridgeAugmentation ovsdbData) {
 
-    	String vtepIp = null;
+        String vtepIp = null;
 
-    	if (ovsdbData.getBridgeExternalIds() != null) {
-    		for (BridgeExternalIds externalId : ovsdbData.getBridgeExternalIds()) {
-    			if ("vtep-ip".equals(externalId.getBridgeExternalIdKey())) {
-    				vtepIp = externalId.getBridgeExternalIdValue();
-    				break;
-    			}
-    		}
-    	}
+        if (ovsdbData.getBridgeExternalIds() != null) {
+            for (BridgeExternalIds externalId : ovsdbData.getBridgeExternalIds()) {
+                if ("vtep-ip".equals(externalId.getBridgeExternalIdKey())) {
+                    vtepIp = externalId.getBridgeExternalIdValue();
+                    break;
+                }
+            }
+        }
 
-    	if (vtepIp != null) {
-			InstanceIdentifier<Node> nodeIId = bridgeIId.firstIdentifierOf(Node.class);
-	        InstanceIdentifier<Vtep> vtepIId = nodeIId.augmentation(FabricCapableDevice.class).child(Attributes.class)
-	                .augmentation(VtepAttribute.class).child(Vtep.class);
+        if (vtepIp != null) {
+            InstanceIdentifier<Node> nodeIId = bridgeIId.firstIdentifierOf(Node.class);
+            InstanceIdentifier<Vtep> vtepIId = nodeIId.augmentation(FabricCapableDevice.class).child(Attributes.class)
+                    .augmentation(VtepAttribute.class).child(Vtep.class);
 
-	        VtepBuilder builder = new VtepBuilder();
-	        builder.setIp(new IpAddress(vtepIp.toCharArray()));
+            VtepBuilder builder = new VtepBuilder();
+            builder.setIp(new IpAddress(vtepIp.toCharArray()));
 
-	        WriteTransaction wt = databroker.newWriteOnlyTransaction();
-	        wt.put(LogicalDatastoreType.OPERATIONAL, vtepIId, builder.build(), true);
-	        wt.submit();
-    	}
+            WriteTransaction wt = databroker.newWriteOnlyTransaction();
+            wt.put(LogicalDatastoreType.OPERATIONAL, vtepIId, builder.build(), true);
+            wt.submit();
+        }
     }
 
     @Override
@@ -219,7 +281,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         Preconditions.checkNotNull(input.getFabricId());
 
         @SuppressWarnings("unchecked")
-		final InstanceIdentifier<Node> deviceIId = (InstanceIdentifier<Node>) input.getNodeId();
+        final InstanceIdentifier<Node> deviceIId = (InstanceIdentifier<Node>) input.getNodeId();
         DeviceRenderer renderer = renderers.remove(deviceIId);
         if (renderer != null) {
             renderer.close();
@@ -231,26 +293,36 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         // clear all flows
         long dpId = OvsSouthboundUtils.getDataPathId(bridgeNode);
-        org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId inventoryNodeId 
-        	= new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId("openflow:" + dpId);
-        
+        org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId inventoryNodeId
+            = new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId("openflow:" + dpId);
+
         InstanceIdentifier<FlowCapableNode> path = InstanceIdentifier.create(Nodes.class)
-        		.child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class
-        				, new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey(inventoryNodeId))
-        		.augmentation(FlowCapableNode.class);
+                .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class
+                        , new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey(inventoryNodeId))
+                .augmentation(FlowCapableNode.class);
 
         WriteTransaction wt = databroker.newWriteOnlyTransaction();
         wt.delete(LogicalDatastoreType.CONFIGURATION, path);
+        removeTpFromFabric(wt, bridgeNode, deviceIId);
         wt.submit();
-        
+
         return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
     }
 
-	@Override
-	public Future<RpcResult<CreateBridgeDomainPortOutput>> createBridgeDomainPort(CreateBridgeDomainPortInput input) {
-		// for OVS, we do not create sub interface
-		CreateBridgeDomainPortOutputBuilder outputBuilder = new CreateBridgeDomainPortOutputBuilder();
-		outputBuilder.setBridgeDomainPort(input.getTpId());
-		return Futures.immediateFuture(RpcResultBuilder.success(outputBuilder).build());
-	}
+    private void removeTpFromFabric(WriteTransaction wt, Node bridgeNode, InstanceIdentifier<Node> deviceIId) {
+        for (TerminationPoint tp : bridgeNode.getTerminationPoint()) {
+
+            InstanceIdentifier<FabricPortAug> path = deviceIId.child(TerminationPoint.class, tp.getKey())
+                    .augmentation(FabricPortAug.class);
+            wt.delete(LogicalDatastoreType.OPERATIONAL, path);
+        }
+    }
+
+    @Override
+    public Future<RpcResult<CreateBridgeDomainPortOutput>> createBridgeDomainPort(CreateBridgeDomainPortInput input) {
+        // for OVS, we do not create sub interface
+        CreateBridgeDomainPortOutputBuilder outputBuilder = new CreateBridgeDomainPortOutputBuilder();
+        outputBuilder.setBridgeDomainPort(input.getTpId());
+        return Futures.immediateFuture(RpcResultBuilder.success(outputBuilder).build());
+    }
 }

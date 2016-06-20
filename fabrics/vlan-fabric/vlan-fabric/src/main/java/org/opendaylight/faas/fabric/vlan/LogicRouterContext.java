@@ -5,29 +5,27 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.faas.fabric.vxlan;
+package org.opendaylight.faas.fabric.vlan;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class LogicRouterContext {
-    private final long vrf;
+    private final int vrf;
 
-    private Map<Long, GatewayPort> gatewayPorts = Maps.newConcurrentMap();
+    private Map<Integer, GatewayPort> gatewayPorts = Maps.newConcurrentMap();
 
     private List<String> acls = Lists.newArrayList();
 
-    LogicRouterContext(long vrf, DataBroker databroker) {
+    LogicRouterContext(int vrf) {
         this.vrf = vrf;
     }
 
@@ -35,25 +33,16 @@ public class LogicRouterContext {
         return vrf;
     }
 
-    public GatewayPort addGatewayPort(IpPrefix ip, long vni, NodeId lsw) {
-        return gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw, vrf));
+    public GatewayPort addGatewayPort(IpPrefix ip, int vlan, NodeId lsw) {
+        return gatewayPorts.put(vlan, new GatewayPort(ip, vlan, lsw, vrf));
     }
 
-    public GatewayPort removeGatewayPort(long vni) {
-        return gatewayPorts.remove(vni);
+    public GatewayPort removeGatewayPort(int vlan) {
+        return gatewayPorts.remove(vlan);
     }
 
-    public GatewayPort getGatewayPortByVni(long vni) {
-        return gatewayPorts.get(vni);
-    }
-
-    public GatewayPort getGatewayPort(IpPrefix ip) {
-        for (GatewayPort port : gatewayPorts.values()) {
-            if (port.containsIp(ip)) {
-                return port;
-            }
-        }
-        return null;
+    public GatewayPort getGatewayPortByVlan(int vlan) {
+        return gatewayPorts.get(vlan);
     }
 
     public void addAcl(String aclName) {
@@ -68,7 +57,7 @@ public class LogicRouterContext {
         return Collections.unmodifiableList(acls);
     }
 
-    public Set<Long> getVnis() {
+    public Set<Integer> getVlans() {
         return gatewayPorts.keySet();
     }
 }
