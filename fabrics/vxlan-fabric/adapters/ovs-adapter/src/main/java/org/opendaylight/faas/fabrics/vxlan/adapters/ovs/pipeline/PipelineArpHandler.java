@@ -55,7 +55,7 @@ public class PipelineArpHandler extends AbstractServiceInstance {
      * IN_PORT
      */
     public void programStaticArpEntry(Long dpid, Long segmentationId, String macAddressStr, IpAddress ipAddress,
-            boolean writeFlow) {
+            boolean isWriteFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
         MacAddress macAddress = new MacAddress(macAddressStr);
@@ -100,60 +100,60 @@ public class PipelineArpHandler extends AbstractServiceInstance {
 
         flowBuilder.setMatch(matchBuilder.build());
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             // Move Eth Src to Eth Dst
             ab.setAction(ActionUtils.nxMoveEthSrcToEthDstAction());
-            ab.setOrder(0);
-            ab.setKey(new ActionKey(0));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Set Eth Src
             ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
-            ab.setOrder(1);
-            ab.setKey(new ActionKey(1));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Set ARP OP
             ab.setAction(ActionUtils.nxLoadArpOpAction(BigInteger.valueOf(0x02L)));
-            ab.setOrder(2);
-            ab.setKey(new ActionKey(2));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Move ARP SHA to ARP THA
             ab.setAction(ActionUtils.nxMoveArpShaToArpThaAction());
-            ab.setOrder(3);
-            ab.setKey(new ActionKey(3));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Move ARP SPA to ARP TPA
             ab.setAction(ActionUtils.nxMoveArpSpaToArpTpaAction());
-            ab.setOrder(4);
-            ab.setKey(new ActionKey(4));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Load Mac to ARP SHA
             ab.setAction(ActionUtils.nxLoadArpShaAction(macAddress));
-            ab.setOrder(5);
-            ab.setKey(new ActionKey(5));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Load IP to ARP SPA
             ab.setAction(ActionUtils.nxLoadArpSpaAction(ipAddress.getIpv4Address().getValue()));
-            ab.setOrder(6);
-            ab.setKey(new ActionKey(6));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Output of InPort
             ab.setAction(ActionUtils.outputAction(new NodeConnectorId(nodeName + ":INPORT")));
-            ab.setOrder(7);
-            ab.setKey(new ActionKey(7));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Create Apply Actions Instruction
             aab.setAction(actionList);
             ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
-            ib.setOrder(0);
-            ib.setKey(new InstructionKey(0));
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
 
             flowBuilder.setInstructions(isb.setInstruction(instructions).build());

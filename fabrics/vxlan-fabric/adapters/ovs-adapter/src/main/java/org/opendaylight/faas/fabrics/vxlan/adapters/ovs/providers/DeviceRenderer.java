@@ -36,6 +36,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricOptions.TrafficBehavior;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.Options;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
@@ -329,7 +330,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     }
 
     private void onHostRouteCreate(HostRoute newRec) {
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
         if (gpeTunnelOfPort == 0l) {
@@ -342,8 +343,15 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+            Long vlanId = 0l;
             if (ofPort != 0l) {
-                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec, true);
+
+                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+                if (bdPort != null) {
+                    if ( bdPort.getAccessType() == AccessType.Vlan)
+                        vlanId = bdPort.getAccessTag();
+                }
+                openflow13Provider.updateLocalHostRouteInDevice(dpid, ofPort, gpeTunnelOfPort, vlanId, newRec, true);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -353,13 +361,13 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
 
             if (tunnelOfPort != 0l) {
-                openflow13Provider.updateRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec, true);
+                openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec, true);
             }
         }
     }
 
     private void onHostRouteDelete(HostRoute newRec) {
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
         if (gpeTunnelOfPort == 0l) {
@@ -372,8 +380,14 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+            Long vlanId = 0l;
             if (ofPort != 0l) {
-                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec, false);
+                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+                if (bdPort != null) {
+                    if ( bdPort.getAccessType() == AccessType.Vlan)
+                        vlanId = bdPort.getAccessTag();
+                }
+                openflow13Provider.updateLocalHostRouteInDevice(dpid, ofPort, gpeTunnelOfPort, vlanId, newRec, false);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -383,7 +397,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
 
             if (tunnelOfPort != 0l) {
-                openflow13Provider.updateRemoteHostRouteInDevice(dpidLong, tunnelOfPort, gpeTunnelOfPort, newRec,
+                openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec,
                         false);
             }
         }
@@ -392,13 +406,13 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private void onBDIFCreate(Bdif newRec) {
         String bridgeDomainId = newRec.getBdid();
         Long vni = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bridgeDomainId, databroker);
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
 
         AdapterBdIf newAdapterBdIf = new AdapterBdIf(newRec, vni);
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
-        openflow13Provider.updateBdifInDevice(dpidLong, bdIfs, newAdapterBdIf, true);
+        openflow13Provider.updateBdifInDevice(dpid, bdIfs, newAdapterBdIf, true);
 
         ctx.addBdifToCache(newAdapterBdIf);
     }
@@ -406,19 +420,19 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private void onBDIFDelete(Bdif newRec) {
         String bridgeDomainId = newRec.getBdid();
         Long vni = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bridgeDomainId, databroker);
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
 
         AdapterBdIf newAdapterBdIf = new AdapterBdIf(newRec, vni);
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
-        openflow13Provider.updateBdifInDevice(dpidLong, bdIfs, newAdapterBdIf, false);
+        openflow13Provider.updateBdifInDevice(dpid, bdIfs, newAdapterBdIf, false);
 
         ctx.deleteBdifFromCache(newAdapterBdIf);
     }
 
     private void onBridgeDomainCreate(BridgeDomain newRec) {
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
         Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
 
         Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -427,7 +441,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
         if (tunnelOfPort != 0l) {
             ctx.setVtep_ofPort(tunnelOfPort);
-            openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, true);
+            openflow13Provider.updateBridgeDomainInDevice(dpid, tunnelOfPort, segmentationId, true);
         }
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
@@ -437,14 +451,14 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
         if (gpeTunnelOfPort != 0l) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
-            openflow13Provider.updateBridgeDomainInDevice(dpidLong, gpeTunnelOfPort, segmentationId, true);
-            openflow13Provider.updateSfcTunnelInDevice(dpidLong, gpeTunnelOfPort, segmentationId, true);
+            openflow13Provider.updateBridgeDomainInDevice(dpid, gpeTunnelOfPort, segmentationId, true);
+            openflow13Provider.updateSfcTunnelInDevice(dpid, gpeTunnelOfPort, segmentationId, true);
         }
 
     }
 
     private void onBridgeDomainDelete(BridgeDomain newRec) {
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
         Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
 
         Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -453,7 +467,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
         if (tunnelOfPort != 0l) {
             ctx.setVtep_ofPort(tunnelOfPort);
-            openflow13Provider.updateBridgeDomainInDevice(dpidLong, tunnelOfPort, segmentationId, false);
+            openflow13Provider.updateBridgeDomainInDevice(dpid, tunnelOfPort, segmentationId, false);
         }
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
@@ -463,14 +477,14 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
         if (gpeTunnelOfPort != 0l) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
-            openflow13Provider.updateBridgeDomainInDevice(dpidLong, gpeTunnelOfPort, segmentationId, false);
-            openflow13Provider.updateSfcTunnelInDevice(dpidLong, gpeTunnelOfPort, segmentationId, false);
+            openflow13Provider.updateBridgeDomainInDevice(dpid, gpeTunnelOfPort, segmentationId, false);
+            openflow13Provider.updateSfcTunnelInDevice(dpid, gpeTunnelOfPort, segmentationId, false);
         }
 
     }
 
     private void onVtepMembersCreate(InstanceIdentifier<Members> iid, Members newRec) {
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
         Long tunnelOfPort = ctx.getVtep_ofPort();
         if (tunnelOfPort == 0l) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
@@ -486,12 +500,12 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         IpAddress dstTunIp = newRec.getVtep();
 
         if (!dstTunIp.equals(ctx.getVtep())) {
-            openflow13Provider.updateVniMembersInDevice(dpidLong, tunnelOfPort, segmentationId, dstTunIp, true);
+            openflow13Provider.updateVniMembersInDevice(dpid, tunnelOfPort, segmentationId, dstTunIp, true);
         }
     }
 
     private void onVtepMembersDelete(InstanceIdentifier<Members> iid, Members newRec) {
-        Long dpidLong = ctx.getDpid();
+        Long dpid = ctx.getDpid();
         Long tunnelOfPort = ctx.getVtep_ofPort();
         if (tunnelOfPort == 0l) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
@@ -507,37 +521,37 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         IpAddress dstTunIp = newRec.getVtep();
 
         if (!dstTunIp.equals(ctx.getVtep())) {
-            openflow13Provider.updateVniMembersInDevice(dpidLong, tunnelOfPort, segmentationId, dstTunIp, false);
+            openflow13Provider.updateVniMembersInDevice(dpid, tunnelOfPort, segmentationId, dstTunIp, false);
         }
     }
 
     private void onFabricAclCreate(InstanceIdentifier<FabricAcl> iid, FabricAcl newRec) {
         if (iid.firstKeyOf(Acls.class) != null) {
-            Long dpidLong = ctx.getDpid();
+            Long dpid = ctx.getDpid();
             Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
 
-            openflow13Provider.updateBridgeDomainAclsInDevice(dpidLong, segmentationId, newRec, true);
+            openflow13Provider.updateBridgeDomainAclsInDevice(dpid, segmentationId, newRec, true);
         } else if (iid.firstKeyOf(TerminationPoint.class) != null) {
-            Long dpidLong = ctx.getDpid();
+            Long dpid = ctx.getDpid();
 
             Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), iid.firstKeyOf(TerminationPoint.class).getTpId(), databroker);
 
-            openflow13Provider.updateBridgePortAclsInDevice(dpidLong, bridgeInPort, newRec, true);
+            openflow13Provider.updateBridgePortAclsInDevice(dpid, bridgeInPort, newRec, true);
         }
     }
 
     private void onFabricAclDelete(InstanceIdentifier<FabricAcl> iid, FabricAcl newRec) {
         if (iid.firstKeyOf(Acls.class) != null) {
-            Long dpidLong = ctx.getDpid();
+            Long dpid = ctx.getDpid();
             Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
 
-            openflow13Provider.updateBridgeDomainAclsInDevice(dpidLong, segmentationId, newRec, false);
+            openflow13Provider.updateBridgeDomainAclsInDevice(dpid, segmentationId, newRec, false);
         } else if (iid.firstKeyOf(TerminationPoint.class) != null) {
-            Long dpidLong = ctx.getDpid();
+            Long dpid = ctx.getDpid();
 
             Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), iid.firstKeyOf(TerminationPoint.class).getTpId(), databroker);
 
-            openflow13Provider.updateBridgePortAclsInDevice(dpidLong, bridgeInPort, newRec, false);
+            openflow13Provider.updateBridgePortAclsInDevice(dpid, bridgeInPort, newRec, false);
         }
     }
 

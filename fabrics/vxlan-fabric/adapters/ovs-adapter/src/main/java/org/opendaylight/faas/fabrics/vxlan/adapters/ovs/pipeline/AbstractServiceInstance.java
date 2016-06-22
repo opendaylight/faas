@@ -175,7 +175,7 @@ public abstract class AbstractServiceInstance {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
         long dpid = getDpid(node);
-        if (dpid == 0L) {
+        if (dpid == 0) {
             LOG.info("could not find dpid: {}", node.getNodeId());
             return;
         }
@@ -190,8 +190,8 @@ public abstract class AbstractServiceInstance {
 
         // Call the InstructionBuilder Methods Containing Actions
         InstructionBuilder ib = this.getMutablePipelineInstructionBuilder();
-        ib.setOrder(0);
-        ib.setKey(new InstructionKey(0));
+        ib.setOrder(instructions.size());
+        ib.setKey(new InstructionKey(instructions.size()));
         instructions.add(ib.build());
 
         // Add InstructionBuilder to the Instruction(s)Builder List
@@ -218,7 +218,7 @@ public abstract class AbstractServiceInstance {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
 
-        if (dpid == 0L) {
+        if (dpid == 0l) {
             LOG.info("could not find dpid: {}", dpid);
             return;
         }
@@ -233,8 +233,8 @@ public abstract class AbstractServiceInstance {
 
         // Call the InstructionBuilder Methods Containing Actions
         InstructionBuilder ib = this.getMutablePipelineInstructionBuilder();
-        ib.setOrder(0);
-        ib.setKey(new InstructionKey(0));
+        ib.setOrder(instructions.size());
+        ib.setKey(new InstructionKey(instructions.size()));
         instructions.add(ib.build());
 
         // Add InstructionBuilder to the Instruction(s)Builder List

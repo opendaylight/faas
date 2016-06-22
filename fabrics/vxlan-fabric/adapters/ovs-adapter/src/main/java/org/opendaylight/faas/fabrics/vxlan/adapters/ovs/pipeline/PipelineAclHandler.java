@@ -79,11 +79,11 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         super(Service.ACL_HANDlER, dataBroker);
     }
 
-    public void programTrafficBehaviorRule(Long dpid, TrafficBehavior trafficBehavior, boolean writeFlow) {
+    public void programTrafficBehaviorRule(Long dpid, TrafficBehavior trafficBehavior, boolean isWriteFlow) {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
 
-        if (dpid == 0L) {
+        if (dpid == 0l) {
             return;
         }
         String nodeName = OPENFLOW + dpid;
@@ -105,8 +105,9 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             //Default Traffic Behavior is allow traffic goto next table, it has done in Pipeline initialization step
             return;
         }
-        ib.setOrder(0);
-        ib.setKey(new InstructionKey(0));
+
+        ib.setOrder(instructions.size());
+        ib.setKey(new InstructionKey(instructions.size()));
         instructions.add(ib.build());
 
         // Add InstructionBuilder to the Instruction(s)Builder List
@@ -127,7 +128,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         }
         else {
@@ -136,8 +137,8 @@ public class PipelineAclHandler extends AbstractServiceInstance {
     }
 
     // For Traffic from GPE Tunnel, allow it go to next table by default
-    public void programGpeTunnelInEntry(Long dpidLong, Long segmentationId, Long gpeTunnelOfPort, boolean writeFlow) {
-        String nodeName = OPENFLOW + dpidLong;
+    public void programGpeTunnelInEntry(Long dpid, Long segmentationId, Long gpeTunnelOfPort, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
 
         BigInteger tunnelId = BigInteger.valueOf(segmentationId.longValue());
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -146,9 +147,9 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
         // Create Match(es) and Set them in the FlowBuilder Object
         flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build());
-        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, gpeTunnelOfPort).build());
+        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpid, gpeTunnelOfPort).build());
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             // Create the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -158,8 +159,8 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
             // Append the default pipeline after the first classification
             ib = this.getMutablePipelineInstructionBuilder();
-            ib.setOrder(0);
-            ib.setKey(new InstructionKey(0));
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
 
             // Add InstructionBuilder to the Instruction(s)Builder List
@@ -182,7 +183,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);
@@ -190,8 +191,8 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
     }
 
-    public void programBridgeDomainAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
-        String nodeName = OPENFLOW + dpidLong;
+    public void programBridgeDomainAclEntry(Long dpid, Long segmentationId, Acl acl, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
 
         String flowId = "PipelineAcl_BridgeDomain_" + segmentationId.toString();
 
@@ -209,16 +210,16 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, writeFlow, aclActions);
+                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, isWriteFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, writeFlow, aclActions);
+                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, isWriteFlow, aclActions);
             }
 
         }
     }
 
-    public void programBridgePortAclEntry(Long dpidLong, Long bridgePort, Acl acl, boolean writeFlow) {
-        String nodeName = OPENFLOW + dpidLong;
+    public void programBridgePortAclEntry(Long dpid, Long bridgePort, Acl acl, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
 
         String flowId = "PipelineAcl_BridgePort_" + bridgePort.toString();
 
@@ -229,21 +230,21 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             Matches aclMatches = ace.getMatches();
 
             MatchBuilder matchBuilder = new MatchBuilder();
-            matchBuilder = MatchUtils.createInPortMatch(matchBuilder, dpidLong, bridgePort);
+            matchBuilder = MatchUtils.createInPortMatch(matchBuilder, dpid, bridgePort);
 
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, writeFlow, aclActions);
+                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, isWriteFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, writeFlow, aclActions);
+                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, isWriteFlow, aclActions);
             }
 
         }
     }
 
     //Match Ethernet source/dest mac, macmask
-    private void aceEthAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceEth aceEth, boolean writeFlow, Actions aclActions) {
+    private void aceEthAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceEth aceEth, boolean isWriteFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
@@ -272,10 +273,10 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
         matchBuilder.setEthernetMatch(ethernetMatch.build());
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
+        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, isWriteFlow, aclActions);
     }
 
-    private void aceIpAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceIp aceIp, boolean writeFlow, Actions aclActions) {
+    private void aceIpAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceIp aceIp, boolean isWriteFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
         short aceIpProtocol = aceIp.getProtocol();
@@ -308,7 +309,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             }
         }
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
+        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, isWriteFlow, aclActions);
     }
 
     private MatchBuilder createIpAddressMatch(MatchBuilder matchBuilder, AceIp aceIp) {
@@ -394,7 +395,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
     }
 
     private void syncFlow(String flowId, NodeBuilder nodeBuilder, MatchBuilder matchBuilder,
-            Integer priority, boolean writeFlow, Actions aclActions) {
+            Integer priority, boolean isWriteFlow, Actions aclActions) {
 
         FlowBuilder flowBuilder = new FlowBuilder();
         flowBuilder.setMatch(matchBuilder.build());
@@ -409,15 +410,15 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
             List<Instruction> instructionsList = Lists.newArrayList();
 
             if (aclActions.getPacketHandling() instanceof Permit) {
                 ib = this.getMutablePipelineInstructionBuilder();
-                ib.setOrder(0);
-                ib.setKey(new InstructionKey(0));
+                ib.setOrder(instructionsList.size());
+                ib.setKey(new InstructionKey(instructionsList.size()));
                 instructionsList.add(ib.build());
             } else if (aclActions.getPacketHandling() instanceof Redirect) {
                 Nsh nsh = getNsh(aclActions);
@@ -431,46 +432,46 @@ public class PipelineAclHandler extends AbstractServiceInstance {
                     IpAddress destSffVtepIp = nsh.getDestIp();
 
                     redirectActionBuilder.setAction(ActionUtils.nxLoadTunIPv4Action(destSffVtepIp.getIpv4Address().getValue(), false));
-                    redirectActionBuilder.setOrder(0);
-                    redirectActionBuilder.setKey(new ActionKey(0));
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
                     Short nsi = nsh.getNsi();
                     redirectActionBuilder.setAction(ActionUtils.nxSetNsiAction(nsi));
-                    redirectActionBuilder.setOrder(1);
-                    redirectActionBuilder.setKey(new ActionKey(1));
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
                     Long nsp = nsh.getNsp();
                     redirectActionBuilder.setAction(ActionUtils.nxSetNspAction(nsp));
-                    redirectActionBuilder.setOrder(2);
-                    redirectActionBuilder.setKey(new ActionKey(2));
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
                     redirectActionBuilder.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SFC_FIELD).build(),
                             BigInteger.valueOf(REG_VALUE_SFC_REDIRECT)));
-                    redirectActionBuilder.setOrder(3);
-                    redirectActionBuilder.setKey(new ActionKey(3));
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
                     ApplyActionsBuilder aab = new ApplyActionsBuilder();
                     aab.setAction(redirectActionList);
 
                     sfcIb.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
-                    sfcIb.setOrder(0);
-                    sfcIb.setKey(new InstructionKey(0));
+                    sfcIb.setOrder(instructionsList.size());
+                    sfcIb.setKey(new InstructionKey(instructionsList.size()));
                     instructionsList.add(sfcIb.build());
                 }
 
                 ib = this.getMutablePipelineInstructionBuilder();
-                ib.setOrder(1);
-                ib.setKey(new InstructionKey(1));
+                ib.setOrder(instructionsList.size());
+                ib.setKey(new InstructionKey(instructionsList.size()));
                 instructionsList.add(ib.build());
             } else {
                 //Default Action for ACL is DENY
                 ib = InstructionUtils.createDropInstructions(ib);
-                ib.setOrder(0);
-                ib.setKey(new InstructionKey(0));
+                ib.setOrder(instructionsList.size());
+                ib.setKey(new InstructionKey(instructionsList.size()));
                 instructionsList.add(ib.build());
             }
 

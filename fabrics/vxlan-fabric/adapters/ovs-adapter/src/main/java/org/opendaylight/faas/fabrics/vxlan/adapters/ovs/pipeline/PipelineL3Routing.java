@@ -52,7 +52,7 @@ public class PipelineL3Routing extends AbstractServiceInstance {
      * tun_id,goto_table=<next-table>"
      */
     public void programRouterInterface(Long dpid, Long sourceSegId, Long destSegId, String macAddress,
-            IpAddress address, int mask, boolean writeFlow) {
+            IpAddress address, int mask, boolean isWriteFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
 
@@ -87,36 +87,36 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         flowBuilder.setIdleTimeout(0);
         flowBuilder.setMatch(matchBuilder.build());
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             // Set source Mac address
             ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
-            ab.setOrder(0);
-            ab.setKey(new ActionKey(0));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // DecTTL
             ab.setAction(ActionUtils.decNwTtlAction());
-            ab.setOrder(1);
-            ab.setKey(new ActionKey(1));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Set Destination Tunnel ID
             ab.setAction(ActionUtils.setTunnelIdAction(BigInteger.valueOf(destSegId.longValue())));
-            ab.setOrder(2);
-            ab.setKey(new ActionKey(2));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Create Apply Actions Instruction
             aab.setAction(actionList);
             ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
-            ib.setOrder(0);
-            ib.setKey(new InstructionKey(0));
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
 
             // Goto Next Table
             ib = getMutablePipelineInstructionBuilder();
-            ib.setOrder(2);
-            ib.setKey(new InstructionKey(2));
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
 
             flowBuilder.setInstructions(isb.setInstruction(instructions).build());
