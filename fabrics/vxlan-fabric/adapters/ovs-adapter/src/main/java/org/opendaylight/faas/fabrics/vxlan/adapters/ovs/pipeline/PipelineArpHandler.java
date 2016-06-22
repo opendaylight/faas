@@ -55,7 +55,7 @@ public class PipelineArpHandler extends AbstractServiceInstance {
      * IN_PORT
      */
     public void programStaticArpEntry(Long dpid, Long segmentationId, String macAddressStr, IpAddress ipAddress,
-            boolean writeFlow) {
+            boolean isWriteFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
         MacAddress macAddress = new MacAddress(macAddressStr);
@@ -100,7 +100,7 @@ public class PipelineArpHandler extends AbstractServiceInstance {
 
         flowBuilder.setMatch(matchBuilder.build());
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             // Move Eth Src to Eth Dst
             ab.setAction(ActionUtils.nxMoveEthSrcToEthDstAction());
             ab.setOrder(0);

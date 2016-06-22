@@ -15,6 +15,7 @@ import java.util.Map;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainKey;
@@ -336,6 +337,19 @@ public class OvsSouthboundUtils {
             }
         }
         return ofPort;
+    }
+
+    public static BridgeDomainPort getBridgeDomainPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
+        InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
+        TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
+        if (teminationPoint != null) {
+            BridgeDomainPort bridgeDomainPort = teminationPoint.getAugmentation(BridgeDomainPort.class);
+
+            if (bridgeDomainPort != null)
+                return bridgeDomainPort;
+        }
+        return null;
+
     }
 
     public static Long getBridgeDomainVni(InstanceIdentifier<Node> nodeIid, String bridgeDomainId, DataBroker databroker) {

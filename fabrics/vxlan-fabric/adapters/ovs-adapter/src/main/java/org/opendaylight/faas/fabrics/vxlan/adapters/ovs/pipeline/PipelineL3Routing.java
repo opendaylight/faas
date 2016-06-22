@@ -52,7 +52,7 @@ public class PipelineL3Routing extends AbstractServiceInstance {
      * tun_id,goto_table=<next-table>"
      */
     public void programRouterInterface(Long dpid, Long sourceSegId, Long destSegId, String macAddress,
-            IpAddress address, int mask, boolean writeFlow) {
+            IpAddress address, int mask, boolean isWriteFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
 
@@ -87,7 +87,7 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         flowBuilder.setIdleTimeout(0);
         flowBuilder.setMatch(matchBuilder.build());
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             // Set source Mac address
             ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
             ab.setOrder(0);

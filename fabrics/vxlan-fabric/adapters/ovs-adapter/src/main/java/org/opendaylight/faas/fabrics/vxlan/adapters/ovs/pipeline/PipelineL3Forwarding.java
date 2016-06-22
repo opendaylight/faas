@@ -45,7 +45,7 @@ public class PipelineL3Forwarding extends AbstractServiceInstance {
      *      actions=set_field:fa:16:3e:41:56:ec->eth_dst,goto_table=<next-table>"
      */
     public void programForwardingTableEntry(Long dpid, Long segmentationId, IpAddress ipAddress,
-            String macAddress, boolean writeFlow) {
+            String macAddress, boolean isWriteFlow) {
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
 
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -86,7 +86,7 @@ public class PipelineL3Forwarding extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);

@@ -79,7 +79,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         super(Service.ACL_HANDlER, dataBroker);
     }
 
-    public void programTrafficBehaviorRule(Long dpid, TrafficBehavior trafficBehavior, boolean writeFlow) {
+    public void programTrafficBehaviorRule(Long dpid, TrafficBehavior trafficBehavior, boolean isWriteFlow) {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
 
@@ -127,7 +127,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         }
         else {
@@ -136,8 +136,8 @@ public class PipelineAclHandler extends AbstractServiceInstance {
     }
 
     // For Traffic from GPE Tunnel, allow it go to next table by default
-    public void programGpeTunnelInEntry(Long dpidLong, Long segmentationId, Long gpeTunnelOfPort, boolean writeFlow) {
-        String nodeName = OPENFLOW + dpidLong;
+    public void programGpeTunnelInEntry(Long dpid, Long segmentationId, Long gpeTunnelOfPort, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
 
         BigInteger tunnelId = BigInteger.valueOf(segmentationId.longValue());
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -146,9 +146,9 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
         // Create Match(es) and Set them in the FlowBuilder Object
         flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build());
-        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, gpeTunnelOfPort).build());
+        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpid, gpeTunnelOfPort).build());
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             // Create the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
@@ -182,7 +182,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             writeFlow(flowBuilder, nodeBuilder);
         } else {
             removeFlow(flowBuilder, nodeBuilder);
@@ -190,8 +190,8 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
     }
 
-    public void programBridgeDomainAclEntry(Long dpidLong, Long segmentationId, Acl acl, boolean writeFlow) {
-        String nodeName = OPENFLOW + dpidLong;
+    public void programBridgeDomainAclEntry(Long dpid, Long segmentationId, Acl acl, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
 
         String flowId = "PipelineAcl_BridgeDomain_" + segmentationId.toString();
 
@@ -209,16 +209,16 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, writeFlow, aclActions);
+                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, isWriteFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, writeFlow, aclActions);
+                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, isWriteFlow, aclActions);
             }
 
         }
     }
 
-    public void programBridgePortAclEntry(Long dpidLong, Long bridgePort, Acl acl, boolean writeFlow) {
-        String nodeName = OPENFLOW + dpidLong;
+    public void programBridgePortAclEntry(Long dpid, Long bridgePort, Acl acl, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
 
         String flowId = "PipelineAcl_BridgePort_" + bridgePort.toString();
 
@@ -229,21 +229,21 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             Matches aclMatches = ace.getMatches();
 
             MatchBuilder matchBuilder = new MatchBuilder();
-            matchBuilder = MatchUtils.createInPortMatch(matchBuilder, dpidLong, bridgePort);
+            matchBuilder = MatchUtils.createInPortMatch(matchBuilder, dpid, bridgePort);
 
             Actions aclActions = ace.getActions();
             AceType aceType = aclMatches.getAceType();
             if (aceType instanceof AceEth ) {
-                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, writeFlow, aclActions);
+                aceEthAcl(nodeName, flowId, matchBuilder, (AceEth)aceType, isWriteFlow, aclActions);
             } else if (aceType instanceof AceIp) {
-                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, writeFlow, aclActions);
+                aceIpAcl(nodeName, flowId, matchBuilder, (AceIp)aceType, isWriteFlow, aclActions);
             }
 
         }
     }
 
     //Match Ethernet source/dest mac, macmask
-    private void aceEthAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceEth aceEth, boolean writeFlow, Actions aclActions) {
+    private void aceEthAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceEth aceEth, boolean isWriteFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
@@ -272,10 +272,10 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
         matchBuilder.setEthernetMatch(ethernetMatch.build());
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
+        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, isWriteFlow, aclActions);
     }
 
-    private void aceIpAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceIp aceIp, boolean writeFlow, Actions aclActions) {
+    private void aceIpAcl(String nodeName, String flowId, MatchBuilder matchBuilder, AceIp aceIp, boolean isWriteFlow, Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
         short aceIpProtocol = aceIp.getProtocol();
@@ -308,7 +308,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             }
         }
 
-        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, writeFlow, aclActions);
+        syncFlow(flowId, nodeBuilder, matchBuilder, ACL_MATCH_PRIORITY, isWriteFlow, aclActions);
     }
 
     private MatchBuilder createIpAddressMatch(MatchBuilder matchBuilder, AceIp aceIp) {
@@ -394,7 +394,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
     }
 
     private void syncFlow(String flowId, NodeBuilder nodeBuilder, MatchBuilder matchBuilder,
-            Integer priority, boolean writeFlow, Actions aclActions) {
+            Integer priority, boolean isWriteFlow, Actions aclActions) {
 
         FlowBuilder flowBuilder = new FlowBuilder();
         flowBuilder.setMatch(matchBuilder.build());
@@ -409,7 +409,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
 
-        if (writeFlow) {
+        if (isWriteFlow) {
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
             List<Instruction> instructionsList = Lists.newArrayList();
