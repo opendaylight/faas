@@ -36,6 +36,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricOptions.TrafficBehavior;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.Options;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
@@ -342,8 +343,15 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+            Long vlanId = 0l;
             if (ofPort != 0l) {
-                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec, true);
+
+                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+                if (bdPort != null) {
+                    if ( bdPort.getAccessType() == AccessType.Vlan)
+                        vlanId = bdPort.getAccessTag();
+                }
+                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, vlanId, newRec, true);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -372,8 +380,14 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+            Long vlanId = 0l;
             if (ofPort != 0l) {
-                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, newRec, false);
+                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
+                if (bdPort != null) {
+                    if ( bdPort.getAccessType() == AccessType.Vlan)
+                        vlanId = bdPort.getAccessTag();
+                }
+                openflow13Provider.updateLocalHostRouteInDevice(dpidLong, ofPort, gpeTunnelOfPort, vlanId, newRec, false);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();

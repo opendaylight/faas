@@ -11,6 +11,7 @@ import java.math.BigInteger;
 import java.util.List;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.AbstractServiceInstance;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.VlanId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg0;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg2;
@@ -57,7 +58,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
      *      table=TRAFFIC_CLASSIFIER,in_port=2,dl_src=00:00:00:00:00:01 \
      *      actions=set_field:5->tun_id,load:0x1->NXM_NX_REG0,goto_table=<next-table>"
      */
-    public void programLocalInPort(Long dpidLong, Long segmentationId, Long inPort, String attachedMac, boolean writeFlow) {
+    public void programLocalInPort(Long dpidLong, Long segmentationId, Long vlanId, Long inPort, String attachedMac, boolean writeFlow) {
         String nodeName = OPENFLOW + dpidLong;
 
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -67,6 +68,9 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         // Create the OF Match using MatchBuilder
         flowBuilder.setMatch(MatchUtils.createEthSrcMatch(matchBuilder, new MacAddress(attachedMac)).build());
         flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, inPort).build());
+        if (vlanId != 0l) {
+            flowBuilder.setMatch(MatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
+        }
 
         String flowId = "LocalMac_"+segmentationId+"_"+inPort+"_"+attachedMac;
         // Add Flow Attributes
@@ -272,4 +276,60 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             removeFlow(flowBuilder, nodeBuilder);
         }
     }
+
+    public void programVlanInPort(Long dpidLong, Long vlanId, Long segmentationId, Long inPort, boolean writeFlow) {
+        String nodeName = OPENFLOW + dpidLong;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        // Create the OF Match using MatchBuilder
+        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpidLong, inPort).build());
+        flowBuilder.setMatch(MatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
+
+        String flowId = "VlanIn_"+vlanId+"_"+inPort+"_"+segmentationId;
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setStrict(true);
+        flowBuilder.setBarrier(false);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (writeFlow) {
+            // Instantiate the Builders for the OF Actions and Instructions
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+
+            // Instructions List Stores Individual Instructions
+            List<Instruction> instructions = Lists.newArrayList();
+
+            InstructionUtils.createSetTunnelIdInstructions(ib, BigInteger.valueOf(segmentationId.longValue()));
+
+            ib.setOrder(0);
+            ib.setKey(new InstructionKey(0));
+            instructions.add(ib.build());
+
+            // Next service GOTO Instructions Need to be appended to the List
+            ib = this.getMutablePipelineInstructionBuilder();
+            ib.setOrder(1);
+            ib.setKey(new InstructionKey(1));
+            instructions.add(ib.build());
+
+            // Add InstructionBuilder to the Instruction(s)Builder List
+            isb.setInstruction(instructions);
+
+            // Add InstructionsBuilder to FlowBuilder
+            flowBuilder.setInstructions(isb.build());
+
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+    }
+
 }
