@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba51214e_0f585231",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "Please be little more specific about your fixes",
+      "revId": "87ec8c1caf076658b3983fd18a2fee4d0fea0a7b",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_af796695",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricInstance.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "replace \"delete\" with \"isDelete\"",
+      "revId": "87ec8c1caf076658b3983fd18a2fee4d0fea0a7b",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_6f48ee5b",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricInstance.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "\"isDelete\" is better name for  boolean type.",
+      "revId": "87ec8c1caf076658b3983fd18a2fee4d0fea0a7b",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_cf749a9e",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricInstance.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "\"isDelete \" for \"delete\"",
+      "revId": "87ec8c1caf076658b3983fd18a2fee4d0fea0a7b",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
