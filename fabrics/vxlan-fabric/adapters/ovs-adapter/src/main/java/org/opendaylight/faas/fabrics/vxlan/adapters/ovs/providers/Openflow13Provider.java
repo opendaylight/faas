@@ -13,9 +13,12 @@ import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineAclHandler;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineArpHandler;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineInboundNat;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineL2Forwarding;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineL3Forwarding;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineL3Routing;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineMacLearning;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineOutboundNat;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineTrafficClassifier;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.MdsalUtils;
@@ -36,10 +39,13 @@ public class Openflow13Provider {
     //private static final Logger LOG = LoggerFactory.getLogger(Openflow13Provider.class);
 
     private PipelineTrafficClassifier trafficClassifier;
+    private PipelineMacLearning macLearning;
     private PipelineArpHandler arpHandler;
+    private PipelineInboundNat inboundNat;
     private PipelineL3Routing l3Routing;
     private PipelineL3Forwarding l3Forwarding;
     private PipelineAclHandler aclHandler;
+    private PipelineOutboundNat outboundNat;
     private PipelineL2Forwarding l2Forwarding;
 
     private DataBroker databroker = null;
@@ -53,8 +59,14 @@ public class Openflow13Provider {
         trafficClassifier = new PipelineTrafficClassifier(databroker);
         trafficClassifier.programDefaultPipelineRule(node);
 
+        macLearning = new PipelineMacLearning(databroker);
+        macLearning.programDefaultPipelineRule(node);
+
         arpHandler = new PipelineArpHandler(databroker);
         arpHandler.programDefaultPipelineRule(node);
+
+        inboundNat = new PipelineInboundNat(databroker);
+        inboundNat.programDefaultPipelineRule(node);
 
         l3Routing = new PipelineL3Routing(databroker);
         l3Routing.programDefaultPipelineRule(node);
@@ -64,6 +76,9 @@ public class Openflow13Provider {
 
         aclHandler = new PipelineAclHandler(databroker);
         aclHandler.programDefaultPipelineRule(node);
+
+        outboundNat = new PipelineOutboundNat(databroker);
+        outboundNat.programDefaultPipelineRule(node);
 
         l2Forwarding = new PipelineL2Forwarding(databroker);
         l2Forwarding.programDefaultPipelineRule(node);
