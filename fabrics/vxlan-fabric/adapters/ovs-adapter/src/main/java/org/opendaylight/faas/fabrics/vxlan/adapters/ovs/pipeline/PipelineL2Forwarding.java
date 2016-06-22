@@ -62,6 +62,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.group.types.rev131018.group
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.VlanId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxTunIdCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nodes.node.table.flow.instructions.instruction.instruction.apply.actions._case.apply.actions.action.action.NxActionSetNshc1NodesNodeTableFlowApplyActionsCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nodes.node.table.flow.instructions.instruction.instruction.apply.actions._case.apply.actions.action.action.NxActionSetNshc2NodesNodeTableFlowApplyActionsCaseBuilder;
@@ -91,7 +92,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
      * n_packets=2, n_bytes=196, tun_id=0x3ea,dl_dst=fa:16:3e:41:56:ec , \
      * actions=output:1"
      */
-    public void programLocalUcastOut(Long dpidLong, Long segmentationId, Long localPort, String attachedMac,
+    public void programLocalUcastOut(Long dpidLong, Long segmentationId, Long vlanId, Long localPort, String attachedMac,
             boolean writeFlow) {
 
         String nodeName = OPENFLOW + dpidLong;
@@ -125,10 +126,17 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instructions List Stores Individual Instructions
             List<Instruction> instructions = Lists.newArrayList();
 
+            if (vlanId != 0l) {
+                InstructionUtils.createSetVlanInstructions(ib, new VlanId(vlanId.intValue()));
+                ib.setOrder(0);
+                ib.setKey(new InstructionKey(0));
+                instructions.add(ib.build());
+            }
+
             // Set the Output Port/Iface
             InstructionUtils.createOutputPortInstructions(ib, dpidLong, localPort);
-            ib.setOrder(0);
-            ib.setKey(new InstructionKey(0));
+            ib.setOrder(1);
+            ib.setKey(new InstructionKey(1));
             instructions.add(ib.build());
 
             // Add InstructionBuilder to the Instruction(s)Builder List

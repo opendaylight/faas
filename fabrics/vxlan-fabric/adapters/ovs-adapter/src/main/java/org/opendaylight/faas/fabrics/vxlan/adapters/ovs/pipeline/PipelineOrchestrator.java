@@ -11,8 +11,9 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 public class PipelineOrchestrator {
-    private static List<Service> staticPipeline = Lists.newArrayList(Service.TRAFFIC_CLASSIFIER, Service.ARP_HANDlER,
-            Service.L3_ROUTING, Service.L3_FORWARDING, Service.ACL_HANDlER, Service.L2_FORWARDING);
+    private static List<Service> staticPipeline = Lists.newArrayList(Service.TRAFFIC_CLASSIFIER, Service.MAC_LEARNING,
+            Service.ARP_HANDlER, Service.INBOUND_NAT, Service.L3_ROUTING, Service.L3_FORWARDING,
+            Service.ACL_HANDlER, Service.OUTBOUND_NAT, Service.L2_FORWARDING);
 
     public static Service getNextServiceInPipeline(Service service) {
         int index = staticPipeline.indexOf(service);
