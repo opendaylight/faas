@@ -1,0 +1,718 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba51214e_49d08350",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricServiceAPIProvider.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "FabricServiceService seems too many services in the name, can we reduct it down to one?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_49ab63d8",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricServiceAPIProvider.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "replace \"routeID \" with routerId.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c95f730d",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricServiceAPIProvider.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "can we replace this with write only transaction if no read?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_49740399",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricServiceAPIProvider.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 343,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "Please remove the hard coded string either by constant definition or pass in from somewhere.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_e9e7d73e",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/FabricServiceAPIProvider.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 652,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "error message syntax error, \"fabric %d does not exist\". fabricID",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_695907fe",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/spi/FabricListener.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "aclUpdated?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_e95517c7",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/spi/FabricListener.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "replace \"delete with \"isDelete\" ?\n\nportFuncUpdated?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_295f0fe7",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/general/spi/FabricListener.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "isDelete?\n\nrouteUpdated?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_896f3b92",
+        "filename": "fabrics/fabric/src/main/java/org/opendaylight/faas/fabric/utils/InterfaceManager.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "2016?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_090b2bd7",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/AclRenderer.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "upper case for enum members please. ADDACL, REMOVEACL",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_89f61bd6",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "replace\"vtep\" with \"vtepIP\"",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c90013ad",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "can you find some thirdparty code or java library code for this if possible. Or make a utility class.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_292d4f47",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "same as above",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c91773ec",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceKey.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "if no intent for hesitance, make it final class.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_09320ba7",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceKey.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "default access is \"protected\", is that what you want? or make it private",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_891d7b12",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceKey.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "same as line 18 comment",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_09d96b57",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/DeviceKey.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "do you want put a operator sign between them if you want to parse them in the future?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_49e36307",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/EndPointManager.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "removeEndPoint? or removeEndPointIID?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_a9e79f11",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/EpAccessPortRenderer.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "the function name is confusing. newRender?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_89e45b0e",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/EpAccessPortRenderer.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "should we log this?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c9ee53ec",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/FabricContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "can we create a constant for the format string, other than hardcoded?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_a9ce7f81",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "can we use a mac generator function , other than hard coded?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_89cbbb71",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "do we need long? vni only 24 bits.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c9c5b35c",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "do we need long for vrf, how many vrf we support?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_49b1a3f7",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "why we need cast here?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_4988831f",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/LogicRouterContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "long seems a waste",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_8979fb31",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/LogicRouterContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "it is a private object, why we need concurrent access which has unnecessary overheads. hashmap sounds good to me.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_89929b55",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/LogicRouterContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "do we have an ACL object other than string?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c973f34b",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/LogicSwitchContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "ACL is an object, not a string?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_69b107e1",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/res/SegmentManager.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "can we have some java doc for this object?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_a9caff4c",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/java/org/opendaylight/faas/fabric/vlan/res/SimpleManageAlgorithm.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "we need some javadoc for this.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_e9c4f741",
+        "filename": "fabrics/vlan-fabric/vlan-fabric/src/main/yang/vlan-fabric-impl.yang",
+        "patchSetId": 3
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "please add some comments on this new changes, why and what",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_29deef11",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/DeviceContext.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 156,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "do we need a utility class for this and the one underneath?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_49ed23c3",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/DistributedFabricListener.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "put some meaningful message here.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c9d81320",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/EndPointManager.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "better java doc",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_29054f7a",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/EndPointManager.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "better java doc",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_89f57b85",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "don\u0027t like the hardcoded MAC address. can we have a mac generator",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_69362754",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "do we need long? vni only 24 bits . why I saw this twice.",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_a93f9f24",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "how many vrf we support?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_893c5b31",
+        "filename": "fabrics/vxlan-fabric/vxlan-fabric/src/main/java/org/opendaylight/faas/fabric/vxlan/GatewayPort.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "don\u0027t like the cast",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_491243b2",
+        "filename": "model/fabric-model/src/main/yang/fabric-service.yang",
+        "patchSetId": 3
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "please clarify what is \"port function\"",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_a9267f14",
+        "filename": "model/fabric-model/src/main/yang/fabric-types.yang",
+        "patchSetId": 3
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-22T15:54:17Z",
+      "side": 1,
+      "message": "upper case for enum members?",
+      "revId": "620dc0bdde05370828d6ef3db449210530092965",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
