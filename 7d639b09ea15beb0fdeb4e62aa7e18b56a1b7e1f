@@ -1,0 +1,242 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba51214e_a3efb3af",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 5
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "Please add more detailed committed message such as what  those 3 tables added are and briefly for what purpose.\n1. \n2.\n3.\n\ndont need to mention this is to address my comments :).",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_032c9f01",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "I don\u0027t like the smell of those hard coded values such as 0L, 0, please define a const for each of them with a meaningful name make sure you change every one of them throughout all files.",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_233ba33b",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 127,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hardcode",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_833f0f25",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hard code",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_e3308b58",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "see comments above, no hardcoded",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_43369753",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hardcoded.",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_633c7b30",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineArpHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hardcode",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_c34907d2",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineArpHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hardcode",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_a34693bd",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineArpHandler.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hard code",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_0313ffb8",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineL2Forwarding.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "java doc requried",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_8326ef14",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/providers/DeviceRenderer.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "Please make sure all hard code value are properly named with const variable.",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_e317eba1",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/providers/DeviceRenderer.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 336,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hard code",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_430df78f",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/providers/DeviceRenderer.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hard code.",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba51214e_231283b1",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/providers/DeviceRenderer.java",
+        "patchSetId": 5
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-06-24T15:55:09Z",
+      "side": 1,
+      "message": "no hard code",
+      "revId": "7d639b09ea15beb0fdeb4e62aa7e18b56a1b7e1f",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
