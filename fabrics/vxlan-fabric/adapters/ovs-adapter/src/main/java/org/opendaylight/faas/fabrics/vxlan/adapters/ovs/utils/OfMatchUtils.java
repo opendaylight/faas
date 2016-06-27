@@ -301,6 +301,30 @@ public class OfMatchUtils {
         return matchBuilder;
     }
 
+    public static MatchBuilder createDmacDestIpMatch(
+            MatchBuilder matchBuilder, String destMac,  Ipv4Prefix destIpPrefix) {
+
+        EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
+        EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
+        ethTypeBuilder.setType(new EtherType(0x0800L));
+        ethernetMatch.setEthernetType(ethTypeBuilder.build());
+
+        if (destMac != null) {
+            EthernetDestinationBuilder ethDestinationBuilder = new EthernetDestinationBuilder();
+            ethDestinationBuilder.setAddress(new MacAddress(destMac));
+            ethernetMatch.setEthernetDestination(ethDestinationBuilder.build());
+            matchBuilder.setEthernetMatch(ethernetMatch.build());
+        }
+
+        if (destIpPrefix != null) {
+            Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
+            ipv4match.setIpv4Destination(destIpPrefix);
+            matchBuilder.setLayer3Match(ipv4match.build());
+        }
+
+        return matchBuilder;
+    }
+
     /**
      * Tunnel ID Match Builder
      *

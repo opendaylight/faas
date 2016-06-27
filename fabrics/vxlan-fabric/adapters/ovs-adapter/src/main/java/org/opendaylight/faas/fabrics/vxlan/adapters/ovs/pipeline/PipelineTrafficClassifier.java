@@ -40,6 +40,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
     public final static long REG_VALUE_FROM_LOCAL = 0x1L;
     public final static long REG_VALUE_FROM_REMOTE = 0x2L;
+    public final static long REG_VALUE_FROM_VLAN = 0x3L;
 
     public static final Class<? extends NxmNxReg> REG_FIELD = NxmNxReg0.class;
     public static final Class<? extends NxmNxReg> REG_SRC_TUN_ID = NxmNxReg2.class;
@@ -98,12 +99,20 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
             ActionBuilder ab = new ActionBuilder();
 
-            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
-                    BigInteger.valueOf(REG_VALUE_FROM_LOCAL)));
-            ab.setOrder(actionList.size());
-            ab.setKey(new ActionKey(actionList.size()));
-            actionList.add(ab.build());
-
+            if (vlanId != null) {
+                ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
+                        BigInteger.valueOf(REG_VALUE_FROM_VLAN)));
+                ab.setOrder(actionList.size());
+                ab.setKey(new ActionKey(actionList.size()));
+                actionList.add(ab.build());
+            }
+            else {
+                ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
+                        BigInteger.valueOf(REG_VALUE_FROM_LOCAL)));
+                ab.setOrder(actionList.size());
+                ab.setKey(new ActionKey(actionList.size()));
+                actionList.add(ab.build());
+            }
             ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
                     BigInteger.valueOf(segmentationId.longValue())));
             ab.setOrder(actionList.size());
@@ -309,6 +318,17 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             List<Instruction> instructions = Lists.newArrayList();
 
             OfInstructionUtils.createSetTunnelIdInstructions(ib, BigInteger.valueOf(segmentationId.longValue()));
+
+            ApplyActionsCase aac = (ApplyActionsCase) ib.getInstruction();
+            List<Action> actionList = aac.getApplyActions().getAction();
+
+            ActionBuilder ab = new ActionBuilder();
+
+            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
+                    BigInteger.valueOf(REG_VALUE_FROM_VLAN)));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
 
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));

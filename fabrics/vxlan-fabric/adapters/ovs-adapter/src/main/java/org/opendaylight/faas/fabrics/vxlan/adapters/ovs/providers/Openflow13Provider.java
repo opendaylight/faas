@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineAclHandler;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineArpHandler;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineInboundNat;
@@ -41,10 +42,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.N
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Openflow13Provider {
-    // private static final Logger LOG =
-    // LoggerFactory.getLogger(Openflow13Provider.class);
+    private static final Logger LOG =
+    LoggerFactory.getLogger(Openflow13Provider.class);
 
     private PipelineTrafficClassifier trafficClassifier;
     private PipelineMacLearning macLearning;
@@ -108,11 +111,14 @@ public class Openflow13Provider {
         l3Forwarding.programForwardingTableEntry(dpid, segmentationId, ipAddress, macAddress, writeFlow);
 
         l2Forwarding.programLocalUcastOut(dpid, segmentationId, vlanId, ofPort, macAddress, writeFlow);
-        l2Forwarding.programRemoteBcastOutToLocalPort(dpid, segmentationId, ofPort, writeFlow);
-        l2Forwarding.programLocalBcastToLocalPort(dpid, segmentationId, ofPort, writeFlow);
-        // l2Forwarding.programLocalBcastToTunnelPort(dpid, segmentationId,
-        // ofPort, dstTunIpAddress, true);
 
+        if (vlanId == null) {
+            // l2Forwarding.programRemoteBcastOutToLocalPort(dpid,
+            // segmentationId, ofPort, writeFlow);
+            // l2Forwarding.programLocalBcastToLocalPort(dpid, segmentationId,
+            // ofPort, writeFlow);
+            l2Forwarding.programBcastToLocalPort(dpid, segmentationId, ofPort, writeFlow);
+        }
         if (gpeTunnelOfPort != null) {
             IpAddress dstTunIp = hostRoute.getDestVtep();
 
@@ -182,7 +188,9 @@ public class Openflow13Provider {
             boolean writeFlow) {
         // Add remote tunnel IP to broadcast group belongs to this Bridge
         // Domain(segmentationId)
-        l2Forwarding.programLocalBcastToTunnelPort(dpid, segmentationId, tunnelOfPort, dstTunIp, writeFlow);
+        // l2Forwarding.programLocalBcastToTunnelPort(dpid, segmentationId,
+        // tunnelOfPort, dstTunIp, writeFlow);
+        l2Forwarding.programBcastToTunnelPort(dpid, segmentationId, tunnelOfPort, dstTunIp, writeFlow);
     }
 
     public void updateTrafficBehavior(Long dpid, TrafficBehavior trafficBehavior, boolean writeFlow) {
@@ -214,13 +222,15 @@ public class Openflow13Provider {
     }
 
     // If Bridge Domain Port has vlan tag, do vlan/vni mapping
-    public void updateBdPortInDevice(Long dpid, Long ofPort, Long segmentationId,
-            BdPort bdPort, boolean writeFlow) {
-        AccessType accessType = bdPort.getAccessType();
-        if (accessType.getIntValue() == AccessType.Vlan.getIntValue()) {
+    public void updateBdPortInDevice(Long dpid, Long ofPort, Long segmentationId, BdPort bdPort, boolean writeFlow) {
+        if (bdPort.getAccessType() == AccessType.Vlan) {
             if (bdPort.getAccessTag() != null) {
-                trafficClassifier.programVlanInPort(dpid, bdPort.getAccessTag(), segmentationId, ofPort,
-                        writeFlow);
+                trafficClassifier.programVlanInPort(dpid, bdPort.getAccessTag(), segmentationId, ofPort, writeFlow);
+                // l2Forwarding.programLocalBcastToVlanPort(dpid,
+                // segmentationId, ofPort, bdPort.getAccessTag(), writeFlow);
+                // l2Forwarding.programRemoteBcastToVlanPort(dpid,
+                // segmentationId, ofPort, bdPort.getAccessTag(), writeFlow);
+                l2Forwarding.programBcastToVlanPort(dpid, segmentationId, ofPort, bdPort.getAccessTag(), writeFlow);
             }
         }
     }
@@ -231,7 +241,8 @@ public class Openflow13Provider {
                 routeEntry.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), writeFlow);
     }
 
-    public void updatePortFunctionInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress, PortFunction portFunction, boolean writeFlow) {
+    public void updatePortFunctionInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress,
+            PortFunction portFunction, boolean writeFlow) {
         if (portFunction.getFunctionType() instanceof IpMapping) {
             IpMapping ipMappingEntry = (IpMapping) portFunction.getFunctionType();
 
