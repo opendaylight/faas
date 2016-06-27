@@ -24,9 +24,10 @@ import org.opendaylight.faas.fabric.general.Constants;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.FabricVxlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -42,7 +43,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,27 +93,36 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
     private void rendererEndpoint(Endpoint ep) throws Exception {
 
         // 1, create bridge domain port
-        CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
-        builder.setNodeId(ep.getLocation().getNodeRef().getValue());
-        builder.setTpId(ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId());
-        builder.setAccessType(ep.getLocation().getAccessType());
-        builder.setAccessTag(ep.getLocation().getAccessSegment());
-        CreateBridgeDomainPortInput input = builder.build();
-        RpcResult<CreateBridgeDomainPortOutput> rpcResult = getVxlanDeviceAdapter().createBridgeDomainPort(input).get();
+        // VNI
+        NodeId logicNode = ep.getLogicalLocation().getNodeId();
 
-        TpId bridgeDomainPort = rpcResult.getResult().getBridgeDomainPort();
+        LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
+        if (switchCtx == null) {
+            LOG.warn("There are no such switch's context.({})", logicNode.getValue());
+            return;
+        }
+        final long vni = switchCtx.getVni();
+
+        TpId destTpPort = ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId();
+        InstanceIdentifier<Node> devIid = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
+        DeviceContext devCtx = fabricCtx.getDeviceCtx(DeviceKey.newInstance(devIid));
+        String bdPortId = devCtx.createBdPort(vni,
+                destTpPort, ep.getLocation().getAccessType(), ep.getLocation().getAccessSegment());
+
+        InstanceIdentifier<BdPort> bdPortIid = devIid.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(BdPort.class, new BdPortKey(bdPortId));
 
         // 2, use bridge domain port to renderer logic port
         WriteTransaction trans = databroker.newWriteOnlyTransaction();
 
         EpAccessPortRenderer portRender = EpAccessPortRenderer.newCreateTask(databroker);
-        portRender.createEpAccessPort(trans, ep, bridgeDomainPort);
+        portRender.createEpAccessPort(trans, ep, bdPortIid);
 
         // 3, write host route
         InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
 
         HostRouteBuilder hrBuilder = new HostRouteBuilder();
-        if (!buildHostRoute(hrBuilder, ep, bridgeDomainPort)) {
+        if (!buildHostRoute(hrBuilder, ep, destTpPort)) {
             return;
         }
         trans.merge(LogicalDatastoreType.OPERATIONAL, hostRouteIId, hrBuilder.build(), true);
@@ -151,7 +160,12 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         builder.setVni(vni);
         builder.setIp(ip);
         builder.setDestVtep(vtepIp);
-        builder.setDestBridgePort(bridgeDomainPort);
+        builder.setDestTpPort(bridgeDomainPort);
+
+        // access type
+        builder.setAccessType(ep.getLocation().getAccessType());
+        // access segment
+        builder.setAccessTag(ep.getLocation().getAccessSegment());
 
         return true;
     }
@@ -203,7 +217,19 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
                     break;
                 }
                 case SUBTREE_MODIFIED: {
-                    // DO NOTHING
+                    final Endpoint oldEp = change.getRootNode().getDataBefore();
+                    final Endpoint newEp = change.getRootNode().getDataAfter();
+                    if (newEp.getLocation() != null
+                            && fabricCtx.getFabricId().equals(newEp.getOwnFabric())) {
+                        Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
+
+                            @Override
+                            public Void call() throws Exception {
+                                rendererEndpoint(newEp);
+                                return null;
+                            }
+                        }), simpleFutureMonitor, fabricCtx.executor);
+                    }
                     break;
                 }
                 default:

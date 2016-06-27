@@ -15,7 +15,7 @@ import java.util.Map;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
+//import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainKey;
@@ -71,8 +71,8 @@ public class OvsSouthboundUtils {
         return bridgeName;
     }
 
-    public static long getDataPathId(Node node) {
-        long dpid = 0L;
+    public static Long getDataPathId(Node node) {
+        Long dpid = null;
         String datapathId = getDatapathId(node);
         if (datapathId != null) {
             dpid = new BigInteger(datapathId.replaceAll(":", ""), 16).longValue();
@@ -269,7 +269,7 @@ public class OvsSouthboundUtils {
 
     public static Long getOfPort(Node node, TpId tpid) {
         List<TerminationPoint> terminationPoints = extractTerminationPoints(node);
-        Long ofPort = 0l;
+        Long ofPort = null;
 
         for (TerminationPoint terminationPoint : terminationPoints) {
             if (terminationPoint.getTpId() == tpid) {
@@ -282,7 +282,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getOFPort(OvsdbTerminationPointAugmentation port) {
-        Long ofPort = 0L;
+        Long ofPort = null;
         if (port.getOfport() != null) {
             ofPort = port.getOfport();
         }
@@ -290,7 +290,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getVxlanTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
-        Long ofPort = 0L;
+        Long ofPort = null;
 
         String tunnelType = "vxlan";
         String portName = generateTpName(tunnelBridgeName, tunnelType);
@@ -301,7 +301,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getVxlanGpeTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
-        Long ofPort = 0L;
+        Long ofPort = null;
 
         String tunnelType = "vxlan";
         String portName = generateTpName(tunnelBridgeName, tunnelType, "gpe");
@@ -326,7 +326,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getOfPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
-        Long ofPort = 0l;
+        Long ofPort = null;
         InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
         TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
         if (teminationPoint != null) {
@@ -339,22 +339,34 @@ public class OvsSouthboundUtils {
         return ofPort;
     }
 
-    public static BridgeDomainPort getBridgeDomainPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
-        InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
-        TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
-        if (teminationPoint != null) {
-            BridgeDomainPort bridgeDomainPort = teminationPoint.getAugmentation(BridgeDomainPort.class);
-
-            if (bridgeDomainPort != null)
-                return bridgeDomainPort;
-        }
-        return null;
-
-    }
+//    public static BridgeDomainPort getBridgeDomainPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
+//        InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
+//        TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
+//        if (teminationPoint != null) {
+//            BridgeDomainPort bridgeDomainPort = teminationPoint.getAugmentation(BridgeDomainPort.class);
+//
+//            if (bridgeDomainPort != null)
+//                return bridgeDomainPort;
+//        }
+//        return null;
+//
+//    }
 
     public static Long getBridgeDomainVni(InstanceIdentifier<Node> nodeIid, String bridgeDomainId, DataBroker databroker) {
         InstanceIdentifier<BridgeDomain> bridgeDomainIid =
                 nodeIid.augmentation(FabricCapableDevice.class).child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bridgeDomainId));
+
+        BridgeDomain bridgeDomain = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bridgeDomainIid, databroker);
+
+        Long segmentationId = bridgeDomain.getAugmentation(BridgeDomain1.class).getVni();
+
+        return segmentationId;
+    }
+
+    public static Long getBdPortVni(InstanceIdentifier<Node> nodeIid, BridgeDomainKey bridgeDomainKey, DataBroker databroker) {
+
+        InstanceIdentifier<BridgeDomain> bridgeDomainIid =
+                nodeIid.augmentation(FabricCapableDevice.class).child(Config.class).child(BridgeDomain.class, bridgeDomainKey);
 
         BridgeDomain bridgeDomain = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bridgeDomainIid, databroker);
 

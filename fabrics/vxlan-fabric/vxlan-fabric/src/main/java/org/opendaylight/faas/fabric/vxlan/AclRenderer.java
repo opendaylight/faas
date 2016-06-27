@@ -17,7 +17,7 @@ import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalPortAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
@@ -94,10 +94,8 @@ public class AclRenderer implements Callable<Void> {
             builder.setFabricAclName(aclname);
             for (UnderlayerPorts uport : uports) {
                 @SuppressWarnings("unchecked")
-                InstanceIdentifier<TerminationPoint> tpIid = (InstanceIdentifier<TerminationPoint>)
-                        uport.getPortRef().getValue();
-                InstanceIdentifier<FabricAcl> path = tpIid.augmentation(BridgeDomainPort.class)
-                        .child(FabricAcl.class, new FabricAclKey(aclname));
+                InstanceIdentifier<BdPort> bdPortIid = (InstanceIdentifier<BdPort>) uport.getPortRef();
+                InstanceIdentifier<FabricAcl> path = bdPortIid.child(FabricAcl.class, new FabricAclKey(aclname));
 
                 trans.merge(LogicalDatastoreType.OPERATIONAL, path, builder.build(), true);
             }
@@ -120,10 +118,8 @@ public class AclRenderer implements Callable<Void> {
             WriteTransaction trans = databroker.newWriteOnlyTransaction();
             for (UnderlayerPorts uport : uports) {
                 @SuppressWarnings("unchecked")
-                InstanceIdentifier<TerminationPoint> tpIid = (InstanceIdentifier<TerminationPoint>)
-                        uport.getPortRef().getValue();
-                InstanceIdentifier<FabricAcl> path = tpIid.augmentation(BridgeDomainPort.class)
-                        .child(FabricAcl.class, new FabricAclKey(aclname));
+                InstanceIdentifier<BdPort> bdPortIid = (InstanceIdentifier<BdPort>) uport.getPortRef();
+                InstanceIdentifier<FabricAcl> path = bdPortIid.child(FabricAcl.class, new FabricAclKey(aclname));
                 trans.delete(LogicalDatastoreType.OPERATIONAL, path);
             }
             MdSalUtils.wrapperSubmit(trans);

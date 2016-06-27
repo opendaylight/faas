@@ -7,6 +7,11 @@
  */
 package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.common.net.InetAddresses;
+import com.google.common.util.concurrent.CheckedFuture;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,11 +77,6 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.net.InetAddresses;
-import com.google.common.util.concurrent.CheckedFuture;
-
 public class PipelineL2Forwarding extends AbstractServiceInstance {
     private static final Logger LOG = LoggerFactory.getLogger(PipelineL2Forwarding.class);
 
@@ -125,7 +125,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instructions List Stores Individual Instructions
             List<Instruction> instructions = Lists.newArrayList();
 
-            if (vlanId != 0l) {
+            if (vlanId != null) {
                 OfInstructionUtils.createSetVlanInstructions(ib, new VlanId(vlanId.intValue()));
                 ib.setOrder(instructions.size());
                 ib.setKey(new InstructionKey(instructions.size()));

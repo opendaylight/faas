@@ -16,22 +16,18 @@ import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPortBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalPortAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.TpRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.UnderlayerPorts;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.UnderlayerPortsBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.UnderlayerPortsKey;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public class EpAccessPortRenderer {
@@ -57,23 +53,22 @@ public class EpAccessPortRenderer {
     }
 
     @SuppressWarnings("unchecked")
-    public void createEpAccessPort(WriteTransaction trans, Endpoint ep, TpId bridgeDomainPort) throws Exception {
+    public void createEpAccessPort(WriteTransaction trans,
+            Endpoint ep, InstanceIdentifier<BdPort> bdPortIid) throws Exception {
         if (!calcLogicPortIId(ep)) {
             return;
         }
 
         InstanceIdentifier<Node> devNode = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
-        InstanceIdentifier<TerminationPoint> devTpIid = devNode.child(TerminationPoint.class,
-                new TerminationPointKey(bridgeDomainPort));
 
         Optional<TerminationPoint> optional = readTp();
 
         InstanceIdentifier<UnderlayerPorts> iid = lportIid.augmentation(LogicalPortAugment.class)
                 .child(LportAttribute.class)
-                .child(UnderlayerPorts.class, new UnderlayerPortsKey(new TpRef(devTpIid)));
+                .child(UnderlayerPorts.class, new UnderlayerPortsKey(bdPortIid));
 
         UnderlayerPortsBuilder builder = new UnderlayerPortsBuilder();
-        builder.setPortRef(ep.getLocation().getTpRef());
+        builder.setPortRef(bdPortIid);
 
         trans.put(LogicalDatastoreType.OPERATIONAL, iid, builder.build());
 
@@ -83,7 +78,7 @@ public class EpAccessPortRenderer {
                 LportAttribute lattr = lpAug.getLportAttribute();
                 List<FabricAcl> acls = lattr.getFabricAcl();
                 if (acls != null && acls.isEmpty()) {
-                    cpAcls(acls, devTpIid, trans);
+                    cpAcls(acls, bdPortIid, trans);
                 }
             }
         }
@@ -108,7 +103,7 @@ public class EpAccessPortRenderer {
                 List<FabricAcl> acls = lattr.getFabricAcl();
                 if (acls == null || acls.isEmpty()) {
                     for (UnderlayerPorts uport : uports) {
-                        trans.delete(LogicalDatastoreType.OPERATIONAL, uport.getPortRef().getValue());
+                        trans.delete(LogicalDatastoreType.OPERATIONAL, uport.getPortRef());
                     }
                 }
 
@@ -122,18 +117,12 @@ public class EpAccessPortRenderer {
         }
     }
 
-    private void cpAcls(List<FabricAcl> acls, InstanceIdentifier<TerminationPoint> tpIid, WriteTransaction trans) {
+    private void cpAcls(List<FabricAcl> acls, InstanceIdentifier<BdPort> bdPortIid, WriteTransaction trans) {
 
-        BridgeDomainPortBuilder bdportBuilder = new  BridgeDomainPortBuilder();
+        BdPortBuilder bdportBuilder = new  BdPortBuilder();
         bdportBuilder.setFabricAcl(acls);
 
-        TerminationPointBuilder builder = new TerminationPointBuilder();
-        builder.setKey(tpIid.firstKeyOf(TerminationPoint.class));
-
-        builder.addAugmentation(BridgeDomainPort.class, bdportBuilder.build());
-
-        trans.merge(LogicalDatastoreType.OPERATIONAL, tpIid, builder.build());
-
+        trans.merge(LogicalDatastoreType.OPERATIONAL, bdPortIid, bdportBuilder.build());
     }
 
     private Optional<TerminationPoint> readTp() throws Exception {

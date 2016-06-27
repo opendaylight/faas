@@ -47,6 +47,26 @@ module fabric-capable-device {
             }
         }
 
+		list bd-port {
+            key bd-port-id;
+            leaf bd-port-id {
+                type string;
+            }
+            leaf bdid {
+                type string;
+            }
+            leaf ref-tp-id {
+                type topo:tp-id;
+            }
+            leaf access-type {
+                type fabrictype:access-type;
+            }
+            leaf access-tag {
+                type uint32;
+            }
+            uses fabrictype:acl-list; 
+        }
+
         list vrf {
             key id;
             leaf id {
@@ -118,15 +138,8 @@ module fabric-capable-device {
     augment "/topo:network-topology/topo:topology/topo:node/topo:termination-point" {
         ext:augment-identifier "bridge-domain-port";
 
-            leaf bd-id {
-                type string;
-            }
-            leaf access-type {
-                type fabrictype:access-type;
-            }
-            leaf access-tag {
-                type uint32;
-            }
-            uses fabrictype:acl-list;
+		leaf-list bd-ids {
+			type instance-identifier;
+		} 
     }
 }

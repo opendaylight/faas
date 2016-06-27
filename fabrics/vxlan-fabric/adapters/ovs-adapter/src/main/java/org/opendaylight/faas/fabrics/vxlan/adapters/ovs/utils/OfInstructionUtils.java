@@ -8,8 +8,6 @@
 
 package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils;
 
-import static org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils.dropAction;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,7 +77,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OfInstructionUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(InstructionUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OfInstructionUtils.class);
     private static final int IPV4 = 0x8100;
     private static final int MAX_LENGTH = 0xffff;
 
@@ -265,8 +263,7 @@ public class OfInstructionUtils {
      */
     public static boolean removeOutputPortFromInstructions(InstructionBuilder ib,
             Long dpidLong, Long port, List<Instruction> instructions) {
-
-        final NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpidLong + ":" + port);
+        String ncid = "openflow:" + dpidLong + ":" + port;
         final Uri ncidUri = new Uri(ncid);
         LOG.debug(
                 "removeOutputPortFromInstructions() Node Connector ID is - Type=openflow: DPID={} port={} existingInstructions={}",
@@ -1027,6 +1024,31 @@ public class OfInstructionUtils {
         return ib;
     }
 
+    public static InstructionBuilder createDlSrcInstructions(InstructionBuilder ib, String macAddress) {
+
+        List<Action> actionList = new ArrayList<>();
+        ActionBuilder ab = new ActionBuilder();
+
+        SetDlSrcActionBuilder dlSrcActionBuilder= new SetDlSrcActionBuilder();
+
+        dlSrcActionBuilder.setAddress(new MacAddress(macAddress));
+
+        ab.setAction(new SetDlSrcActionCaseBuilder().setSetDlSrcAction(dlSrcActionBuilder.build()).build());
+        ab.setOrder(0);
+        ab.setKey(new ActionKey(0));
+        actionList.add(ab.build());
+
+
+        // Create an Apply Action
+        ApplyActionsBuilder aab = new ApplyActionsBuilder();
+        aab.setAction(actionList);
+
+        // Wrap our Apply Action in an Instruction
+        ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+
+        return ib;
+    }
+
     public static InstructionBuilder createDlDstInstructions(InstructionBuilder ib, MacAddress macAddress) {
 
         List<Action> actionList = new ArrayList<>();
@@ -1117,10 +1139,6 @@ public class OfInstructionUtils {
         return new InstructionsBuilder().setInstruction(ins).build();
     }
 
-    public static Instructions dropInstructions() {
-        return getInstructions(applyActionIns(dropAction()));
-    }
-
     /**
      * Extracts the existing instructions (if any) from the flow.
      *
@@ -1186,7 +1204,7 @@ public class OfInstructionUtils {
         ib.setKey(new InstructionKey(order));
         ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
         if (drop) {
-            InstructionUtils.createDropInstructions(ib);
+            OfInstructionUtils.createDropInstructions(ib);
         }
         return ib;
     }

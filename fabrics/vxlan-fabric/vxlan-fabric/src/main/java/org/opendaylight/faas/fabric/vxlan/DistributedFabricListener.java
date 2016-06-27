@@ -34,8 +34,6 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.FabricVxlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.RmFromVxlanFabricInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.VtepAttribute;
@@ -48,6 +46,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayer;
@@ -349,22 +348,19 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 
             final LportAttribute logicalPortAttr = InterfaceManager.getLogicalPortAttr(dataBroker, iid);
 
-            fabricCtx.getDeviceCtx(new DeviceKey(devtp.firstKeyOf(Topology.class).getTopologyId(), nodeId));
+            TpId tpid = devtp.firstKeyOf(TerminationPoint.class).getTpId();
 
-            CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
-            builder.setNodeId(devtp.firstIdentifierOf(Node.class));
-            builder.setTpId(devtp.firstKeyOf(TerminationPoint.class).getTpId());
+            DeviceContext devCtx = fabricCtx.getDeviceCtx(
+                    DeviceKey.newInstance(devtp.firstIdentifierOf(Node.class)));
+
             PortLayer layerInfo = logicalPortAttr.getPortLayer();
-            if (layerInfo != null) {
-                Layer2Info layer2Info = layerInfo.getLayer2Info();
-                if (layer2Info != null) {
-                    builder.setAccessType(layer2Info.getAccessType());
-                    builder.setAccessTag(layer2Info.getAccessSegment());
-                }
+            Layer2Info layer2Info = layerInfo.getLayer2Info();
+            if (layer2Info != null) {
+                devCtx.createBdPort(vni, tpid, layer2Info.getAccessType(), layer2Info.getAccessSegment());
+            } else {
+                devCtx.createBdPort(vni, tpid, AccessType.Exclusive, 0);
             }
-            builder.setBdId(String.valueOf(vni));
-            CreateBridgeDomainPortInput input = builder.build();
-            epMgr.getVxlanDeviceAdapter().createBridgeDomainPort(input);
+
         } else {
             LOG.warn("Not yet support layer3 port located.");
         }
@@ -380,7 +376,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             return;
         }
 
-        // FIXME calculate outgoing vni
+        // calculate outgoing vni
         for (Route route : routes) {
             RouteBuilder builder = new RouteBuilder(route);
             renderRoute(builder, nodeId);
@@ -400,7 +396,6 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
 
         NextHopOptions nexthop = builder.getNextHopOptions();
         if (nexthop instanceof SimpleNextHop) {
-            LOG.info("shidn test. SimpleNextHop .....................................");
             SimpleNextHop simpleNh  = (SimpleNextHop) nexthop;
 
             Ipv4Address ipv4addr = simpleNh.getNextHop();
@@ -411,11 +406,9 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
                 GatewayPort gwport = fabricCtx.getLogicRouterCtx(routerId).getGatewayPort(gwIp);
                 long vni = gwport.getVni();
                 builder.addAugmentation(VxlanRouteAug.class, new VxlanRouteAugBuilder().setOutgoingVni(vni).build());
-
-                LOG.info("shidn test. here .....................................");
             }
         } else {
-            LOG.warn("shidn test. nexthop is not simple. {}", nexthop.getClass().getName());
+            LOG.warn("nexthop is not simple. {}", nexthop.getClass().getName());
         }
     }
 
