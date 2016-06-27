@@ -18,7 +18,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev14
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
@@ -66,9 +65,9 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        flowBuilder.setMatch(OfMatchUtils.createEthSrcMatch(matchBuilder, new MacAddress(attachedMac)).build());
+        flowBuilder.setMatch(OfMatchUtils.createEthSrcMatch(matchBuilder, attachedMac).build());
         flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
-        if (vlanId != 0l) {
+        if (vlanId != null) {
             flowBuilder.setMatch(OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
         }
 

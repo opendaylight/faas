@@ -31,10 +31,12 @@ module fabric-endpoint {
 
         leaf access-type {
             type fabrictype:access-type;
+            default "exclusive";
         }
 
         leaf access-segment {
             type uint32;
+            default 0;
         }
     }
 

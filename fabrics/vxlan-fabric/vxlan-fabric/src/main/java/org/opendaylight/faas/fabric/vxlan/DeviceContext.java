@@ -21,6 +21,9 @@ import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifKey;
@@ -30,7 +33,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1Builder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
@@ -86,6 +91,33 @@ public class DeviceContext {
                 removeBdif(vni, gw);
             }
         }
+    }
+
+    /**
+     * Create a new Bridge Domain Port.
+     * @param vni vni
+     * @param tpid physical termination point
+     * @param accessType access type
+     * @param seg access segment
+     * @return String name of Bridge Domain Port
+     */
+    public String createBdPort(long vni, TpId tpid, AccessType accessType, long seg) {
+        String bdPortId = createBdPortId(tpid,  seg);
+
+        BdPortBuilder builder = new BdPortBuilder();
+        builder.setBdPortId(bdPortId);
+        builder.setAccessType(accessType);
+        builder.setAccessTag(seg);
+        builder.setRefTpId(tpid);
+        builder.setBdid(this.createBdId(vni));
+
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        InstanceIdentifier<BdPort> bdIId = deviceIId.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(BdPort.class, new BdPortKey(bdPortId));
+        trans.put(LogicalDatastoreType.OPERATIONAL, bdIId, builder.build(), true);
+        MdSalUtils.wrapperSubmit(trans, executor);
+
+        return bdPortId;
     }
 
     void createBdif(long vni, LogicRouterContext vrfctx) {
@@ -160,6 +192,10 @@ public class DeviceContext {
 
     private String createBdId(long vni) {
         return String.format("bd:%d", vni);
+    }
+
+    private String createBdPortId(TpId tpid, long segment) {
+        return String.format("tp:%s - seg:%d", tpid.getValue(), segment);
     }
 
     private String createBdIfId(long vni) {

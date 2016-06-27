@@ -16,6 +16,8 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPortBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalPortAugment;
@@ -56,23 +58,22 @@ public class EpAccessPortRenderer {
     }
 
     @SuppressWarnings("unchecked")
-    public void createEpAccessPort(WriteTransaction trans, Endpoint ep, TpId bridgeDomainPort) throws Exception {
+    public void createEpAccessPort(WriteTransaction trans,
+            Endpoint ep, InstanceIdentifier<BdPort> bdPortIid) throws Exception {
         if (!calcLogicPortIId(ep)) {
             return;
         }
 
-        InstanceIdentifier<Node> underlayernode = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
-        InstanceIdentifier<TerminationPoint> underlayerTpIid = underlayernode
-                .child(TerminationPoint.class, new TerminationPointKey(bridgeDomainPort));
+        InstanceIdentifier<Node> devNode = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
 
         Optional<TerminationPoint> optional = readTp();
 
         InstanceIdentifier<UnderlayerPorts> iid = lportIid.augmentation(LogicalPortAugment.class)
                 .child(LportAttribute.class)
-                .child(UnderlayerPorts.class, new UnderlayerPortsKey(new TpRef(underlayerTpIid)));
+                .child(UnderlayerPorts.class, new UnderlayerPortsKey(bdPortIid));
 
         UnderlayerPortsBuilder builder = new UnderlayerPortsBuilder();
-        builder.setPortRef(ep.getLocation().getTpRef());
+        builder.setPortRef(bdPortIid);
 
         trans.put(LogicalDatastoreType.OPERATIONAL, iid, builder.build());
 
@@ -82,7 +83,7 @@ public class EpAccessPortRenderer {
                 LportAttribute lattr = lpAug.getLportAttribute();
                 List<FabricAcl> acls = lattr.getFabricAcl();
                 if (acls != null && acls.isEmpty()) {
-                    cpAcls(acls, underlayerTpIid, trans);
+                    cpAcls(acls, bdPortIid, trans);
                 }
             }
         }
@@ -105,7 +106,7 @@ public class EpAccessPortRenderer {
                 List<FabricAcl> acls = lattr.getFabricAcl();
                 if (acls == null || acls.isEmpty()) {
                     for (UnderlayerPorts uport : uports) {
-                        trans.delete(LogicalDatastoreType.OPERATIONAL, uport.getPortRef().getValue());
+                        trans.delete(LogicalDatastoreType.OPERATIONAL, uport.getPortRef());
                     }
                 }
 
@@ -119,17 +120,12 @@ public class EpAccessPortRenderer {
         }
     }
 
-    private void cpAcls(List<FabricAcl> acls, InstanceIdentifier<TerminationPoint> tpIid, WriteTransaction trans) {
+    private void cpAcls(List<FabricAcl> acls, InstanceIdentifier<BdPort> bdPortIid, WriteTransaction trans) {
 
-        BridgeDomainPortBuilder bdportBuilder = new  BridgeDomainPortBuilder();
+        BdPortBuilder bdportBuilder = new  BdPortBuilder();
         bdportBuilder.setFabricAcl(acls);
 
-        TerminationPointBuilder builder = new TerminationPointBuilder();
-        builder.setKey(tpIid.firstKeyOf(TerminationPoint.class));
-
-        builder.addAugmentation(BridgeDomainPort.class, bdportBuilder.build());
-
-        trans.merge(LogicalDatastoreType.OPERATIONAL, tpIid, builder.build());
+        trans.merge(LogicalDatastoreType.OPERATIONAL, bdPortIid, bdportBuilder.build());
 
     }
 

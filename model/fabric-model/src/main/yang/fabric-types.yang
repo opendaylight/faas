@@ -239,7 +239,7 @@ module fabric-types {
         list underlayer-ports {
             key port-ref;
             leaf port-ref {
-                type tp-ref;
+                type instance-identifier;
             }
         }
     }

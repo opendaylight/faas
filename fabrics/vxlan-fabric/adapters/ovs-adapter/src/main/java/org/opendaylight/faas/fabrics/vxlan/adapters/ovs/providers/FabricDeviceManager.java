@@ -7,6 +7,16 @@
  */
 package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +45,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Attributes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.AttributesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.CreateBridgeDomainPortOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.FabricVxlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.RmFromVxlanFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.VtepAttribute;
@@ -69,16 +76,6 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.CheckedFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, DataChangeListener, AutoCloseable {
 
@@ -292,7 +289,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         OvsSouthboundUtils.deleteVxlanTunnelPort(bridgeNode, databroker);
 
         // clear all flows
-        long dpId = OvsSouthboundUtils.getDataPathId(bridgeNode);
+        Long dpId = OvsSouthboundUtils.getDataPathId(bridgeNode);
         org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId inventoryNodeId
             = new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId("openflow:" + dpId);
 
@@ -318,11 +315,4 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         }
     }
 
-    @Override
-    public Future<RpcResult<CreateBridgeDomainPortOutput>> createBridgeDomainPort(CreateBridgeDomainPortInput input) {
-        // for OVS, we do not create sub interface
-        CreateBridgeDomainPortOutputBuilder outputBuilder = new CreateBridgeDomainPortOutputBuilder();
-        outputBuilder.setBridgeDomainPort(input.getTpId());
-        return Futures.immediateFuture(RpcResultBuilder.success(outputBuilder).build());
-    }
 }

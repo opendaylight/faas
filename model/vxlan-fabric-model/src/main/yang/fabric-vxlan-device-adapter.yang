@@ -37,8 +37,8 @@ module fabric-vxlan-device-adapter {
         }
     }
 
-	rpc addToVxlanFabric {
-		input {
+    rpc addToVxlanFabric {
+        input {
             leaf node-id {
                 type instance-identifier;
                 ext:context-reference "device:fabric-capable-device-context";
@@ -47,10 +47,10 @@ module fabric-vxlan-device-adapter {
                 type topo:node-id;
             }
         }
-	}
+    }
 
-	rpc rmFromVxlanFabric {
-		input {
+    rpc rmFromVxlanFabric {
+        input {
             leaf node-id {
                 type instance-identifier;
                 ext:context-reference "device:fabric-capable-device-context";
@@ -59,31 +59,5 @@ module fabric-vxlan-device-adapter {
                 type topo:node-id;
             }
         }
-	}
-
-	rpc createBridgeDomainPort{
-		input {
-            leaf node-id {
-                type instance-identifier;
-                ext:context-reference "device:fabric-capable-device-context";
-            }
-            leaf bd-id {
-                type string;
-            }
-            leaf tp-id {
-                type topo:tp-id;
-            }
-			leaf access-type {
-                type fabrictype:access-type;
-            }
-            leaf access-tag {
-                type uint32;
-            }
-        }
-        output {
-        	leaf bridge-domain-port {
-        		type topo:tp-id;
-        	}
-        }
-	}
+    }
 }

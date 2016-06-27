@@ -15,8 +15,8 @@ import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OvsSouthboundUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.InstructionUtils;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowCapableNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.tables.Table;
@@ -83,9 +83,9 @@ public abstract class AbstractServiceInstance {
     protected final InstructionBuilder getMutablePipelineInstructionBuilder() {
         Service nextService = PipelineOrchestrator.getNextServiceInPipeline(service);
         if (nextService != null) {
-            return InstructionUtils.createGotoTableInstructions(new InstructionBuilder(), nextService.getTable());
+            return OfInstructionUtils.createGotoTableInstructions(new InstructionBuilder(), nextService.getTable());
         } else {
-            return InstructionUtils.createDropInstructions(new InstructionBuilder());
+            return OfInstructionUtils.createDropInstructions(new InstructionBuilder());
         }
     }
 
@@ -154,9 +154,9 @@ public abstract class AbstractServiceInstance {
         return null;
     }
 
-    private long getDpid(Node node) {
-        long dpid = OvsSouthboundUtils.getDataPathId(node);
-        if (dpid == 0) {
+    private Long getDpid(Node node) {
+        Long dpid = OvsSouthboundUtils.getDataPathId(node);
+        if (dpid == null) {
             LOG.warn("getDpid: dpid not found: {}", node);
         }
         return dpid;
@@ -174,8 +174,8 @@ public abstract class AbstractServiceInstance {
         }
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
-        long dpid = getDpid(node);
-        if (dpid == 0) {
+        Long dpid = getDpid(node);
+        if (dpid == null) {
             LOG.info("could not find dpid: {}", node.getNodeId());
             return;
         }
@@ -218,7 +218,7 @@ public abstract class AbstractServiceInstance {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
 
-        if (dpid == 0l) {
+        if (dpid == null) {
             LOG.info("could not find dpid: {}", dpid);
             return;
         }

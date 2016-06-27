@@ -99,7 +99,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 public class OfMatchUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(MatchUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OfMatchUtils.class);
     public static final short ICMP_SHORT = 1;
     public static final short TCP_SHORT = 6;
     public static final short UDP_SHORT = 17;
@@ -209,6 +209,17 @@ public class OfMatchUtils {
         return matchBuilder;
     }
 
+    public static MatchBuilder createEthSrcMatch(MatchBuilder matchBuilder, String sMacAddr) {
+
+        EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
+        EthernetSourceBuilder ethSourceBuilder = new EthernetSourceBuilder();
+        ethSourceBuilder.setAddress(new MacAddress(sMacAddr));
+        ethernetMatch.setEthernetSource(ethSourceBuilder.build());
+        matchBuilder.setEthernetMatch(ethernetMatch.build());
+
+        return matchBuilder;
+    }
+
     /**
      * Create Ethernet Destination Match
      *
@@ -255,19 +266,19 @@ public class OfMatchUtils {
      * @param dMacAddr     String representing a destination MAC
      * @return matchBuilder Map MatchBuilder Object with a match
      */
-    public static MatchBuilder createDestEthMatch(MatchBuilder matchBuilder, String dMacAddr, MacAddress mask) {
-
-        EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
-        EthernetDestinationBuilder ethDestinationBuilder = new EthernetDestinationBuilder();
-        ethDestinationBuilder.setAddress(new MacAddress(dMacAddr));
-        if (mask != null) {
-            ethDestinationBuilder.setMask(mask);
-        }
-        ethernetMatch.setEthernetDestination(ethDestinationBuilder.build());
-        matchBuilder.setEthernetMatch(ethernetMatch.build());
-
-        return matchBuilder;
-    }
+//    public static MatchBuilder createDestEthMatch(MatchBuilder matchBuilder, String dMacAddr, MacAddress mask) {
+//
+//        EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
+//        EthernetDestinationBuilder ethDestinationBuilder = new EthernetDestinationBuilder();
+//        ethDestinationBuilder.setAddress(new MacAddress(dMacAddr));
+//        if (mask != null) {
+//            ethDestinationBuilder.setMask(mask);
+//        }
+//        ethernetMatch.setEthernetDestination(ethDestinationBuilder.build());
+//        matchBuilder.setEthernetMatch(ethernetMatch.build());
+//
+//        return matchBuilder;
+//    }
 
     /**
      * Create Ethernet Destination Match
@@ -412,7 +423,7 @@ public class OfMatchUtils {
     public static MatchBuilder createArpDstIpv4Match(MatchBuilder matchBuilder, Ipv4Prefix dstip) {
         ArpMatchBuilder arpDstMatch = new ArpMatchBuilder();
         arpDstMatch.setArpTargetTransportAddress(dstip)
-                .setArpOp(FlowUtils.ARP_OP_REQUEST);
+                .setArpOp(OfFlowUtils.ARP_OP_REQUEST);
         matchBuilder.setLayer3Match(arpDstMatch.build());
 
         return matchBuilder;
@@ -1489,7 +1500,6 @@ public class OfMatchUtils {
 
         } else if (UDP_SHORT == protocol) {
             ipmatch.setIpProtocol(UDP_SHORT);
-            UdpMatchBuilder udpMatch = new UdpMatchBuilder();
             if (0 != srcPort) {
                 NxmOfUdpSrcBuilder udpSrc = new NxmOfUdpSrcBuilder();
                 udpSrc.setPort(new PortNumber(srcPort));
