@@ -468,13 +468,6 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestTpPort(), databroker);
             Long vlanId = null;
             if (ofPort != null) {
-
-//                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(),
-//                        newRec.getDestBridgePort(), databroker);
-//                if (bdPort != null) {
-//                    if (bdPort.getAccessType() == AccessType.Vlan)
-//                        vlanId = bdPort.getAccessTag();
-//                }
                 if (newRec.getAccessType() == AccessType.Vlan) {
                     vlanId = newRec.getAccessTag();
                 }
@@ -511,12 +504,6 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestTpPort(), databroker);
             Long vlanId = null;
             if (ofPort != null) {
-//                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(),
-//                        newRec.getDestBridgePort(), databroker);
-//                if (bdPort != null) {
-//                    if (bdPort.getAccessType() == AccessType.Vlan)
-//                        vlanId = bdPort.getAccessTag();
-//                }
                 if (newRec.getAccessType() == AccessType.Vlan) {
                     vlanId = newRec.getAccessTag();
                 }
@@ -667,8 +654,6 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         } else if (iid.firstKeyOf(BdPort.class) != null) {
             Long dpid = ctx.getDpid();
 
-//            InstanceIdentifier<BdPort> bdPortIid = InstanceIdentifier.create(FabricCapableDevice.class)
-//                    .child(Config.class).child(BdPort.class, iid.firstKeyOf(BdPort.class));
             InstanceIdentifier<BdPort> bdPortIid = iid.firstIdentifierOf(BdPort.class);
 
             BdPort bdport = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bdPortIid, databroker);
@@ -711,7 +696,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         Long ofInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getRefTpId(), databroker);
 
         if (ofInPort != null) {
-            Long vni = OvsSouthboundUtils.getBdPortVni(ctx.getMyIId(), iid.firstKeyOf(BridgeDomain.class), databroker);
+            Long vni = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), newRec.getBdid(), databroker);
 
             if (vni != null) {
                 openflow13Provider.updateBdPortInDevice(dpid, ofInPort, vni, newRec, true);
@@ -725,8 +710,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 databroker);
 
         if (ofInPort != null) {
-            Long vni = OvsSouthboundUtils.getBdPortVni(ctx.getMyIId(), iid.firstKeyOf(BridgeDomain.class), databroker);
-
+            Long vni = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), newRec.getBdid(), databroker);
             if (vni != null) {
                 openflow13Provider.updateBdPortInDevice(dpid, ofInPort, vni, newRec, false);
             }

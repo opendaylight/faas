@@ -153,10 +153,12 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         List<org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action> actionList = Lists
                 .newArrayList();
 
-        OfMatchUtils.createDestEthMatch(matchBuilder, gwMacAddress, "");
-
+//        OfMatchUtils.createDestEthMatch(matchBuilder, gwMacAddress, "");
+//
         final String prefixString = destIpv4Prefix.getValue();
-        OfMatchUtils.createDstL3IPv4Match(matchBuilder, prefixString);
+//        OfMatchUtils.createDstL3IPv4Match(matchBuilder, prefixString);
+
+        OfMatchUtils.createDmacDestIpMatch(matchBuilder, gwMacAddress, destIpv4Prefix);
 
         String flowId = "StaticRouting_" + nexthopSegId + "_" + prefixString;
         flowBuilder.setId(new FlowId(flowId));

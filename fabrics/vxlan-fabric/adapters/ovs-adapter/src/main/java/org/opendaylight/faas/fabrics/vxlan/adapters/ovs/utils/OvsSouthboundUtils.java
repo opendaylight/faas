@@ -41,13 +41,6 @@ import com.google.common.collect.Maps;
 
 public class OvsSouthboundUtils {
     private static final Logger LOG = LoggerFactory.getLogger(OvsSouthboundUtils.class);
-    //private MdsalUtils mdsalUtils = null;
-    //private DataBroker databroker = null;
-
-//    public OvsSouthboundUtils(DataBroker dataBroker) {
-//        //mdsalUtils = new MdsalUtils(dataBroker);
-//        this.databroker = dataBroker;
-//    }
 
     public static OvsdbBridgeAugmentation getBridge(Node node) {
         return node.getAugmentation(OvsdbBridgeAugmentation.class);
@@ -339,19 +332,6 @@ public class OvsSouthboundUtils {
         return ofPort;
     }
 
-//    public static BridgeDomainPort getBridgeDomainPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
-//        InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
-//        TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
-//        if (teminationPoint != null) {
-//            BridgeDomainPort bridgeDomainPort = teminationPoint.getAugmentation(BridgeDomainPort.class);
-//
-//            if (bridgeDomainPort != null)
-//                return bridgeDomainPort;
-//        }
-//        return null;
-//
-//    }
-
     public static Long getBridgeDomainVni(InstanceIdentifier<Node> nodeIid, String bridgeDomainId, DataBroker databroker) {
         InstanceIdentifier<BridgeDomain> bridgeDomainIid =
                 nodeIid.augmentation(FabricCapableDevice.class).child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bridgeDomainId));
@@ -363,15 +343,4 @@ public class OvsSouthboundUtils {
         return segmentationId;
     }
 
-    public static Long getBdPortVni(InstanceIdentifier<Node> nodeIid, BridgeDomainKey bridgeDomainKey, DataBroker databroker) {
-
-        InstanceIdentifier<BridgeDomain> bridgeDomainIid =
-                nodeIid.augmentation(FabricCapableDevice.class).child(Config.class).child(BridgeDomain.class, bridgeDomainKey);
-
-        BridgeDomain bridgeDomain = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bridgeDomainIid, databroker);
-
-        Long segmentationId = bridgeDomain.getAugmentation(BridgeDomain1.class).getVni();
-
-        return segmentationId;
-    }
 }
