@@ -68,6 +68,12 @@ module fabric-vxlan-rendered-mapping {
                 leaf dest-bridge-port {
                     type topo:tp-id;
                 }
+                leaf access-type {
+                    type fabrictype:access-type;
+                }
+                leaf access-tag {
+                    type uint32;
+                }
             }
             list rib {
                 key "vrf";

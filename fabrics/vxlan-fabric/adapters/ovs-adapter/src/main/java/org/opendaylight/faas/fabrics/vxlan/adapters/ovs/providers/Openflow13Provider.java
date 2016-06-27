@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineAclHandler;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineArpHandler;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineInboundNat;
@@ -27,9 +28,17 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.cont
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.access.lists.Acl;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.access.lists.AclKey;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
+//import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.bridge.domain.BdPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricOptions.TrafficBehavior;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMapping;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRoute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.rib.VxlanRouteAug;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
@@ -37,7 +46,8 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public class Openflow13Provider {
-    //private static final Logger LOG = LoggerFactory.getLogger(Openflow13Provider.class);
+    // private static final Logger LOG =
+    // LoggerFactory.getLogger(Openflow13Provider.class);
 
     private PipelineTrafficClassifier trafficClassifier;
     private PipelineMacLearning macLearning;
@@ -86,24 +96,15 @@ public class Openflow13Provider {
 
     }
 
-//    private long getDpid(Node node) {
-//        long dpid = OvsSouthboundUtils.getDataPathId(node);
-//        if (dpid == 0) {
-//            LOG.warn("getDpid: dpid not found: {}", node);
-//        }
-//        return dpid;
-//    }
-
-    //The host route is located in this Device
-    public void updateLocalHostRouteInDevice(Long dpid, Long ofPort, Long gpeTunnelOfPort,
-            Long vlanId, HostRoute hostRoute, boolean writeFlow)
-    {
+    // The host route is located in this Device
+    public void updateLocalHostRouteInDevice(Long dpid, Long ofPort, Long gpeTunnelOfPort, Long vlanId,
+            HostRoute hostRoute, boolean writeFlow) {
         Long segmentationId = hostRoute.getVni();
         String macAddress = hostRoute.getMac().getValue();
         IpAddress ipAddress = hostRoute.getIp();
 
         trafficClassifier.programLocalInPort(dpid, segmentationId, vlanId, ofPort, macAddress, writeFlow);
-        trafficClassifier.programDropSrcIface(dpid, ofPort, writeFlow);
+        // trafficClassifier.programDropSrcIface(dpid, ofPort, writeFlow);
 
         arpHandler.programStaticArpEntry(dpid, segmentationId, macAddress, ipAddress, writeFlow);
 
@@ -112,9 +113,10 @@ public class Openflow13Provider {
         l2Forwarding.programLocalUcastOut(dpid, segmentationId, vlanId, ofPort, macAddress, writeFlow);
         l2Forwarding.programRemoteBcastOutToLocalPort(dpid, segmentationId, ofPort, writeFlow);
         l2Forwarding.programLocalBcastToLocalPort(dpid, segmentationId, ofPort, writeFlow);
-        //l2Forwarding.programLocalBcastToTunnelPort(dpid, segmentationId, ofPort, dstTunIpAddress, true);
+        // l2Forwarding.programLocalBcastToTunnelPort(dpid, segmentationId,
+        // ofPort, dstTunIpAddress, true);
 
-        if(gpeTunnelOfPort != 0l) {
+        if (gpeTunnelOfPort != null) {
             IpAddress dstTunIp = hostRoute.getDestVtep();
 
             l2Forwarding.programSfcTunnelOut(dpid, segmentationId, gpeTunnelOfPort, macAddress, dstTunIp, writeFlow);
@@ -122,9 +124,10 @@ public class Openflow13Provider {
 
     }
 
-    //The host route is located in The remove Device, add some flows in this device for the remote host route
-    public void updateRemoteHostRouteInDevice(Long dpid, Long tunnelOfPort, Long gpeTunnelOfPort, HostRoute hostRoute, boolean writeFlow)
-    {
+    // The host route is located in The remove Device, add some flows in this
+    // device for the remote host route
+    public void updateRemoteHostRouteInDevice(Long dpid, Long tunnelOfPort, Long gpeTunnelOfPort, HostRoute hostRoute,
+            boolean writeFlow) {
         Long segmentationId = hostRoute.getVni();
         String macAddress = hostRoute.getMac().getValue();
         IpAddress ipAddress = hostRoute.getIp();
@@ -135,14 +138,14 @@ public class Openflow13Provider {
 
         l3Forwarding.programForwardingTableEntry(dpid, segmentationId, ipAddress, macAddress, writeFlow);
 
-        if(gpeTunnelOfPort != 0l) {
+        if (gpeTunnelOfPort != null) {
             l2Forwarding.programSfcTunnelOut(dpid, segmentationId, gpeTunnelOfPort, macAddress, dstTunIp, writeFlow);
         }
 
         l2Forwarding.programTunnelOut(dpid, segmentationId, tunnelOfPort, macAddress, dstTunIp, writeFlow);
     }
 
-    //For the condition: Add a new vni in a fabric capable device
+    // For the condition: Add a new vni in a fabric capable device
     public void updateBridgeDomainInDevice(Long dpid, Long tunnelOfPort, Long segmentationId, boolean writeFlow) {
         trafficClassifier.programTunnelIn(dpid, segmentationId, tunnelOfPort, writeFlow);
     }
@@ -150,7 +153,6 @@ public class Openflow13Provider {
     public void updateSfcTunnelInDevice(Long dpid, Long gpeTunnelOfPort, Long segmentationId, boolean writeFlow) {
         aclHandler.programGpeTunnelInEntry(dpid, segmentationId, gpeTunnelOfPort, writeFlow);
     }
-
 
     public void updateBdifInDevice(Long dpid, List<AdapterBdIf> bdIfs, AdapterBdIf newBdIf, boolean writeFlow) {
 
@@ -162,23 +164,27 @@ public class Openflow13Provider {
         arpHandler.programStaticArpEntry(dpid, newBdIfSegId, newBdIfMac, newBdIfIp, writeFlow);
 
         for (AdapterBdIf bdIf : bdIfs) {
-            if ((bdIf.getVrf() == newBdIf.getVrf()) ) {
+            if ((bdIf.getVrf() == newBdIf.getVrf())) {
                 Long bdIfSegId = bdIf.getVni();
                 String bdifMac = bdIf.getMacAddress().getValue();
                 IpAddress bdIfIp = bdIf.getIpAddress();
                 int bdIfMask = bdIf.getMask();
 
                 if (bdIfSegId != newBdIfSegId) {
-                    l3Routing.programRouterInterface(dpid, bdIfSegId, newBdIfSegId, newBdIfMac, newBdIfIp, newBdIfMask, writeFlow);
-                    l3Routing.programRouterInterface(dpid, newBdIfSegId, bdIfSegId, bdifMac, bdIfIp, bdIfMask, writeFlow);
+                    l3Routing.programRouterInterface(dpid, bdIfSegId, newBdIfSegId, newBdIfMac, newBdIfIp, newBdIfMask,
+                            writeFlow);
+                    l3Routing.programRouterInterface(dpid, newBdIfSegId, bdIfSegId, bdifMac, bdIfIp, bdIfMask,
+                            writeFlow);
                 }
             }
         }
 
     }
 
-    public void updateVniMembersInDevice(Long dpid, Long tunnelOfPort, Long segmentationId, IpAddress dstTunIp, boolean writeFlow) {
-        //Add remote tunnel IP to broadcast group belongs to this Bridge Domain(segmentationId)
+    public void updateVniMembersInDevice(Long dpid, Long tunnelOfPort, Long segmentationId, IpAddress dstTunIp,
+            boolean writeFlow) {
+        // Add remote tunnel IP to broadcast group belongs to this Bridge
+        // Domain(segmentationId)
         l2Forwarding.programLocalBcastToTunnelPort(dpid, segmentationId, tunnelOfPort, dstTunIp, writeFlow);
     }
 
@@ -188,7 +194,8 @@ public class Openflow13Provider {
 
     public void updateBridgeDomainAclsInDevice(Long dpid, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
-        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName, Ipv4Acl.class));
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class,
+                new AclKey(ietfAclName, Ipv4Acl.class));
 
         Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)
@@ -199,7 +206,8 @@ public class Openflow13Provider {
 
     public void updateBridgePortAclsInDevice(Long dpid, Long bridgePort, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
-        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName, Ipv4Acl.class));
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class,
+                new AclKey(ietfAclName, Ipv4Acl.class));
 
         Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)
@@ -208,12 +216,36 @@ public class Openflow13Provider {
         aclHandler.programBridgePortAclEntry(dpid, bridgePort, acl, writeFlow);
     }
 
-    public void updateBridgeDomainPortInDevice(Long dpid, Long ofPort, Long gpeTunnelOfPort,
-            Long vlanId, Long segmentationId, boolean writeFlow) {
-        //in traffic classifier table, vlan to vni mapping
-        if (vlanId !=0l )
-            trafficClassifier.programVlanInPort(dpid, vlanId, segmentationId, ofPort, writeFlow);
-        //in l2 forwarding, handle flood, we do it later!!!!
+    // If Bridge Domain Port has vlan tag, do vlan/vni mapping
+    public void updateBdPortInDevice(Long dpid, Long ofPort, Long segmentationId,
+            BdPort bdPort, boolean writeFlow) {
+        AccessType accessType = bdPort.getAccessType();
+        if (accessType.getIntValue() == AccessType.Vlan.getIntValue()) {
+            if (bdPort.getAccessTag() != null) {
+                trafficClassifier.programVlanInPort(dpid, bdPort.getAccessTag(), segmentationId, ofPort,
+                        writeFlow);
+            }
+        }
+    }
+
+    // Render the rib route entry on this device
+    public void updateRouteInDevice(Long dpid, String gwMacAddress, Route routeEntry, boolean writeFlow) {
+        l3Routing.programStaticRouting(dpid, gwMacAddress, routeEntry.getDestinationPrefix(),
+                routeEntry.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), writeFlow);
+    }
+
+    public void updatePortFunctionInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress, PortFunction portFunction, boolean writeFlow) {
+        if (portFunction.getFunctionType() instanceof IpMapping) {
+            IpMapping ipMappingEntry = (IpMapping) portFunction.getFunctionType();
+
+            String floatingIp = ipMappingEntry.getExternalIp().getValue();
+            String fixedIp = ipMappingEntry.getInternalIp().getValue();
+
+            inboundNat.programFloatingIpToFixedIp(dpid, floatingIp, floatingSegmentId, fixedIp, writeFlow);
+
+            outboundNat.programFixedIpToFloatingIp(dpid, floatingSegmentId, fixedIp, gwMacAddress, floatingIp,
+                    writeFlow);
+        }
     }
 
     public static NodeBuilder createNodeBuilder(String nodeId) {

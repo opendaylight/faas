@@ -24,12 +24,13 @@ import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.MdsalUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OvsSouthboundUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.bridge.domain.BdPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -38,11 +39,14 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.Acls;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRoute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.Rib;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.VniMembers;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.vni.members.Members;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
@@ -79,6 +83,9 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private ListenerRegistration<DataChangeListener> vtepMembersListener = null;
     private ListenerRegistration<DataChangeListener> bridgeDomainAclListener = null;
     private ListenerRegistration<DataChangeListener> bridgePortAclListener = null;
+    private ListenerRegistration<DataChangeListener> bdPortListener = null;
+    private ListenerRegistration<DataChangeListener> ribRouteListener = null;
+    private ListenerRegistration<DataChangeListener> portFunctionListener = null;
 
     public DeviceRenderer(ExecutorService exector, DataBroker databroker, InstanceIdentifier<Node> iid, Node node,
             FabricId fabricId) {
@@ -116,17 +123,46 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         vtepMembersListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, vtepMembersIId,
                 this, DataChangeScope.BASE);
 
-        //Acl function in the scope of Bridge Domain
+        // Acl function in the scope of Bridge Domain
         InstanceIdentifier<FabricAcl> bridgeDomainAclIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(Acls.class).child(FabricAcl.class);
         bridgeDomainAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
                 bridgeDomainAclIId, this, DataChangeScope.BASE);
 
-        //Acl function in the scope of Bridge Port
-        InstanceIdentifier<FabricAcl> bridgePortAclIId = iid.child(TerminationPoint.class)
-        		.augmentation(BridgeDomainPort.class).child(FabricAcl.class);
-        bridgePortAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
-                bridgePortAclIId, this, DataChangeScope.BASE);
+        // Acl function in the scope of Bridge Port
+        // InstanceIdentifier<FabricAcl> bridgePortAclIId =
+        // iid.child(TerminationPoint.class)
+        // .augmentation(BridgeDomainPort.class).child(FabricAcl.class);
+        // bridgePortAclListener =
+        // databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
+        // bridgePortAclIId, this, DataChangeScope.BASE);
+        InstanceIdentifier<FabricAcl> bdPortAclIId = iid.augmentation(FabricCapableDevice.class).child(Config.class)
+                .child(BridgeDomain.class).child(BdPort.class).child(FabricAcl.class);
+        bridgePortAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdPortAclIId,
+                this, DataChangeScope.BASE);
+
+        // If Bridge Domain Port has access tag info, do vlan vni mapping
+        // InstanceIdentifier<BridgeDomainPort> bridgeDomainPortIID =
+        // iid.child(TerminationPoint.class)
+        // .augmentation(BridgeDomainPort.class);
+        // bridgeDomainPortListener =
+        // databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
+        // bridgeDomainPortIID, this, DataChangeScope.BASE);
+
+        InstanceIdentifier<BdPort> bdPortIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
+                .child(BridgeDomain.class).child(BdPort.class);
+        bdPortListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdPortIID, this,
+                DataChangeScope.BASE);
+
+        InstanceIdentifier<Route> routeIID = InstanceIdentifier.create(FabricRenderedMapping.class)
+                .child(Fabric.class, new FabricKey(fabricId)).child(Rib.class).child(Route.class);
+        ribRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, routeIID, this,
+                DataChangeScope.BASE);
+
+        InstanceIdentifier<PortFunction> portFunctionIID = iid.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(Bdif.class).child(PortFunction.class);
+        portFunctionListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, portFunctionIID,
+                this, DataChangeScope.BASE);
 
         readFabricOptions(node);
     }
@@ -179,6 +215,15 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
         if (bridgePortAclListener != null) {
             bridgePortAclListener.close();
+        }
+        if (bdPortListener != null) {
+            bdPortListener.close();
+        }
+        if (ribRouteListener != null) {
+            ribRouteListener.close();
+        }
+        if (portFunctionListener != null) {
+            portFunctionListener.close();
         }
         executor.shutdownNow();
     }
@@ -260,6 +305,42 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                     return null;
                 }
             });
+        } else if (entry.getValue() instanceof BdPort) {
+            @SuppressWarnings("unchecked")
+            final InstanceIdentifier<BdPort> bdPortIid = (InstanceIdentifier<BdPort>) entry.getKey();
+            final BdPort newRec = (BdPort) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBdPortCreate(bdPortIid, newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof Route) {
+            @SuppressWarnings("unchecked")
+            final InstanceIdentifier<Route> routeIid = (InstanceIdentifier<Route>) entry.getKey();
+            final Route newRec = (Route) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onRouteCreate(routeIid, newRec);
+                    return null;
+                }
+            });
+        } else if (entry.getValue() instanceof PortFunction) {
+            @SuppressWarnings("unchecked")
+            final InstanceIdentifier<PortFunction> portFunctionIid = (InstanceIdentifier<PortFunction>) entry.getKey();
+            final PortFunction newRec = (PortFunction) entry.getValue();
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onPortFunctionCreate(portFunctionIid, newRec);
+                    return null;
+                }
+            });
         }
 
     }
@@ -325,6 +406,48 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                     return null;
                 }
             });
+        } else if (entry instanceof BdPort) {
+
+            @SuppressWarnings("unchecked")
+            final InstanceIdentifier<BdPort> bdPortIid = (InstanceIdentifier<BdPort>) iid;
+            final BdPort newRec = (BdPort) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onBdPortDelete(bdPortIid, newRec);
+                    return null;
+                }
+            });
+
+        } else if (entry instanceof Route) {
+
+            @SuppressWarnings("unchecked")
+            final InstanceIdentifier<Route> routeIid = (InstanceIdentifier<Route>) iid;
+            final Route newRec = (Route) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onRouteDelete(routeIid, newRec);
+                    return null;
+                }
+            });
+
+        } else if (entry instanceof PortFunction) {
+
+            @SuppressWarnings("unchecked")
+            final InstanceIdentifier<PortFunction> portFunctionIid = (InstanceIdentifier<PortFunction>) iid;
+            final PortFunction newRec = (PortFunction) entry;
+            executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    onPortFunctionDelete(portFunctionIid, newRec);
+                    return null;
+                }
+            });
+
         }
 
     }
@@ -333,34 +456,40 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         Long dpid = ctx.getDpid();
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
-        if (gpeTunnelOfPort == 0l) {
+        if (gpeTunnelOfPort == null) {
             gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
                     databroker);
-            if (gpeTunnelOfPort != 0l) {
+            if (gpeTunnelOfPort != null) {
                 ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
             }
         }
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
-            Long vlanId = 0l;
-            if (ofPort != 0l) {
+            Long vlanId = null;
+            if (ofPort != null) {
 
-                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
-                if (bdPort != null) {
-                    if ( bdPort.getAccessType() == AccessType.Vlan)
-                        vlanId = bdPort.getAccessTag();
+//                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(),
+//                        newRec.getDestBridgePort(), databroker);
+//                if (bdPort != null) {
+//                    if (bdPort.getAccessType() == AccessType.Vlan)
+//                        vlanId = bdPort.getAccessTag();
+//                }
+                if (newRec.getAccessType() == AccessType.Vlan) {
+                    vlanId = newRec.getAccessTag();
                 }
                 openflow13Provider.updateLocalHostRouteInDevice(dpid, ofPort, gpeTunnelOfPort, vlanId, newRec, true);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
-            if (tunnelOfPort == 0l) {
+            if (tunnelOfPort == null) {
                 tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
-                ctx.setVtep_ofPort(tunnelOfPort);
+                if (tunnelOfPort != null) {
+                    ctx.setVtep_ofPort(tunnelOfPort);
+                }
             }
 
-            if (tunnelOfPort != 0l) {
+            if (tunnelOfPort != null) {
                 openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec, true);
             }
         }
@@ -370,35 +499,39 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         Long dpid = ctx.getDpid();
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
-        if (gpeTunnelOfPort == 0l) {
+        if (gpeTunnelOfPort == null) {
             gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
                     databroker);
-            if (gpeTunnelOfPort != 0l) {
+            if (gpeTunnelOfPort != null) {
                 ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
             }
         }
 
         if (ctx.getVtep().equals(newRec.getDestVtep())) {
             Long ofPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
-            Long vlanId = 0l;
-            if (ofPort != 0l) {
-                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(), newRec.getDestBridgePort(), databroker);
-                if (bdPort != null) {
-                    if ( bdPort.getAccessType() == AccessType.Vlan)
-                        vlanId = bdPort.getAccessTag();
+            Long vlanId = null;
+            if (ofPort != null) {
+//                BridgeDomainPort bdPort = OvsSouthboundUtils.getBridgeDomainPort(ctx.getMyIId(),
+//                        newRec.getDestBridgePort(), databroker);
+//                if (bdPort != null) {
+//                    if (bdPort.getAccessType() == AccessType.Vlan)
+//                        vlanId = bdPort.getAccessTag();
+//                }
+                if (newRec.getAccessType() == AccessType.Vlan) {
+                    vlanId = newRec.getAccessTag();
                 }
                 openflow13Provider.updateLocalHostRouteInDevice(dpid, ofPort, gpeTunnelOfPort, vlanId, newRec, false);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
-            if (tunnelOfPort == 0l) {
+            if (tunnelOfPort == null) {
                 tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
-                ctx.setVtep_ofPort(tunnelOfPort);
+                if (tunnelOfPort != null)
+                    ctx.setVtep_ofPort(tunnelOfPort);
             }
 
-            if (tunnelOfPort != 0l) {
-                openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec,
-                        false);
+            if (tunnelOfPort != null) {
+                openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec, false);
             }
         }
     }
@@ -436,20 +569,20 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
 
         Long tunnelOfPort = ctx.getVtep_ofPort();
-        if (tunnelOfPort == 0l) {
+        if (tunnelOfPort == null) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
         }
-        if (tunnelOfPort != 0l) {
+        if (tunnelOfPort != null) {
             ctx.setVtep_ofPort(tunnelOfPort);
             openflow13Provider.updateBridgeDomainInDevice(dpid, tunnelOfPort, segmentationId, true);
         }
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
-        if (gpeTunnelOfPort == 0l) {
+        if (gpeTunnelOfPort == null) {
             gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
                     databroker);
         }
-        if (gpeTunnelOfPort != 0l) {
+        if (gpeTunnelOfPort != null) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
             openflow13Provider.updateBridgeDomainInDevice(dpid, gpeTunnelOfPort, segmentationId, true);
             openflow13Provider.updateSfcTunnelInDevice(dpid, gpeTunnelOfPort, segmentationId, true);
@@ -462,20 +595,20 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         Long segmentationId = newRec.getAugmentation(BridgeDomain1.class).getVni();
 
         Long tunnelOfPort = ctx.getVtep_ofPort();
-        if (tunnelOfPort == 0l) {
+        if (tunnelOfPort == null) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
         }
-        if (tunnelOfPort != 0l) {
+        if (tunnelOfPort != null) {
             ctx.setVtep_ofPort(tunnelOfPort);
             openflow13Provider.updateBridgeDomainInDevice(dpid, tunnelOfPort, segmentationId, false);
         }
 
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
-        if (gpeTunnelOfPort == 0l) {
+        if (gpeTunnelOfPort == null) {
             gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),
                     databroker);
         }
-        if (gpeTunnelOfPort != 0l) {
+        if (gpeTunnelOfPort != null) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
             openflow13Provider.updateBridgeDomainInDevice(dpid, gpeTunnelOfPort, segmentationId, false);
             openflow13Provider.updateSfcTunnelInDevice(dpid, gpeTunnelOfPort, segmentationId, false);
@@ -486,10 +619,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private void onVtepMembersCreate(InstanceIdentifier<Members> iid, Members newRec) {
         Long dpid = ctx.getDpid();
         Long tunnelOfPort = ctx.getVtep_ofPort();
-        if (tunnelOfPort == 0l) {
+        if (tunnelOfPort == null) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
 
-            if (tunnelOfPort != 0l) {
+            if (tunnelOfPort != null) {
                 ctx.setVtep_ofPort(tunnelOfPort);
             } else {
                 return;
@@ -507,10 +640,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private void onVtepMembersDelete(InstanceIdentifier<Members> iid, Members newRec) {
         Long dpid = ctx.getDpid();
         Long tunnelOfPort = ctx.getVtep_ofPort();
-        if (tunnelOfPort == 0l) {
+        if (tunnelOfPort == null) {
             tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
 
-            if (tunnelOfPort != 0l) {
+            if (tunnelOfPort != null) {
                 ctx.setVtep_ofPort(tunnelOfPort);
             } else {
                 return;
@@ -531,12 +664,21 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             Long segmentationId = iid.firstKeyOf(Acls.class).getVni();
 
             openflow13Provider.updateBridgeDomainAclsInDevice(dpid, segmentationId, newRec, true);
-        } else if (iid.firstKeyOf(TerminationPoint.class) != null) {
+        } else if (iid.firstKeyOf(BdPort.class) != null) {
             Long dpid = ctx.getDpid();
 
-            Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), iid.firstKeyOf(TerminationPoint.class).getTpId(), databroker);
+            InstanceIdentifier<BdPort> bdPortIid = InstanceIdentifier.create(FabricCapableDevice.class)
+                    .child(Config.class).child(BridgeDomain.class).child(BdPort.class, iid.firstKeyOf(BdPort.class));
 
-            openflow13Provider.updateBridgePortAclsInDevice(dpid, bridgeInPort, newRec, true);
+            BdPort bdport = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bdPortIid, databroker);
+
+            Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), bdport.getRefTpId(), databroker);
+            if (bridgeInPort != null) {
+                openflow13Provider.updateBridgePortAclsInDevice(dpid, bridgeInPort, newRec, true);
+            } else {
+                return;
+            }
+
         }
     }
 
@@ -549,9 +691,105 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         } else if (iid.firstKeyOf(TerminationPoint.class) != null) {
             Long dpid = ctx.getDpid();
 
-            Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), iid.firstKeyOf(TerminationPoint.class).getTpId(), databroker);
+            InstanceIdentifier<BdPort> bdPortIid = InstanceIdentifier.create(FabricCapableDevice.class)
+                    .child(Config.class).child(BridgeDomain.class).child(BdPort.class, iid.firstKeyOf(BdPort.class));
 
-            openflow13Provider.updateBridgePortAclsInDevice(dpid, bridgeInPort, newRec, false);
+            BdPort bdport = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bdPortIid, databroker);
+
+            Long bridgeInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), bdport.getRefTpId(), databroker);
+
+            if (bridgeInPort != null) {
+                openflow13Provider.updateBridgePortAclsInDevice(dpid, bridgeInPort, newRec, false);
+            } else {
+                return;
+            }
+        }
+    }
+
+    private void onBdPortCreate(InstanceIdentifier<BdPort> iid, BdPort newRec) {
+        Long dpid = ctx.getDpid();
+        Long ofInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getRefTpId(), databroker);
+
+        if (ofInPort != null) {
+            Long vni = OvsSouthboundUtils.getBdPortVni(ctx.getMyIId(), iid.firstKeyOf(BridgeDomain.class), databroker);
+
+            if (vni != null) {
+                openflow13Provider.updateBdPortInDevice(dpid, ofInPort, vni, newRec, true);
+            }
+        }
+    }
+
+    private void onBdPortDelete(InstanceIdentifier<BdPort> iid, BdPort newRec) {
+        Long dpid = ctx.getDpid();
+        Long ofInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getRefTpId(),
+                databroker);
+
+        if (ofInPort != null) {
+            Long vni = OvsSouthboundUtils.getBdPortVni(ctx.getMyIId(), iid.firstKeyOf(BridgeDomain.class), databroker);
+
+            if (vni != null) {
+                openflow13Provider.updateBdPortInDevice(dpid, ofInPort, vni, newRec, false);
+            }
+        }
+    }
+
+    private void onRouteCreate(InstanceIdentifier<Route> iid, Route newRec) {
+        Long dpid = ctx.getDpid();
+
+        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+
+        for (AdapterBdIf bdIf : bdIfs) {
+            String bdifMac = bdIf.getMacAddress().getValue();
+            if (bdifMac != null) {
+                openflow13Provider.updateRouteInDevice(dpid, bdifMac, newRec, true);
+            }
+        }
+    }
+
+    private void onRouteDelete(InstanceIdentifier<Route> iid, Route newRec) {
+        Long dpid = ctx.getDpid();
+
+        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+
+        for (AdapterBdIf bdIf : bdIfs) {
+            String bdifMac = bdIf.getMacAddress().getValue();
+            if (bdifMac != null) {
+                openflow13Provider.updateRouteInDevice(dpid, bdifMac, newRec, false);
+            }
+        }
+    }
+
+    private void onPortFunctionCreate(InstanceIdentifier<PortFunction> iid, PortFunction newRec) {
+        Long dpid = ctx.getDpid();
+        Long segmentationId = null;
+
+        if (iid.firstKeyOf(Bdif.class) != null) {
+            Bdif bdif = (Bdif) iid.firstKeyOf(Bdif.class);
+            segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdif.getBdid(), databroker);
+        }
+
+        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+
+        for (AdapterBdIf bdIf : bdIfs) {
+            String bdifMac = bdIf.getMacAddress().getValue();
+            openflow13Provider.updatePortFunctionInDevice(dpid, segmentationId, bdifMac, newRec, true);
+        }
+    }
+
+    private void onPortFunctionDelete(InstanceIdentifier<PortFunction> iid, PortFunction newRec) {
+        Long dpid = ctx.getDpid();
+        Long segmentationId = null;
+
+        if (iid.firstKeyOf(Bdif.class) != null) {
+            Bdif bdif = (Bdif) iid.firstKeyOf(Bdif.class);
+            segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdif.getBdid(), databroker);
+        }
+
+        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+
+        for (AdapterBdIf bdIf : bdIfs) {
+            String bdifMac = bdIf.getMacAddress().getValue();
+            openflow13Provider.updatePortFunctionInDevice(dpid, segmentationId, bdifMac, newRec, false);
         }
     }
 
