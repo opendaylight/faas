@@ -25,11 +25,11 @@ public class DeviceContext {
 
     private IpAddress vtep;
 
-    private long vtep_ofPort;
+    private Long vtep_ofPort;
 
-    private long gpe_vtep_ofPort;
+    private Long gpe_vtep_ofPort;
 
-    private long dpid;
+    private Long dpid;
 
     private String bridgeName;
 
@@ -43,9 +43,9 @@ public class DeviceContext {
 
         vtep = OvsSouthboundUtils.getVtepIp(node);
 
-        vtep_ofPort = 0l;
+        vtep_ofPort = null;
 
-        gpe_vtep_ofPort = 0l;
+        gpe_vtep_ofPort = null;
         //vtep_ofPort = OvsSouthboundUtils.getVxlanTunnelOFPort(node);
 
         dpid = OvsSouthboundUtils.getDataPathId(node);
@@ -69,19 +69,19 @@ public class DeviceContext {
         this.vtep = vtep;
     }
 
-    public long getVtep_ofPort() {
+    public Long getVtep_ofPort() {
         return vtep_ofPort;
     }
 
-    public void setVtep_ofPort(long vtep_ofPort) {
+    public void setVtep_ofPort(Long vtep_ofPort) {
         this.vtep_ofPort = vtep_ofPort;
     }
 
-    public long getDpid() {
+    public Long getDpid() {
         return dpid;
     }
 
-    public void setDpid(long dpid) {
+    public void setDpid(Long dpid) {
         this.dpid = dpid;
     }
 
@@ -109,11 +109,11 @@ public class DeviceContext {
         bdifCache.remove(adapterBdIf.getId());
     }
 
-    public long getGpe_vtep_ofPort() {
+    public Long getGpe_vtep_ofPort() {
         return gpe_vtep_ofPort;
     }
 
-    public void setGpe_vtep_ofPort(long gpe_vtep_ofPort) {
+    public void setGpe_vtep_ofPort(Long gpe_vtep_ofPort) {
         this.gpe_vtep_ofPort = gpe_vtep_ofPort;
     }
 

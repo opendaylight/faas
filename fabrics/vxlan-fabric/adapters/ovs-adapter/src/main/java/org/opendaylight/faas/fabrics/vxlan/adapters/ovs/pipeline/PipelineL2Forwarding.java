@@ -125,7 +125,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instructions List Stores Individual Instructions
             List<Instruction> instructions = Lists.newArrayList();
 
-            if (vlanId != 0l) {
+            if (vlanId != null) {
                 OfInstructionUtils.createSetVlanInstructions(ib, new VlanId(vlanId.intValue()));
                 ib.setOrder(instructions.size());
                 ib.setKey(new InstructionKey(instructions.size()));

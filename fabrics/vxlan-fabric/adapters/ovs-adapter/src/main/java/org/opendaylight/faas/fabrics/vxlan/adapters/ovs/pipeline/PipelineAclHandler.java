@@ -77,7 +77,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         MatchBuilder matchBuilder = new MatchBuilder();
         FlowBuilder flowBuilder = new FlowBuilder();
 
-        if (dpid == 0l) {
+        if (dpid == null) {
             return;
         }
         String nodeName = OPENFLOW + dpid;

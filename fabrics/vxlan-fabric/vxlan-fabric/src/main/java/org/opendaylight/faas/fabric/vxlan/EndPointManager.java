@@ -203,7 +203,19 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
                     break;
                 }
                 case SUBTREE_MODIFIED: {
-                    // DO NOTHING
+                    final Endpoint oldEp = change.getRootNode().getDataBefore();
+                    final Endpoint newEp = change.getRootNode().getDataAfter();
+                    if (newEp.getLocation() != null
+                            && fabricCtx.getFabricId().equals(newEp.getOwnFabric())) {
+                        Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
+
+                            @Override
+                            public Void call() throws Exception {
+                                rendererEndpoint(newEp);
+                                return null;
+                            }
+                        }), simpleFutureMonitor, fabricCtx.executor);
+                    }
                     break;
                 }
                 default:

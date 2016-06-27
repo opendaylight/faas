@@ -45,6 +45,22 @@ module fabric-capable-device {
                 type boolean;
                 default false;
             }
+            list bridge-domain-port {
+                key bd-port-id;
+                leaf bd-port-id {
+                    type string;
+                }
+                leaf ref-tp-id {
+                    type topo:tp-id;
+                }
+                leaf access-type {
+                    type fabrictype:access-type;
+                }
+                leaf access-tag {
+                    type uint32;
+                }
+                uses fabrictype:acl-list; 
+            }
         }
 
         list vrf {

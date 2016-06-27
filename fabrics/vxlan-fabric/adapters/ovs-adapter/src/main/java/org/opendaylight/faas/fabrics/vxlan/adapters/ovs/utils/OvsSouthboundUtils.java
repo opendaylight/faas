@@ -71,8 +71,8 @@ public class OvsSouthboundUtils {
         return bridgeName;
     }
 
-    public static long getDataPathId(Node node) {
-        long dpid = 0L;
+    public static Long getDataPathId(Node node) {
+        Long dpid = null;
         String datapathId = getDatapathId(node);
         if (datapathId != null) {
             dpid = new BigInteger(datapathId.replaceAll(":", ""), 16).longValue();
@@ -269,7 +269,7 @@ public class OvsSouthboundUtils {
 
     public static Long getOfPort(Node node, TpId tpid) {
         List<TerminationPoint> terminationPoints = extractTerminationPoints(node);
-        Long ofPort = 0l;
+        Long ofPort = null;
 
         for (TerminationPoint terminationPoint : terminationPoints) {
             if (terminationPoint.getTpId() == tpid) {
@@ -282,7 +282,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getOFPort(OvsdbTerminationPointAugmentation port) {
-        Long ofPort = 0L;
+        Long ofPort = null;
         if (port.getOfport() != null) {
             ofPort = port.getOfport();
         }
@@ -290,7 +290,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getVxlanTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
-        Long ofPort = 0L;
+        Long ofPort = null;
 
         String tunnelType = "vxlan";
         String portName = generateTpName(tunnelBridgeName, tunnelType);
@@ -301,7 +301,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getVxlanGpeTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
-        Long ofPort = 0L;
+        Long ofPort = null;
 
         String tunnelType = "vxlan";
         String portName = generateTpName(tunnelBridgeName, tunnelType, "gpe");
@@ -326,7 +326,7 @@ public class OvsSouthboundUtils {
     }
 
     public static Long getOfPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
-        Long ofPort = 0l;
+        Long ofPort = null;
         InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
         TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
         if (teminationPoint != null) {

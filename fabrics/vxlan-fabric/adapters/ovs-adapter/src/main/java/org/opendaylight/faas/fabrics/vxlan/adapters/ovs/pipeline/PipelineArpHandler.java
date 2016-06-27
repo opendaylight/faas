@@ -14,9 +14,8 @@ import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowId;
@@ -58,7 +57,6 @@ public class PipelineArpHandler extends AbstractServiceInstance {
             boolean isWriteFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
-        MacAddress macAddress = new MacAddress(macAddressStr);
 
         MatchBuilder matchBuilder = new MatchBuilder();
         NodeBuilder nodeBuilder = Openflow13Provider.createNodeBuilder(nodeName);
@@ -86,17 +84,17 @@ public class PipelineArpHandler extends AbstractServiceInstance {
                 .newArrayList();
 
         if (segmentationId != null) {
-            final Long inPort = MatchUtils.parseExplicitOFPort(String.valueOf(segmentationId));
+            final Long inPort = OfMatchUtils.parseExplicitOFPort(String.valueOf(segmentationId));
             if (inPort != null) {
-                MatchUtils.createInPortMatch(matchBuilder, dpid, inPort);
+                OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort);
             } else {
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
             }
         }
 
-        MatchUtils.createEtherTypeMatch(matchBuilder, new EtherType(Constants.ARP_ETHERTYPE));
-        MatchUtils.createArpDstIpv4Match(matchBuilder,
-                MatchUtils.iPv4PrefixFromIPv4Address(ipAddress.getIpv4Address().getValue()));
+        OfMatchUtils.createEtherTypeMatch(matchBuilder, new EtherType(Constants.ARP_ETHERTYPE));
+        OfMatchUtils.createArpDstIpv4Match(matchBuilder,
+                OfMatchUtils.iPv4PrefixFromIPv4Address(ipAddress.getIpv4Address().getValue()));
 
         flowBuilder.setMatch(matchBuilder.build());
 
