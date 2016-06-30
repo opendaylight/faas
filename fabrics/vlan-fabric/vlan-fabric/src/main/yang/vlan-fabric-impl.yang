@@ -44,15 +44,6 @@ module vlan-fabric-impl {
                 }
             }
 
-            container notification-service {
-                uses config:service-ref {
-                    refine type {
-                        mandatory true;
-                        config:required-identity sal-broker:binding-new-notification-service;
-                    }
-                }
-            }
-
             container notification-publish-service {
                 uses config:service-ref {
                     refine type {

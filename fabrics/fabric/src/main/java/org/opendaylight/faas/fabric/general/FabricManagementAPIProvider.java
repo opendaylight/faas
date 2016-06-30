@@ -225,11 +225,12 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         trans.put(LogicalDatastoreType.OPERATIONAL, fnodepath, fnodeBuilder.build(), true);
-        trans.put(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()), MdSalUtils.newTopo(fabricId.getValue()));
+        trans.put(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()),
+                MdSalUtils.newTopo(fabricId.getValue()));
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>(){
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<ComposeFabricOutput>> apply(Void submitResult) throws Exception {

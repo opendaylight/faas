@@ -690,6 +690,14 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                     new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
+        for (Route route : routes) {
+            if (route.getNextHopOptions() == null) {
+                return Futures.immediateFailedFuture(
+                        new IllegalArgumentException(String.format("next hop is required. (destination = %s)",
+                                route.getDestinationPrefix().getValue())));
+            }
+        }
+
         final InstanceIdentifier<LrAttribute> attrIId = MdSalUtils.createNodeIId(fabricId, ldev)
                 .augmentation(LogicalRouterAugment.class)
                 .child(LrAttribute.class);

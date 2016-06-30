@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
+ * Copyright (c) 2016 Huawei Technologies Co. Ltd. and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -54,12 +54,12 @@ public class VlanFabricProvider implements AutoCloseable, FabricRendererFactory 
 
         executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 
-        rendererRegistry.register(UnderlayerNetworkType.VXLAN, this);
+        rendererRegistry.register(UnderlayerNetworkType.VLAN, this);
     }
 
     @Override
     public void close() throws Exception {
-        rendererRegistry.unregister(UnderlayerNetworkType.VXLAN);
+        rendererRegistry.unregister(UnderlayerNetworkType.VLAN);
         executor.shutdown();
         for (FabricContext ctx : fabricCtxs.values()) {
             ctx.close();
