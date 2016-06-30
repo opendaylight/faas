@@ -16,6 +16,7 @@ import org.opendaylight.faas.fabric.general.spi.FabricListener;
 import org.opendaylight.faas.fabric.vlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceLinks;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalRouterAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
@@ -24,6 +25,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -68,15 +70,22 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
     @Override
     public void fabricCreated(FabricNode fabric) {
 
+        List<DeviceLinks> links = fabric.getFabricAttribute().getDeviceLinks();
+        for (DeviceLinks link : links) {
+            @SuppressWarnings("unchecked")
+            InstanceIdentifier<Link> linkIId = (InstanceIdentifier<Link>) link.getLinkRef().getValue();
+        }
+
         List<DeviceNodes> devices = fabric.getFabricAttribute().getDeviceNodes();
         if (devices != null) {
             for (DeviceNodes deviceNode : devices) {
                 @SuppressWarnings("unchecked")
                 InstanceIdentifier<Node> deviceIId = (InstanceIdentifier<Node>) deviceNode.getDeviceRef().getValue();
-
                 deviceAdded(deviceIId);
             }
         }
+
+        fabric.getFabricAttribute().getDeviceLinks();
 
         ResourceManager.initResourceManager(fabricid);
     }

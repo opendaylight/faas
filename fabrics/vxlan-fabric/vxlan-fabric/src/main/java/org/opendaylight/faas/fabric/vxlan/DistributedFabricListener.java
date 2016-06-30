@@ -20,10 +20,10 @@ import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricListener;
 import org.opendaylight.faas.fabric.utils.InterfaceManager;
+import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInputBuilder;
@@ -43,6 +43,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayer;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer2Info;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
@@ -264,8 +266,9 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         // for distributed Fabric, we add logic switch to all device
 
         LswAttribute lswAttr = lse.getAugmentation(LogicalSwitchAugment.class).getLswAttribute();
+        final boolean isExternal = lswAttr.isExternal() == null ? false : lswAttr.isExternal().booleanValue();
         long segmentId = lswAttr.getSegmentId();
-        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, segmentId, lswAttr.isExternal());
+        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, segmentId, isExternal);
 
         if (!lswCtx.isExternal()) {
             Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
@@ -318,8 +321,8 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             LOG.warn("Not support port function on l2 logical port. %s", nodeId);
             return;
         }
-        IpPrefix gwIp = new IpPrefix(MdSalUtils.getTpId(tpiid).getValue().toCharArray());
-        GatewayPort gwport = fabricCtx.getLogicRouterCtx(nodeId).getGatewayPort(gwIp);
+        IpAddress gwIp = new IpAddress(MdSalUtils.getTpId(tpiid).getValue().toCharArray());
+        GatewayPort gwport = fabricCtx.getLogicRouterCtx(nodeId).getGatewayPort(IpAddressUtils.createDefaultPrefix(gwIp));
         long vni = gwport.getVni();
 
         Set<DeviceKey> devs = fabricCtx.getLogicSwitchCtx(gwport.getLogicSwitch()).getMembers();
@@ -335,6 +338,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         if (fabricCtx.isValidLogicSwitch(nodeId)) {
             InstanceIdentifier<TerminationPoint> devtp = InterfaceManager.convFabricPort2DevicePort(
                     dataBroker, fabricid, fabricPort);
+
             final long vni = fabricCtx.getLogicSwitchCtx(nodeId).getVni();
 
             final LportAttribute logicalPortAttr = InterfaceManager.getLogicalPortAttr(dataBroker, iid);
@@ -344,8 +348,14 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
             builder.setNodeId(devtp.firstIdentifierOf(Node.class));
             builder.setTpId(devtp.firstKeyOf(TerminationPoint.class).getTpId());
-            builder.setAccessType(logicalPortAttr.getPortLayer().getLayer2Info().getAccessType());
-            builder.setAccessTag(logicalPortAttr.getPortLayer().getLayer2Info().getAccessSegment());
+            PortLayer layerInfo = logicalPortAttr.getPortLayer();
+            if (layerInfo != null) {
+                Layer2Info layer2Info = layerInfo.getLayer2Info();
+                if (layer2Info != null) {
+                    builder.setAccessType(layer2Info.getAccessType());
+                    builder.setAccessTag(layer2Info.getAccessSegment());
+                }
+            }
             builder.setBdId(String.valueOf(vni));
             CreateBridgeDomainPortInput input = builder.build();
             epMgr.getVxlanDeviceAdapter().createBridgeDomainPort(input);

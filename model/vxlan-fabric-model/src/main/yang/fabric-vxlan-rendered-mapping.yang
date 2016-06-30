@@ -10,6 +10,7 @@ module fabric-vxlan-rendered-mapping {
     import network-topology {prefix topo; revision-date "2013-10-21"; }
     import ietf-yang-types { prefix "yang"; revision-date "2013-07-15"; }
     import ietf-access-control-list { prefix acl; revision-date "2016-02-18"; }
+    import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
 
     description
         "This module contains a collection of YANG definitions for Fabric.";
@@ -32,25 +33,25 @@ module fabric-vxlan-rendered-mapping {
                     type uint32;
                 }
                 list members {
-                	key vtep;
-                	leaf vtep {
-                    	type inet:ip-address;
+                    key vtep;
+                    leaf vtep {
+                        type inet:ip-address;
                     }
                 }
             }
 
-			list acls {
-				key vni;
-				leaf vni {
-					type uint32;
-				}
-				uses fabrictype:acl-list;
-			}
+            list acls {
+                key vni;
+                leaf vni {
+                    type uint32;
+                }
+                uses fabrictype:acl-list;
+            }
 
             list host-route {
                 key "hostid";
                 leaf hostid {
-                	type yang:uuid;
+                    type yang:uuid;
                 }
                 leaf mac {
                     type yang:mac-address;
@@ -75,7 +76,14 @@ module fabric-vxlan-rendered-mapping {
                     type uint32;
                 }
 
-                uses fabrictype:route-group;
+                uses fabrictype:route-group {
+                    augment "route" {
+                        ext:augment-identifier "vxlan-route-aug";
+                        leaf outgoing-vni {
+                            type uint32;
+                        }
+                    }
+                }
             }
         }
     }
