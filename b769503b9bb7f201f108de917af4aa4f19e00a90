@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a561d44_729f4760",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 491
+      },
+      "writtenOn": "2016-06-30T12:06:34Z",
+      "side": 1,
+      "message": "I see two dots after ns.yang, is that intentional?",
+      "revId": "b769503b9bb7f201f108de917af4aa4f19e00a90",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
