@@ -16,6 +16,24 @@
       "revId": "b769503b9bb7f201f108de917af4aa4f19e00a90",
       "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a561d44_12236b06",
+        "filename": "fabrics/vxlan-fabric/adapters/ovs-adapter/src/main/java/org/opendaylight/faas/fabrics/vxlan/adapters/ovs/pipeline/PipelineAclHandler.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 3547
+      },
+      "writtenOn": "2016-06-30T12:56:03Z",
+      "side": 1,
+      "message": "No it\u0027s not, good catch, thanks.",
+      "parentUuid": "9a561d44_729f4760",
+      "revId": "b769503b9bb7f201f108de917af4aa4f19e00a90",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
     }
   ]
 }
