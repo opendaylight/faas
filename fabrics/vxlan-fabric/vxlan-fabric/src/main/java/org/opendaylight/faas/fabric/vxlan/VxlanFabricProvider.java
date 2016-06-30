@@ -45,9 +45,9 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory {
+public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory {
 
-    private static final Logger LOG = LoggerFactory.getLogger(VXLANFabricProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VxlanFabricProvider.class);
 
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
@@ -57,7 +57,7 @@ public class VXLANFabricProvider implements AutoCloseable, FabricRendererFactory
 
     private final Map<InstanceIdentifier<FabricNode>, FabricContext> fabricCtxs = Maps.newHashMap();
 
-    public VXLANFabricProvider(final DataBroker dataProvider,
+    public VxlanFabricProvider(final DataBroker dataProvider,
                              final RpcProviderRegistry rpcRegistry,
                              final NotificationPublishService notificationService,
                              final FabricRendererRegistry rendererRegistry) {

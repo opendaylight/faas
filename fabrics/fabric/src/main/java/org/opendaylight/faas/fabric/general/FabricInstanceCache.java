@@ -7,14 +7,14 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+import com.google.common.base.Optional;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
-
-import com.google.common.base.Optional;
 
 public enum FabricInstanceCache {
     INSTANCE;

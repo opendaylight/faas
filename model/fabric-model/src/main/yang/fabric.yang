@@ -65,10 +65,6 @@ module fabric {
         leaf link-ref {
             type fabrictype:link-ref;
         }
-
-        leaf link-role {
-            type int32;
-        }
     }
 
     grouping fabric-attributes {

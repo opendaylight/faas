@@ -7,6 +7,11 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -19,11 +24,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class FabricContext implements AutoCloseable {
 

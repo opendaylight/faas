@@ -15,7 +15,9 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public interface FabricRendererFactory {
 
-    FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid, FabricAttributeBuilder fabric, ComposeFabricInput input);
+    FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid,
+            FabricAttributeBuilder fabric,
+            ComposeFabricInput input);
 
     FabricListener createListener(InstanceIdentifier<FabricNode> iid, FabricAttribute fabric);
 

@@ -7,6 +7,15 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -66,15 +75,6 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.CheckedFuture;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-
 public class FabricManagementAPIProvider implements AutoCloseable, FabricService {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricManagementAPIProvider.class);
@@ -128,7 +128,8 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         final InstanceIdentifier<Node> fabricpath = Constants.DOM_FABRICS_PATH.child(Node.class, new NodeKey(fabricId));
 
-        CheckedFuture<Optional<Node>,ReadFailedException> readFuture = rt.read(LogicalDatastoreType.OPERATIONAL, fabricpath);
+        CheckedFuture<Optional<Node>,ReadFailedException> readFuture =
+                rt.read(LogicalDatastoreType.OPERATIONAL, fabricpath);
 
         return Futures.transform(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>() {
 
@@ -160,7 +161,8 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         final GetAllFabricsOutputBuilder outputBuilder = new GetAllFabricsOutputBuilder();
 
         ReadOnlyTransaction trans = dataBroker.newReadOnlyTransaction();
-        ListenableFuture<Optional<Topology>> readFuture = trans.read(LogicalDatastoreType.OPERATIONAL, Constants.DOM_FABRICS_PATH);
+        ListenableFuture<Optional<Topology>> readFuture =
+                trans.read(LogicalDatastoreType.OPERATIONAL, Constants.DOM_FABRICS_PATH);
         Futures.addCallback(readFuture, new FutureCallback<Optional<Topology>>() {
 
             @Override
@@ -225,11 +227,12 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         trans.put(LogicalDatastoreType.OPERATIONAL, fnodepath, fnodeBuilder.build(), true);
-        trans.put(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()), MdSalUtils.newTopo(fabricId.getValue()));
+        trans.put(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()),
+                MdSalUtils.newTopo(fabricId.getValue()));
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>(){
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<ComposeFabricOutput>> apply(Void submitResult) throws Exception {
@@ -296,7 +299,8 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         InstanceIdentifier<FabricsSetting> fabricImplPath = InstanceIdentifier.create(FabricsSetting.class);
-        ListenableFuture<Optional<FabricsSetting>> readFuture = trans.read(LogicalDatastoreType.CONFIGURATION, fabricImplPath);
+        ListenableFuture<Optional<FabricsSetting>> readFuture =
+                trans.read(LogicalDatastoreType.CONFIGURATION, fabricImplPath);
         Optional<FabricsSetting> optional;
         try {
             optional = readFuture.get();
@@ -386,7 +390,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         InstanceIdentifier<Node> noderef = (InstanceIdentifier<Node>) device.getValue();
         NodeId deviceid = noderef.firstKeyOf(Node.class).getNodeId();
         TopologyId topoid = noderef.firstKeyOf(Topology.class).getTopologyId();
-        InstanceIdentifier<SupportingNode> suplNodeIid = MdSalUtils.createFNodeIId(input.getFabricId())
+        final InstanceIdentifier<SupportingNode> suplNodeIid = MdSalUtils.createFNodeIId(input.getFabricId())
                 .child(SupportingNode.class, new SupportingNodeKey(deviceid, topoid));
         SupportingNodeBuilder suplNodeBuilder = new SupportingNodeBuilder();
         suplNodeBuilder.setNodeRef(deviceid);

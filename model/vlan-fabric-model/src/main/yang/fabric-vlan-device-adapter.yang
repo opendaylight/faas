@@ -34,6 +34,9 @@ module fabric-vlan-device-adapter {
             leaf fabric-id {
                 type topo:node-id;
             }
+            leaf-list network-to-network-interface {
+                type topo:tp-id;
+            }
         }
 	}
 

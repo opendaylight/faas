@@ -7,6 +7,12 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -33,17 +39,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.CheckedFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 public class EndPointRegister implements FabricEndpointService, AutoCloseable {
-
-    private static final Logger LOG = LoggerFactory.getLogger(EndPointRegister.class);
 
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
@@ -77,23 +75,26 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         for (Uuid ep : toBeDeletedList) {
-            InstanceIdentifier<Endpoint> eppath = Constants.DOM_ENDPOINTS_PATH.child(Endpoint.class, new EndpointKey(ep));
+            InstanceIdentifier<Endpoint> eppath = Constants.DOM_ENDPOINTS_PATH
+                    .child(Endpoint.class, new EndpointKey(ep));
             trans.delete(LogicalDatastoreType.OPERATIONAL, eppath);
         }
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>(){
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
                 return Futures.immediateFuture(result);
-            }}, executor);
+            }
+        }, executor);
     }
 
     @Override
     public Future<RpcResult<RegisterEndpointOutput>> registerEndpoint(RegisterEndpointInput input) {
 
-        final RpcResultBuilder<RegisterEndpointOutput> resultBuilder = RpcResultBuilder.<RegisterEndpointOutput>success();
+        final RpcResultBuilder<RegisterEndpointOutput> resultBuilder =
+                RpcResultBuilder.<RegisterEndpointOutput>success();
         final RegisterEndpointOutputBuilder outputBuilder = new RegisterEndpointOutputBuilder();
 
         final FabricId fabricid = input.getFabricId();
@@ -102,8 +103,6 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
             return Futures.immediateFailedFuture(new IllegalArgumentException("fabric is not exist!"));
         }
 
-        ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
-
         Uuid epId = input.getEndpointUuid();
         if (epId == null) {
             epId = new Uuid(UUID.randomUUID().toString());
@@ -111,7 +110,8 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         final Uuid newepId = epId;
 
 
-        final InstanceIdentifier<Endpoint> eppath = Constants.DOM_ENDPOINTS_PATH.child(Endpoint.class, new EndpointKey(newepId));
+        final InstanceIdentifier<Endpoint> eppath = Constants.DOM_ENDPOINTS_PATH
+                .child(Endpoint.class, new EndpointKey(newepId));
 
         EndpointBuilder epBuilder = new EndpointBuilder();
         epBuilder.setEndpointUuid(newepId);
@@ -123,17 +123,19 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         epBuilder.setPublicIp(input.getPublicIp());
         epBuilder.setOwnFabric(fabricid);
 
+        ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
         trans.put(LogicalDatastoreType.OPERATIONAL, eppath, epBuilder.build(), true);
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>(){
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<RegisterEndpointOutput>> apply(Void input) throws Exception {
                 outputBuilder.setEndpointId(newepId);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
-            }}, executor);
+            }
+        }, executor);
     }
 
     @Override
@@ -162,17 +164,19 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         epBuilder.setEndpointUuid(epId);
         epBuilder.setLocation(locBuilder.build());
 
-        final InstanceIdentifier<Endpoint> eppath = Constants.DOM_ENDPOINTS_PATH.child(Endpoint.class, new EndpointKey(epId));
+        final InstanceIdentifier<Endpoint> eppath = Constants.DOM_ENDPOINTS_PATH
+                .child(Endpoint.class, new EndpointKey(epId));
         trans.merge(LogicalDatastoreType.OPERATIONAL, eppath, epBuilder.build());
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>(){
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
                 return Futures.immediateFuture(result);
-            }}, executor);
+            }
+        }, executor);
     }
 
     public void start() {

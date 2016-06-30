@@ -7,6 +7,13 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -97,13 +104,6 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.CheckedFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceService {
 
@@ -690,6 +690,14 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                     new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
+        for (Route route : routes) {
+            if (route.getNextHopOptions() == null) {
+                return Futures.immediateFailedFuture(
+                        new IllegalArgumentException(String.format("next hop is required. (destination = %s)",
+                                route.getDestinationPrefix().getValue())));
+            }
+        }
+
         final InstanceIdentifier<LrAttribute> attrIId = MdSalUtils.createNodeIId(fabricId, ldev)
                 .augmentation(LogicalRouterAugment.class)
                 .child(LrAttribute.class);
@@ -775,6 +783,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                     new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
+        @SuppressWarnings("unchecked")
         InstanceIdentifier<TerminationPoint> fportIid = InterfaceManager.convDevPort2FabricPort(
                 dataBroker, fabricId, (InstanceIdentifier<TerminationPoint>) physicalPort.getValue());
         final TpId portId = fportIid.firstKeyOf(TerminationPoint.class).getTpId();

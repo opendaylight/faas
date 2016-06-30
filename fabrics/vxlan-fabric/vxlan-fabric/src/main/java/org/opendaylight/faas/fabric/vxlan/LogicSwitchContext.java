@@ -7,6 +7,9 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,9 +47,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.node.attributes.SupportingNodeKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class LogicSwitchContext implements AutoCloseable {
     private final long vni;
@@ -200,13 +200,13 @@ public class LogicSwitchContext implements AutoCloseable {
     }
 
     private void writeToDom(DeviceKey key, IpAddress vtepIp) {
-        InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
+        final InstanceIdentifier<Members> vniMembersIId = createVniVtepIId(fabricid, vni, vtepIp);
 
         MembersBuilder vbuilder = new MembersBuilder();
         vbuilder.setVtep(vtepIp);
         vbuilder.setKey(new MembersKey(vtepIp));
 
-        InstanceIdentifier<SupportingNode> suplNodeIId = createSuplNodeIId(key);
+        final InstanceIdentifier<SupportingNode> suplNodeIId = createSuplNodeIId(key);
         SupportingNodeBuilder sbuilder = new SupportingNodeBuilder();
         sbuilder.setNodeRef(key.getNodeId());
         sbuilder.setTopologyRef(key.getTopoId());

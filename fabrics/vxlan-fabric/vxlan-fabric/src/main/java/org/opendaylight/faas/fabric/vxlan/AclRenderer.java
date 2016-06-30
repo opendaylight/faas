@@ -7,6 +7,8 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.base.Optional;
+
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -25,33 +27,34 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-import com.google.common.base.Optional;
 
 public class AclRenderer implements Callable<Void> {
 
-    private enum RENDERER_CMD {addAcl, rmAcl};
+    private enum RendererCmd { addAcl, rmAcl }
 
     private String aclname;
-    private InstanceIdentifier<TerminationPoint> lPortIid;
+    private InstanceIdentifier<TerminationPoint> lportIid;
 
-    private final RENDERER_CMD cmd;
+    private final RendererCmd cmd;
     private final DataBroker databroker;
 
-    public static AclRenderer newAddAclTask(DataBroker databroker,InstanceIdentifier<TerminationPoint> lPortIid, String aclname) {
-        AclRenderer o = new AclRenderer(databroker, RENDERER_CMD.addAcl);
-        o.lPortIid = lPortIid;
-        o.aclname = aclname;
-        return o;
+    public static AclRenderer newAddAclTask(DataBroker databroker,
+            InstanceIdentifier<TerminationPoint> lportIid, String aclname) {
+        AclRenderer obj = new AclRenderer(databroker, RendererCmd.addAcl);
+        obj.lportIid = lportIid;
+        obj.aclname = aclname;
+        return obj;
     }
 
-    public static AclRenderer newRmAclTask(DataBroker databroker,InstanceIdentifier<TerminationPoint> lPortIid, String aclname) {
-        AclRenderer o = new AclRenderer(databroker, RENDERER_CMD.rmAcl);
-        o.lPortIid = lPortIid;
-        o.aclname = aclname;
-        return o;
+    public static AclRenderer newRmAclTask(DataBroker databroker,
+            InstanceIdentifier<TerminationPoint> lportIid, String aclname) {
+        AclRenderer obj = new AclRenderer(databroker, RendererCmd.rmAcl);
+        obj.lportIid = lportIid;
+        obj.aclname = aclname;
+        return obj;
     }
 
-    private AclRenderer(DataBroker databroker, RENDERER_CMD cmd) {
+    private AclRenderer(DataBroker databroker, RendererCmd cmd) {
         this.databroker = databroker;
         this.cmd = cmd;
     }
@@ -59,13 +62,15 @@ public class AclRenderer implements Callable<Void> {
     @Override
     public Void call() throws Exception {
 
-        switch(cmd) {
-        case addAcl:
-            addAcl();
-            break;
-        case rmAcl:
-            rmAcl();
-            break;
+        switch (cmd) {
+            case addAcl:
+                addAcl();
+                break;
+            case rmAcl:
+                rmAcl();
+                break;
+            default:
+                return null;
         }
         return null;
     }
@@ -89,8 +94,10 @@ public class AclRenderer implements Callable<Void> {
             builder.setFabricAclName(aclname);
             for (UnderlayerPorts uport : uports) {
                 @SuppressWarnings("unchecked")
-                InstanceIdentifier<TerminationPoint> tpIid = (InstanceIdentifier<TerminationPoint>) uport.getPortRef().getValue();
-                InstanceIdentifier<FabricAcl> path = tpIid.augmentation(BridgeDomainPort.class).child(FabricAcl.class, new FabricAclKey(aclname));
+                InstanceIdentifier<TerminationPoint> tpIid = (InstanceIdentifier<TerminationPoint>)
+                        uport.getPortRef().getValue();
+                InstanceIdentifier<FabricAcl> path = tpIid.augmentation(BridgeDomainPort.class)
+                        .child(FabricAcl.class, new FabricAclKey(aclname));
 
                 trans.merge(LogicalDatastoreType.OPERATIONAL, path, builder.build(), true);
             }
@@ -113,8 +120,10 @@ public class AclRenderer implements Callable<Void> {
             WriteTransaction trans = databroker.newWriteOnlyTransaction();
             for (UnderlayerPorts uport : uports) {
                 @SuppressWarnings("unchecked")
-                InstanceIdentifier<TerminationPoint> tpIid = (InstanceIdentifier<TerminationPoint>) uport.getPortRef().getValue();
-                InstanceIdentifier<FabricAcl> path = tpIid.augmentation(BridgeDomainPort.class).child(FabricAcl.class, new FabricAclKey(aclname));
+                InstanceIdentifier<TerminationPoint> tpIid = (InstanceIdentifier<TerminationPoint>)
+                        uport.getPortRef().getValue();
+                InstanceIdentifier<FabricAcl> path = tpIid.augmentation(BridgeDomainPort.class)
+                        .child(FabricAcl.class, new FabricAclKey(aclname));
                 trans.delete(LogicalDatastoreType.OPERATIONAL, path);
             }
             MdSalUtils.wrapperSubmit(trans);
@@ -122,9 +131,9 @@ public class AclRenderer implements Callable<Void> {
     }
 
     private Optional<TerminationPoint> readTp() throws Exception {
-        if (lPortIid != null) {
+        if (lportIid != null) {
             ReadWriteTransaction trans = databroker.newReadWriteTransaction();
-            return trans.read(LogicalDatastoreType.OPERATIONAL, lPortIid).get();
+            return trans.read(LogicalDatastoreType.OPERATIONAL, lportIid).get();
         } else {
             return Optional.absent();
         }

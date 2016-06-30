@@ -302,6 +302,32 @@ def rpc_locate_endpoint_data4():
        }
     }
 
+def rpc_port_binding_uri():
+    return "/restconf/operations/fabric-service:port-binding-logical-to-fabric"
+
+def rpc_port_binding_data3():
+    return {
+      "input" : {
+           "fabric-id": "fabric:1",
+           "logical-device":"vswitch-1",
+           "logical-port":"vswitch-1-p-3",
+           "fabric-port": NODE_ID_OVSDB + "/bridge/s2 - s2-eth1"
+       }
+    }
+
+def rpc_port_binding_dev_uri():
+    return "/restconf/operations/fabric-service:port-binding-logical-to-device"
+
+def rpc_port_binding_dev_data4():
+    return {
+      "input" : {
+           "fabric-id": "fabric:1",
+           "logical-device":"vswitch-2",
+           "logical-port":"vswitch-2-p-1",
+           "physical-port":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s2']/network-topology:termination-point[network-topology:tp-id='s2-eth2']"
+       }
+    }
+
 def rpc_create_gateway_uri():
     return "/restconf/operations/fabric-service:create-gateway"
 
@@ -374,15 +400,20 @@ if __name__ == "__main__":
     pause()
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data1(), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data2(), True)
-    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data3(), True)
-    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data4(), True)
+    #post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data3(), True)
+    #post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data4(), True)
 
     print "locate endpoints ..."
     pause()
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data1(), True)
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data2(), True)
-    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data3(), True)
-    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data4(), True)
+    #post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data3(), True)
+    #post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data4(), True)
+
+    print "binding physical port"
+    pause()
+    post(controller, DEFAULT_PORT, rpc_port_binding_uri(), rpc_port_binding_data3(), True)
+    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data4(), True)
 
     print "create gateway ..."
     pause()

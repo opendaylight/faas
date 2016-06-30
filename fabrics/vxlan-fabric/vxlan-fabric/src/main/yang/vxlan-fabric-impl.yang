@@ -1,7 +1,7 @@
 module vxlan-fabric-impl {
 
     yang-version 1;
-    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:vxlan-fabric:impl";
+    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:fabric:vxlan:impl";
     prefix "vxlan-fabric-impl";
 
     import config { prefix config; revision-date 2013-04-05; }

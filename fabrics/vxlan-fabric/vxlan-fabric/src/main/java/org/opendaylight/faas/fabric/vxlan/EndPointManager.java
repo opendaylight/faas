@@ -7,6 +7,9 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
@@ -43,8 +46,6 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 
 public class EndPointManager implements AutoCloseable, DataTreeChangeListener<Endpoint> {
 

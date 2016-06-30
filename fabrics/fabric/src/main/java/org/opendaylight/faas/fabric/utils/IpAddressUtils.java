@@ -7,11 +7,11 @@
  */
 package org.opendaylight.faas.fabric.utils;
 
+import com.google.common.net.InetAddresses;
+
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
-
-import com.google.common.net.InetAddresses;
 
 public class IpAddressUtils {
 

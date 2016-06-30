@@ -7,6 +7,9 @@
  */
 package org.opendaylight.faas.fabric.general;
 
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,9 +28,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.netwo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
     private FabricManagementAPIProvider manageAPI;
@@ -40,26 +40,27 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
     private final Map<UnderlayerNetworkType, FabricRendererFactory> registeredFabricImpls = Maps.newHashMap();
 
-    private final FabricRendererFactory defaultRendererFactory = new FabricRendererFactory(){
+    private final FabricRendererFactory defaultRendererFactory = new FabricRendererFactory() {
 
-		@Override
-		public FabricListener createListener(InstanceIdentifier<FabricNode> iid, FabricAttribute fabric) {
-			return null;
-		}
+        @Override
+        public FabricListener createListener(InstanceIdentifier<FabricNode> iid, FabricAttribute fabric) {
+            return null;
+        }
 
-		@Override
-		public FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid, FabricAttributeBuilder fabric,
-				ComposeFabricInput input) {
-			return null;
-		}};
+        @Override
+        public FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid, FabricAttributeBuilder fabric,
+                ComposeFabricInput input) {
+            return null;
+        }
+    };
 
 
-    public FabricFactory (final DataBroker dataProvider,
+    public FabricFactory( final DataBroker dataProvider,
             final RpcProviderRegistry rpcRegistry,
             final NotificationProviderService notificationService) {
 
-    	ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("fabric-factory-%d").build();
-    	executor = Executors.newSingleThreadExecutor(threadFact);
+        ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("fabric-factory-%d").build();
+        executor = Executors.newSingleThreadExecutor(threadFact);
 
         manageAPI = new FabricManagementAPIProvider(dataProvider, rpcRegistry, executor, this);
         manageAPI.start();
@@ -92,7 +93,7 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
     @Override
     public FabricRendererFactory getFabricRendererFactory(UnderlayerNetworkType fabricType) {
-    	FabricRendererFactory rendererFactory = registeredFabricImpls.get(fabricType);
+        FabricRendererFactory rendererFactory = registeredFabricImpls.get(fabricType);
         return rendererFactory == null ? defaultRendererFactory : rendererFactory;
     }
 

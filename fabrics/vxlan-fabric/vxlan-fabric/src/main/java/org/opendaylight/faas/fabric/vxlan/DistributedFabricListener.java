@@ -7,6 +7,13 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +30,7 @@ import org.opendaylight.faas.fabric.utils.InterfaceManager;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInputBuilder;
@@ -43,14 +50,21 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayer;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer2Info;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.NextHopOptions;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.next.hop.options.SimpleNextHop;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.Rib;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.RibBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.RibKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.rib.VxlanRouteAug;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.rib.VxlanRouteAugBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
@@ -59,12 +73,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Optional;
-import com.google.common.util.concurrent.CheckedFuture;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListeningExecutorService;
 
 public class DistributedFabricListener implements AutoCloseable, FabricListener {
 
@@ -264,8 +272,9 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         // for distributed Fabric, we add logic switch to all device
 
         LswAttribute lswAttr = lse.getAugmentation(LogicalSwitchAugment.class).getLswAttribute();
+        final boolean isExternal = lswAttr.isExternal() == null ? false : lswAttr.isExternal().booleanValue();
         long segmentId = lswAttr.getSegmentId();
-        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, segmentId, lswAttr.isExternal());
+        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, segmentId, isExternal);
 
         if (!lswCtx.isExternal()) {
             Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
@@ -318,7 +327,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             LOG.warn("Not support port function on l2 logical port. %s", nodeId);
             return;
         }
-        IpPrefix gwIp = new IpPrefix(MdSalUtils.getTpId(tpiid).getValue().toCharArray());
+        IpAddress gwIp = new IpAddress(MdSalUtils.getTpId(tpiid).getValue().toCharArray());
         GatewayPort gwport = fabricCtx.getLogicRouterCtx(nodeId).getGatewayPort(gwIp);
         long vni = gwport.getVni();
 
@@ -335,6 +344,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         if (fabricCtx.isValidLogicSwitch(nodeId)) {
             InstanceIdentifier<TerminationPoint> devtp = InterfaceManager.convFabricPort2DevicePort(
                     dataBroker, fabricid, fabricPort);
+
             final long vni = fabricCtx.getLogicSwitchCtx(nodeId).getVni();
 
             final LportAttribute logicalPortAttr = InterfaceManager.getLogicalPortAttr(dataBroker, iid);
@@ -344,8 +354,14 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
             builder.setNodeId(devtp.firstIdentifierOf(Node.class));
             builder.setTpId(devtp.firstKeyOf(TerminationPoint.class).getTpId());
-            builder.setAccessType(logicalPortAttr.getPortLayer().getLayer2Info().getAccessType());
-            builder.setAccessTag(logicalPortAttr.getPortLayer().getLayer2Info().getAccessSegment());
+            PortLayer layerInfo = logicalPortAttr.getPortLayer();
+            if (layerInfo != null) {
+                Layer2Info layer2Info = layerInfo.getLayer2Info();
+                if (layer2Info != null) {
+                    builder.setAccessType(layer2Info.getAccessType());
+                    builder.setAccessTag(layer2Info.getAccessSegment());
+                }
+            }
             builder.setBdId(String.valueOf(vni));
             CreateBridgeDomainPortInput input = builder.build();
             epMgr.getVxlanDeviceAdapter().createBridgeDomainPort(input);
@@ -357,18 +373,50 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     @Override
     public void routeUpdated(InstanceIdentifier<Node> lrIid, List<Route> routes, boolean isDelete) {
         NodeId nodeId = lrIid.firstKeyOf(Node.class).getNodeId();
+        List<Route> renderedRoutes = Lists.newArrayList();
 
         if (fabricCtx.isValidLogicSwitch(nodeId)) {
             LOG.warn("Not support route on l2 logical port. %s", nodeId);
             return;
         }
 
+        // FIXME calculate outgoing vni
+        for (Route route : routes) {
+            RouteBuilder builder = new RouteBuilder(route);
+            renderRoute(builder, nodeId);
+
+            renderedRoutes.add(builder.build());
+        }
+
         long vrf = fabricCtx.getLogicRouterCtx(nodeId).getVrfCtx();
         InstanceIdentifier<Rib> iid = createRibIId(fabricCtx.getFabricId(), vrf);
 
         WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-        wt.merge(LogicalDatastoreType.OPERATIONAL, iid, new RibBuilder().setVrf(vrf).setRoute(routes).build());
+        wt.merge(LogicalDatastoreType.OPERATIONAL, iid, new RibBuilder().setVrf(vrf).setRoute(renderedRoutes).build());
         MdSalUtils.wrapperSubmit(wt, executor);
+    }
+
+    private void renderRoute(RouteBuilder builder, NodeId routerId) {
+
+        NextHopOptions nexthop = builder.getNextHopOptions();
+        if (nexthop instanceof SimpleNextHop) {
+            LOG.info("shidn test. SimpleNextHop .....................................");
+            SimpleNextHop simpleNh  = (SimpleNextHop) nexthop;
+
+            Ipv4Address ipv4addr = simpleNh.getNextHop();
+            TpId tpid = simpleNh.getOutgoingInterface();
+
+            if (tpid != null) {
+                IpAddress gwIp = new IpAddress(tpid.getValue().toCharArray());
+                GatewayPort gwport = fabricCtx.getLogicRouterCtx(routerId).getGatewayPort(gwIp);
+                long vni = gwport.getVni();
+                builder.addAugmentation(VxlanRouteAug.class, new VxlanRouteAugBuilder().setOutgoingVni(vni).build());
+
+                LOG.info("shidn test. here .....................................");
+            }
+        } else {
+            LOG.warn("shidn test. nexthop is not simple. {}", nexthop.getClass().getName());
+        }
     }
 
     private InstanceIdentifier<Rib> createRibIId(FabricId fabricId, long vrf) {

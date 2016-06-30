@@ -7,6 +7,9 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -30,9 +33,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class DeviceContext {
 

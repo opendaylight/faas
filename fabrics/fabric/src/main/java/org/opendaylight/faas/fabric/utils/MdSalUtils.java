@@ -7,6 +7,10 @@
  */
 package org.opendaylight.faas.fabric.utils;
 
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+
 import java.util.concurrent.ExecutorService;
 
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
@@ -31,10 +35,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.CheckedFuture;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 
 public class MdSalUtils {
 

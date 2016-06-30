@@ -6,10 +6,17 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 package org.opendaylight.controller.config.yang.config.fabric.impl;
-public class FabricFactoryModuleFactory extends org.opendaylight.controller.config.yang.config.fabric.impl.AbstractFabricFactoryModuleFactory {
+
+import org.opendaylight.controller.config.api.DependencyResolver;
+import org.opendaylight.controller.config.spi.Module;
+import org.osgi.framework.BundleContext;
+
+public class FabricFactoryModuleFactory extends AbstractFabricFactoryModuleFactory {
 
     @Override
-    public org.opendaylight.controller.config.spi.Module createModule(String instanceName, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver, org.osgi.framework.BundleContext bundleContext) {
+    public Module createModule(String instanceName,
+            DependencyResolver dependencyResolver,
+            BundleContext bundleContext) {
 
         return super.createModule(instanceName, dependencyResolver, bundleContext);
     }

@@ -7,6 +7,8 @@
  */
 package org.opendaylight.faas.fabric.vxlan;
 
+import com.google.common.base.Optional;
+
 import java.util.List;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
@@ -32,23 +34,22 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-import com.google.common.base.Optional;
-
 public class EpAccessPortRenderer {
 
-    private InstanceIdentifier<TerminationPoint> lPortIid;
+    private InstanceIdentifier<TerminationPoint> lportIid;
 
     private final DataBroker databroker;
 
     public static EpAccessPortRenderer newCreateTask(DataBroker databroker) {
-        EpAccessPortRenderer o = new EpAccessPortRenderer(databroker);
-        return o;
+        EpAccessPortRenderer obj = new EpAccessPortRenderer(databroker);
+        return obj;
     }
 
-    public static EpAccessPortRenderer newDelTask(DataBroker databroker, InstanceIdentifier<TerminationPoint> lPortIid) {
-        EpAccessPortRenderer o = new EpAccessPortRenderer(databroker);
-        o.lPortIid = lPortIid;
-        return o;
+    public static EpAccessPortRenderer newDelTask(DataBroker databroker,
+            InstanceIdentifier<TerminationPoint> lportIid) {
+        EpAccessPortRenderer obj = new EpAccessPortRenderer(databroker);
+        obj.lportIid = lportIid;
+        return obj;
     }
 
     private EpAccessPortRenderer(DataBroker databroker) {
@@ -62,11 +63,12 @@ public class EpAccessPortRenderer {
         }
 
         InstanceIdentifier<Node> devNode = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
-        InstanceIdentifier<TerminationPoint> devTpIid = devNode.child(TerminationPoint.class, new TerminationPointKey(bridgeDomainPort));
+        InstanceIdentifier<TerminationPoint> devTpIid = devNode.child(TerminationPoint.class,
+                new TerminationPointKey(bridgeDomainPort));
 
         Optional<TerminationPoint> optional = readTp();
 
-        InstanceIdentifier<UnderlayerPorts> iid = lPortIid.augmentation(LogicalPortAugment.class)
+        InstanceIdentifier<UnderlayerPorts> iid = lportIid.augmentation(LogicalPortAugment.class)
                 .child(LportAttribute.class)
                 .child(UnderlayerPorts.class, new UnderlayerPortsKey(new TpRef(devTpIid)));
 
@@ -88,7 +90,7 @@ public class EpAccessPortRenderer {
     }
 
     void removeEpAccessPort() throws Exception {
-        if (lPortIid == null) {
+        if (lportIid == null) {
             return;
         }
 
@@ -110,7 +112,7 @@ public class EpAccessPortRenderer {
                     }
                 }
 
-                InstanceIdentifier<UnderlayerPorts> iid = lPortIid.augmentation(LogicalPortAugment.class)
+                InstanceIdentifier<UnderlayerPorts> iid = lportIid.augmentation(LogicalPortAugment.class)
                         .child(LportAttribute.class)
                         .child(UnderlayerPorts.class);
 
@@ -135,9 +137,9 @@ public class EpAccessPortRenderer {
     }
 
     private Optional<TerminationPoint> readTp() throws Exception {
-        if (lPortIid != null) {
+        if (lportIid != null) {
             ReadWriteTransaction trans = databroker.newReadWriteTransaction();
-            return trans.read(LogicalDatastoreType.OPERATIONAL, lPortIid).get();
+            return trans.read(LogicalDatastoreType.OPERATIONAL, lportIid).get();
         } else {
             return Optional.absent();
         }
@@ -148,7 +150,7 @@ public class EpAccessPortRenderer {
         if (ll == null) {
             return false;
         }
-        lPortIid = MdSalUtils.createLogicPortIId(ep.getOwnFabric(), ll.getNodeId(), ll.getTpId());
+        lportIid = MdSalUtils.createLogicPortIId(ep.getOwnFabric(), ll.getNodeId(), ll.getTpId());
         return true;
     }
 }
