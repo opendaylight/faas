@@ -12,7 +12,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;

@@ -13,10 +13,10 @@ import java.util.List;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.netvirt.utils.mdsal.openflow.InstructionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.tables.table.FlowBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.tables.table.FlowKey;
@@ -56,11 +56,11 @@ public class PipelineL3Forwarding extends AbstractServiceInstance {
         List<Instruction> instructions = Lists.newArrayList();
         InstructionBuilder ib = new InstructionBuilder();
 
-        MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
-        MatchUtils.createDstL3IPv4Match(matchBuilder, MatchUtils.iPv4PrefixFromIPv4Address(ipAddress.getIpv4Address().getValue()));
+        OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue()));
+        OfMatchUtils.createDstL3IPv4Match(matchBuilder, OfMatchUtils.iPv4PrefixFromIPv4Address(ipAddress.getIpv4Address().getValue()));
 
         // Set Dest Mac address
-        InstructionUtils.createDlDstInstructions(ib, new MacAddress(macAddress));
+        OfInstructionUtils.createDlDstInstructions(ib, macAddress);
         ib.setOrder(instructions.size());
         ib.setKey(new InstructionKey(instructions.size()));
         instructions.add(ib.build());

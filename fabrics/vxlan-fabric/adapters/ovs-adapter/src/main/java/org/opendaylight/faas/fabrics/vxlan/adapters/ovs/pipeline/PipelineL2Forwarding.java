@@ -19,12 +19,10 @@ import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.InstructionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.GroupActionCase;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.GroupActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCase;
@@ -104,8 +102,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
         // Create the OF Match using MatchBuilder
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress(attachedMac), null).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, attachedMac, "").build());
 
         String flowId = "UcastOut_" + segmentationId + "_" + localPort + "_" + attachedMac;
         // Add Flow Attributes
@@ -128,14 +126,14 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             List<Instruction> instructions = Lists.newArrayList();
 
             if (vlanId != 0l) {
-                InstructionUtils.createSetVlanInstructions(ib, new VlanId(vlanId.intValue()));
+                OfInstructionUtils.createSetVlanInstructions(ib, new VlanId(vlanId.intValue()));
                 ib.setOrder(instructions.size());
                 ib.setKey(new InstructionKey(instructions.size()));
                 instructions.add(ib.build());
             }
 
             // Set the Output Port/Iface
-            InstructionUtils.createOutputPortInstructions(ib, dpid, localPort);
+            OfInstructionUtils.createOutputPortInstructions(ib, dpid, localPort);
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
@@ -169,13 +167,12 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+        OfMatchUtils.addNxRegMatch(matchBuilder, new OfMatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
                 PipelineTrafficClassifier.REG_VALUE_FROM_REMOTE));
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         BigInteger.valueOf(segmentationId.longValue());
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
-                new MacAddress("01:00:00:00:00:00")).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, "01:00:00:00:00:00", "01:00:00:00:00:00").build());
 
         String flowId = "BcastOut_" + segmentationId;
         // Add Flow Attributes
@@ -217,7 +214,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
             writeFlow(flowBuilder, nodeBuilder);
         } else {
-            boolean flowRemove = InstructionUtils.removeOutputPortFromInstructions(ib, dpid, localPort,
+            boolean flowRemove = OfInstructionUtils.removeOutputPortFromInstructions(ib, dpid, localPort,
                     existingInstructions);
             if (flowRemove) {
                 /* if all ports are removed, remove flow */
@@ -254,7 +251,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
         // Create Match(es) and Set them in the FlowBuilder Object
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
 
         if (isWriteFlow) {
             // Create the OF Actions and Instructions
@@ -265,7 +262,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             List<Instruction> instructions = Lists.newArrayList();
 
             // Call the InstructionBuilder Methods Containing Actions
-            InstructionUtils.createDropInstructions(ib);
+            OfInstructionUtils.createDropInstructions(ib);
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
@@ -314,8 +311,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
         // Create the OF Match using MatchBuilder
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress(attachedMac), null).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, attachedMac, "").build());
 
         String flowId = "TunnelOut_" + segmentationId + "_" + OFPortOut + "_" + attachedMac + "_"
                 + dstTunIpAddress.getIpv4Address().getValue();
@@ -341,14 +338,14 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             ActionBuilder ab = new ActionBuilder();
 
             // add Load Tunnel Ip Action
-            ab.setAction(ActionUtils.nxLoadTunIPv4Action(dstTunIpAddress.getIpv4Address().getValue(), false));
+            ab.setAction(OfActionUtils.nxLoadTunIPv4Action(dstTunIpAddress.getIpv4Address().getValue(), false));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // add Output Action
             NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpid + ":" + OFPortOut);
-            ab.setAction(ActionUtils.outputAction(ncid));
+            ab.setAction(OfActionUtils.outputAction(ncid));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
@@ -381,11 +378,11 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        MatchUtils.addNxRegMatch(matchBuilder,
-                new MatchUtils.RegMatch(PipelineAclHandler.REG_SFC_FIELD, PipelineAclHandler.REG_VALUE_SFC_REDIRECT));
+        OfMatchUtils.addNxRegMatch(matchBuilder,
+                new OfMatchUtils.RegMatch(PipelineAclHandler.REG_SFC_FIELD, PipelineAclHandler.REG_VALUE_SFC_REDIRECT));
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress(attachedMac), null).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, attachedMac, "").build());
 
         flowBuilder.setMatch(matchBuilder.build());
 
@@ -436,7 +433,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
             // add Output Action
             NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpid + ":" + OFSfcTunPort);
-            ab.setAction(ActionUtils.outputAction(ncid));
+            ab.setAction(OfActionUtils.outputAction(ncid));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
@@ -473,7 +470,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
     private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadTunIdAction(
             Long value) {
-        return ActionUtils.nxLoadRegAction(new DstNxTunIdCaseBuilder().setNxTunId(Boolean.TRUE).build(),
+        return OfActionUtils.nxLoadRegAction(new DstNxTunIdCaseBuilder().setNxTunId(Boolean.TRUE).build(),
                 BigInteger.valueOf(value));
     }
 
@@ -498,13 +495,12 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
         // Create the OF Match using MatchBuilder
         // Match TunnelID
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+        OfMatchUtils.addNxRegMatch(matchBuilder, new OfMatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
                 PipelineTrafficClassifier.REG_VALUE_FROM_LOCAL));
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         // Match DMAC
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
-                new MacAddress("01:00:00:00:00:00")).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, "01:00:00:00:00:00", "01:00:00:00:00:00").build());
 
         String flowId = "TunnelFloodOut_" + segmentationId;
         // Add Flow Attributes
@@ -594,13 +590,12 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
         // Create the OF Match using MatchBuilder
         // Match TunnelID
-        MatchUtils.addNxRegMatch(matchBuilder, new MatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+        OfMatchUtils.addNxRegMatch(matchBuilder, new OfMatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
                 PipelineTrafficClassifier.REG_VALUE_FROM_LOCAL));
         flowBuilder.setMatch(
-                MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         // Match DMAC
-        flowBuilder.setMatch(MatchUtils.createDestEthMatch(matchBuilder, new MacAddress("01:00:00:00:00:00"),
-                new MacAddress("01:00:00:00:00:00")).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, "01:00:00:00:00:00", "01:00:00:00:00:00").build());
 
         String flowId = "TunnelFloodOut_" + segmentationId;
         // Add Flow Attributes
@@ -709,7 +704,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
              * If output port action already in the action list of one of the
              * buckets, skip
              */
-            if (opAction.getOutputAction().getOutputNodeConnector().equals(new Uri(ncid))) {
+
+            if (opAction.getOutputAction().getOutputNodeConnector().equals(ncid)) {
                 addNew = false;
                 break;
             }
@@ -866,7 +862,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
                              * If output port action already in the action list
                              * of one of the buckets, skip
                              */
-                            if (opAction.getOutputAction().getOutputNodeConnector().equals(new Uri(ncid))) {
+                            if (opAction.getOutputAction().getOutputNodeConnector().equals(ncid)) {
                                 addNew = false;
                                 break;
                             }
@@ -1012,7 +1008,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         outPortActionBuilder.setAction(new OutputActionCaseBuilder().setOutputAction(oab.build()).build());
         /* Create load tunnel ip action */
         loadTunIPv4ActionBuilder
-                .setAction(ActionUtils.nxLoadTunIPv4Action(destTunnelIp.getIpv4Address().getValue(), false));
+                .setAction(OfActionUtils.nxLoadTunIPv4Action(destTunnelIp.getIpv4Address().getValue(), false));
 
         boolean addNew = true;
         boolean groupActionAdded = false;
@@ -1207,7 +1203,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
                     for (Action action : bucketActions) {
                         if (action.getAction() instanceof OutputActionCase) {
                             OutputActionCase opAction = (OutputActionCase) action.getAction();
-                            if (opAction.getOutputAction().getOutputNodeConnector().equals(new Uri(ncid))) {
+                            if (opAction.getOutputAction().getOutputNodeConnector().equals(ncid)) {
                                 /*
                                  * Find the output port in action list and
                                  * remove

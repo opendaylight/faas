@@ -14,11 +14,9 @@ import org.apache.commons.net.util.SubnetUtils;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Ipv4Prefix;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowId;
@@ -69,11 +67,11 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         List<org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action> actionList = Lists
                 .newArrayList();
 
-        MatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(sourceSegId.longValue()));
+        OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(sourceSegId.longValue()));
 
         SubnetUtils addressSubnetInfo = new SubnetUtils(address.getIpv4Address().getValue() + "/" + mask);
         final String prefixString = addressSubnetInfo.getInfo().getNetworkAddress() + "/" + mask;
-        MatchUtils.createDstL3IPv4Match(matchBuilder, new Ipv4Prefix(prefixString));
+        OfMatchUtils.createDstL3IPv4Match(matchBuilder, prefixString);
 
         String flowId = "Routing_" + sourceSegId + "_" + destSegId + "_" + prefixString;
         flowBuilder.setId(new FlowId(flowId));
@@ -89,19 +87,19 @@ public class PipelineL3Routing extends AbstractServiceInstance {
 
         if (isWriteFlow) {
             // Set source Mac address
-            ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
+            ab.setAction(OfActionUtils.setDlSrcAction(macAddress));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // DecTTL
-            ab.setAction(ActionUtils.decNwTtlAction());
+            ab.setAction(OfActionUtils.decNwTtlAction());
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Set Destination Tunnel ID
-            ab.setAction(ActionUtils.setTunnelIdAction(BigInteger.valueOf(destSegId.longValue())));
+            ab.setAction(OfActionUtils.setTunnelIdAction(BigInteger.valueOf(destSegId.longValue())));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());

@@ -15,9 +15,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.VlanId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg0;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg2;
-import org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.InstructionUtils;
-import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
@@ -66,10 +66,10 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        flowBuilder.setMatch(MatchUtils.createEthSrcMatch(matchBuilder, new MacAddress(attachedMac)).build());
-        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
+        flowBuilder.setMatch(OfMatchUtils.createEthSrcMatch(matchBuilder, new MacAddress(attachedMac)).build());
+        flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
         if (vlanId != 0l) {
-            flowBuilder.setMatch(MatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
+            flowBuilder.setMatch(OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
         }
 
         String flowId = "LocalMac_"+segmentationId+"_"+inPort+"_"+attachedMac;
@@ -92,20 +92,20 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             // Instructions List Stores Individual Instructions
             List<Instruction> instructions = Lists.newArrayList();
 
-            InstructionUtils.createSetTunnelIdInstructions(ib, BigInteger.valueOf(segmentationId.longValue()));
+            OfInstructionUtils.createSetTunnelIdInstructions(ib, BigInteger.valueOf(segmentationId.longValue()));
 
             ApplyActionsCase aac = (ApplyActionsCase) ib.getInstruction();
             List<Action> actionList = aac.getApplyActions().getAction();
 
             ActionBuilder ab = new ActionBuilder();
 
-            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
+            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
                     BigInteger.valueOf(REG_VALUE_FROM_LOCAL)));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
-            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
                     BigInteger.valueOf(segmentationId.longValue())));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
@@ -150,7 +150,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
+        flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
 
         if (isWriteFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
@@ -161,7 +161,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             List<Instruction> instructions = Lists.newArrayList();
 
             // Call the InstructionBuilder Methods Containing Actions
-            InstructionUtils.createDropInstructions(ib);
+            OfInstructionUtils.createDropInstructions(ib);
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
@@ -211,8 +211,8 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create Match(es) and Set them in the FlowBuilder Object
-        flowBuilder.setMatch(MatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build());
-        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpid, ofPort).build());
+        flowBuilder.setMatch(OfMatchUtils.createTunnelIDMatch(matchBuilder, tunnelId).build());
+        flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, ofPort).build());
 
         if (isWriteFlow) {
             // Create the OF Actions and Instructions
@@ -224,13 +224,13 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
             List<Action> actionList = Lists.newArrayList();
             ActionBuilder ab = new ActionBuilder();
-            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
+            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
                     BigInteger.valueOf(REG_VALUE_FROM_REMOTE)));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
-            ab.setAction(ActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
                     tunnelId));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
@@ -285,8 +285,8 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         FlowBuilder flowBuilder = new FlowBuilder();
 
         // Create the OF Match using MatchBuilder
-        flowBuilder.setMatch(MatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
-        flowBuilder.setMatch(MatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
+        flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
+        flowBuilder.setMatch(OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
 
         String flowId = "VlanIn_"+vlanId+"_"+inPort+"_"+segmentationId;
         // Add Flow Attributes
@@ -309,7 +309,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             // Instructions List Stores Individual Instructions
             List<Instruction> instructions = Lists.newArrayList();
 
-            InstructionUtils.createSetTunnelIdInstructions(ib, BigInteger.valueOf(segmentationId.longValue()));
+            OfInstructionUtils.createSetTunnelIdInstructions(ib, BigInteger.valueOf(segmentationId.longValue()));
 
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));

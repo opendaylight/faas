@@ -10,7 +10,7 @@ package org.opendaylight.faas.fabricmgr;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.Uri;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.Location;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
@@ -64,19 +64,19 @@ public class FabMgrYangDataUtil {
     private static final String VC_NODE_TP_EAST = "tp-east";
 
     public static final InstanceIdentifier<Topology> DOM_VCS_PATH = InstanceIdentifier.create(NetworkTopology.class)
-        .child(Topology.class, new TopologyKey(new TopologyId(new Uri(VC_TOPOLOGY_ID))));
+        .child(Topology.class, new TopologyKey(new TopologyId(VC_TOPOLOGY_ID)));
 
     /*
      * VContainer
      */
     public static InstanceIdentifier<Topology> vcTopology(String tenantId) {
         return InstanceIdentifier.builder(NetworkTopology.class)
-            .child(Topology.class, new TopologyKey(new TopologyId(new Uri(tenantId))))
+            .child(Topology.class, new TopologyKey(new TopologyId(tenantId)))
             .build();
     }
 
     public static InstanceIdentifier<VcontainerTopology> vcTopologyType(String tenantId) {
-        TopologyId topoId = new TopologyId(new Uri(tenantId));
+        TopologyId topoId = new TopologyId(tenantId);
         TopologyKey topoKey = new TopologyKey(topoId);
         InstanceIdentifier<NetworkTopology> nt = InstanceIdentifier.create(NetworkTopology.class);
         InstanceIdentifier<Topology> topo = nt.child(Topology.class, topoKey);

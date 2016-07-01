@@ -22,10 +22,11 @@ import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineOutboun
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineTrafficClassifier;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.MdsalUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.AccessLists;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.Acl;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.access.lists.AclKey;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.AccessLists;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.Ipv4Acl;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.access.lists.Acl;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.access.lists.AclKey;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricOptions.TrafficBehavior;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRoute;
@@ -187,7 +188,7 @@ public class Openflow13Provider {
 
     public void updateBridgeDomainAclsInDevice(Long dpid, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
-        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName));
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName, Ipv4Acl.class));
 
         Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)
@@ -198,7 +199,7 @@ public class Openflow13Provider {
 
     public void updateBridgePortAclsInDevice(Long dpid, Long bridgePort, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
-        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName));
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.create(AccessLists.class).child(Acl.class, new AclKey(ietfAclName, Ipv4Acl.class));
 
         Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)

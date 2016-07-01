@@ -13,10 +13,10 @@ import java.util.List;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
-import org.opendaylight.netvirt.utils.mdsal.openflow.ActionUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
 import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev100924.MacAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowId;
@@ -102,49 +102,49 @@ public class PipelineArpHandler extends AbstractServiceInstance {
 
         if (isWriteFlow) {
             // Move Eth Src to Eth Dst
-            ab.setAction(ActionUtils.nxMoveEthSrcToEthDstAction());
+            ab.setAction(OfActionUtils.nxMoveEthSrcToEthDstAction());
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Set Eth Src
-            ab.setAction(ActionUtils.setDlSrcAction(new MacAddress(macAddress)));
+            ab.setAction(OfActionUtils.setDlSrcAction(macAddressStr));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Set ARP OP
-            ab.setAction(ActionUtils.nxLoadArpOpAction(BigInteger.valueOf(0x02L)));
+            ab.setAction(OfActionUtils.nxLoadArpOpAction(BigInteger.valueOf(0x02L)));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Move ARP SHA to ARP THA
-            ab.setAction(ActionUtils.nxMoveArpShaToArpThaAction());
+            ab.setAction(OfActionUtils.nxMoveArpShaToArpThaAction());
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Move ARP SPA to ARP TPA
-            ab.setAction(ActionUtils.nxMoveArpSpaToArpTpaAction());
+            ab.setAction(OfActionUtils.nxMoveArpSpaToArpTpaAction());
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Load Mac to ARP SHA
-            ab.setAction(ActionUtils.nxLoadArpShaAction(macAddress));
+            ab.setAction(OfActionUtils.nxLoadArpShaAction(macAddressStr));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Load IP to ARP SPA
-            ab.setAction(ActionUtils.nxLoadArpSpaAction(ipAddress.getIpv4Address().getValue()));
+            ab.setAction(OfActionUtils.nxLoadArpSpaAction(ipAddress.getIpv4Address().getValue()));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Output of InPort
-            ab.setAction(ActionUtils.outputAction(new NodeConnectorId(nodeName + ":INPORT")));
+            ab.setAction(OfActionUtils.outputAction(new NodeConnectorId(nodeName + ":INPORT")));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());

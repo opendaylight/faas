@@ -10,7 +10,7 @@ package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils;
 
 import java.util.List;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev100924.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
 
 public class AdapterBridgeDomain {
