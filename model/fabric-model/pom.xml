@@ -22,13 +22,12 @@
 
   <dependencies>
   <dependency>
-      <groupId>org.opendaylight.sfc</groupId>
-      <artifactId>sfc-model</artifactId>
-      <version>0.3.0-SNAPSHOT</version>
+      <groupId>org.opendaylight.mdsal.model</groupId>
+      <artifactId>ietf-access-control-list</artifactId>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.mdsal.model</groupId>
-      <artifactId>ietf-inet-types</artifactId>
+      <artifactId>ietf-inet-types-2013-07-15</artifactId>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.mdsal.model</groupId>
@@ -56,9 +55,7 @@
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.*,
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.*,
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.*,
-                                org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.*,
-                                org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev150317.*,
-                                org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev150611.*
+                                org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.*;
                 </Export-Package>
                 <Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
             </instructions>

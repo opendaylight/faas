@@ -5,11 +5,11 @@ module fabric-resources {
     prefix fabric-services;
 
     import network-topology { prefix "topo"; revision-date "2013-10-21"; }
-    import ietf-inet-types { prefix "inet"; revision-date "2010-09-24"; }
+    import ietf-inet-types { prefix "inet"; revision-date "2013-07-15"; }
     import yang-ext { prefix "ext"; revision-date "2013-07-09"; }
     import fabric-types { prefix fabrictype; revision-date "2015-09-30"; }
     import fabric { prefix fabric; revision-date "2015-09-30"; }
-    import ietf-access-control-list { prefix acl; revision-date "2015-03-17"; }
+    import ietf-access-control-list { prefix acl; revision-date "2016-02-18"; }
 
 
     revision "2016-05-30" {
