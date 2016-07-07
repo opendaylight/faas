@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
@@ -22,11 +22,16 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UserLogicalNetworkManager implements AutoCloseable {
+/**
+ * UserLogicalNetworkManager - A singleton object responsible for initiating the mapping engine.
+ *
+ */
+public final class UserLogicalNetworkManager implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(UserLogicalNetworkManager.class);
 
     private final ScheduledExecutorService executor;
+
     private final RouterListener routerListener;
     private final EdgeListener edgeListener;
     private final EndpointLocationListener endpointLocationListener;
@@ -34,14 +39,22 @@ public class UserLogicalNetworkManager implements AutoCloseable {
     private final SecurityRuleGroupsListener securityGroupListener;
     private final SubnetListener subnetListener;
     private final SwitchListener switchListener;
-    private static final UlnMappingEngine ulnMapper = new UlnMappingEngine();
 
-    public UserLogicalNetworkManager() {
-        LOG.debug("FABMGR: Starting Uln-mapper...");
-        UlnMapperDatastoreDependency.getRpcRegistry().addRpcImplementation(FaasEndpointsLocationsService.class,
+    private static final UlnMappingEngine ulnMapper = new UlnMappingEngine();
+    private static UserLogicalNetworkManager instance = null;
+
+    private UserLogicalNetworkManager() {
+        LOG.debug("UserLogicalNetworkManager: Starting ulnmapper...");
+
+        UlnMapperDatastoreDependency.getRpcRegistry().addRpcImplementation(
+                FaasEndpointsLocationsService.class,
                 new FaasServiceImpl());
+
         int numCPU = Runtime.getRuntime().availableProcessors();
         executor = Executors.newScheduledThreadPool(numCPU * 2);
+
+        LOG.info("Start logical element listerners on logical network ...");
+
         routerListener = new RouterListener(executor);
         edgeListener = new EdgeListener(executor);
         endpointLocationListener = new EndpointLocationListener(executor);
@@ -49,8 +62,22 @@ public class UserLogicalNetworkManager implements AutoCloseable {
         securityGroupListener = new SecurityRuleGroupsListener(executor);
         subnetListener = new SubnetListener(executor);
         switchListener = new SwitchListener(executor);
+
         ulnMapper.initialize();
-        LOG.info("FABMGR: Uln-mapper has Started. threadpool size={}", numCPU * 2);
+
+        LOG.info("Logical Network Manager: Uln-mapper has Started. threadpool size={}", numCPU * 2);
+    }
+
+    /**
+     * Singleton function.
+     * @return
+     */
+    public static synchronized UserLogicalNetworkManager getInstance() {
+        if (instance == null) {
+            return new UserLogicalNetworkManager();
+        }
+
+        return instance;
     }
 
     public static UlnMappingEngine getUlnMapper() {
@@ -59,6 +86,9 @@ public class UserLogicalNetworkManager implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
+
+        LOG.debug("Shutting down thread pool and all the listeners ...");
+
         executor.shutdownNow();
         routerListener.close();
         edgeListener.close();
