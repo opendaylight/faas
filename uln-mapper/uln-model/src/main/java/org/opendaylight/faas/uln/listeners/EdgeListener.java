@@ -10,7 +10,6 @@ package org.opendaylight.faas.uln.listeners;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;

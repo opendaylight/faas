@@ -22,7 +22,7 @@ import java.util.concurrent.Semaphore;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
-import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
+import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
 import org.opendaylight.faas.uln.datastore.api.UlnDatastoreApi;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.listeners.UlnUtil;
@@ -713,14 +713,14 @@ public class UlnMappingEngine {
 
     private NodeId renderLogicalSwitch(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
         CreateLneLayer2Input input = UlnUtil.createLneLayer2Input(tenantId, lsw);
-        NodeId renderedLswId = VcontainerServiceProviderAPI.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
+        NodeId renderedLswId = VContainerServiceProvider.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLswAsRendered(lsw, renderedLswId);
         return renderedLswId;
     }
 
     private NodeId renderLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
         CreateLneLayer3Input input = UlnUtil.createLneLayer3Input(tenantId, lr);
-        NodeId renderedLrId = VcontainerServiceProviderAPI.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
+        NodeId renderedLrId = VContainerServiceProvider.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), input);
         uln.markLrAsRendered(lr, renderedLrId);
         uln.setRenderedlrOnFabric(uln.getLrMappingInfo(lr));
         return renderedLrId;
@@ -729,7 +729,7 @@ public class UlnMappingEngine {
     private void renderEpRegistration(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation,
             NodeId renderedLswId, TpId renderedLswPortId, EndpointAttachInfo endpoint) {
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderedEpId =
-                VcontainerServiceProviderAPI.attachEpToLneLayer2(UlnUtil.convertToYangUuid(tenantId), renderedLswId,
+                VContainerServiceProvider.attachEpToLneLayer2(UlnUtil.convertToYangUuid(tenantId), renderedLswId,
                         renderedLswPortId, endpoint);
         uln.markEpLocationAsRendered(epLocation, renderedEpId);
     }
@@ -747,14 +747,14 @@ public class UlnMappingEngine {
         }
 
         NodeId renderedLswId = lswInfo.getRenderedDeviceId();
-        TpId renderedPortId = VcontainerServiceProviderAPI
+        TpId renderedPortId = VContainerServiceProvider
             .createLogicalPortOnLneLayer2(UlnUtil.convertToYangUuid(tenantId), renderedLswId);
         lswPortInfo.markAsRendered(renderedPortId);
     }
 
     private void renderLrLswEdge(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrId, NodeId lswId,
             IpAddress gatewayIpAddr, IpPrefix ipPrefix, Edge edge) {
-        VcontainerServiceProviderAPI.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lrId, lswId, gatewayIpAddr,
+        VContainerServiceProvider.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lrId, lswId, gatewayIpAddr,
                 ipPrefix);
         uln.markEdgeAsRendered(edge);
     }
@@ -1216,7 +1216,7 @@ public class UlnMappingEngine {
     }
 
     private void removeAclFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId, String aclName) {
-        VcontainerServiceProviderAPI.removeAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
+        VContainerServiceProvider.removeAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
 
         this.removeAclFromDatastore(aclName);
     }
@@ -1331,7 +1331,7 @@ public class UlnMappingEngine {
 
     private void removeLrLswEdgeFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrDevId,
             IpAddress gatewayIp) {
-        VcontainerServiceProviderAPI.removeLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lrDevId, gatewayIp);
+        VContainerServiceProvider.removeLrLswGateway(UlnUtil.convertToYangUuid(tenantId), lrDevId, gatewayIp);
     }
 
     private void doEndpointLocationRemove(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
@@ -1376,7 +1376,7 @@ public class UlnMappingEngine {
 
     private void removeEpRegistrationFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lswDevId,
             org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid epUuid) {
-        VcontainerServiceProviderAPI.unregisterEpFromLneLayer2(UlnUtil.convertToYangUuid(tenantId), lswDevId, epUuid);
+        VContainerServiceProvider.unregisterEpFromLneLayer2(UlnUtil.convertToYangUuid(tenantId), lswDevId, epUuid);
     }
 
     private void doLogicalSwtichRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
@@ -1420,7 +1420,7 @@ public class UlnMappingEngine {
     }
 
     private void removeLswFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lswDevId) {
-        VcontainerServiceProviderAPI.removeLneLayer2(UlnUtil.convertToYangUuid(tenantId), lswDevId);
+        VContainerServiceProvider.removeLneLayer2(UlnUtil.convertToYangUuid(tenantId), lswDevId);
     }
 
     private void doLogicalRouterRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouter lr) {
@@ -1459,12 +1459,12 @@ public class UlnMappingEngine {
     }
 
     private void removeLrFromFabric(Uuid tenantId, UserLogicalNetworkCache uln, NodeId lrDevId) {
-        VcontainerServiceProviderAPI.removeLneLayer3(UlnUtil.convertToYangUuid(tenantId), lrDevId);
+        VContainerServiceProvider.removeLneLayer3(UlnUtil.convertToYangUuid(tenantId), lrDevId);
     }
 
     private void renderSecurityRule(Uuid tenantId, UserLogicalNetworkCache uln, NodeId nodeId,
             SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo, String aclName) {
-        VcontainerServiceProviderAPI.createAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
+        VContainerServiceProvider.createAcl(UlnUtil.convertToYangUuid(tenantId), nodeId, aclName);
         ruleGroupsMappingInfo.addRenderedAclName(aclName);
     }
 

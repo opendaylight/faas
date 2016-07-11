@@ -5,11 +5,11 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-module uln-mapper-impl {
+module ulnmapper-impl {
 
     yang-version 1;
-    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:uln-mapper:impl";
-    prefix "uln-mapper-impl";
+    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:ulnmapper:impl";
+    prefix "ulnmapper-impl";
 
     import config { prefix config; revision-date 2013-04-05; }
     import opendaylight-md-sal-binding { prefix mdsal; revision-date 2013-10-28; }
@@ -20,7 +20,7 @@ module uln-mapper-impl {
     }
 
     // This is the definition of the service implementation as a module identity.
-    identity uln-mapper-impl {
+    identity ulnmapper-impl {
         base config:module-type;
 
         // Specifies the prefix for generated java classes.
@@ -29,8 +29,8 @@ module uln-mapper-impl {
 
     // Augment the 'configuration' choice node under modules/module.
     augment "/config:modules/config:module/config:configuration" {
-        case uln-mapper-impl {
-            when "/config:modules/config:module/config:type = 'uln-mapper-impl'";
+        case ulnmapper-impl {
+            when "/config:modules/config:module/config:type = 'ulnmapper-impl'";
 
             container data-broker {
                 uses config:service-ref {

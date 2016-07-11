@@ -15,7 +15,7 @@
 *
 * Do not modify this file unless it is present under src/main directory
 */
-package org.opendaylight.controller.config.yang.config.uln_mapper.impl;
-public class UlnMapperModuleFactory extends org.opendaylight.controller.config.yang.config.uln_mapper.impl.AbstractUlnMapperModuleFactory {
+package org.opendaylight.controller.config.yang.config.ulnmapper.impl;
+public class UlnMapperModuleFactory extends org.opendaylight.controller.config.yang.config.ulnmapper.impl.AbstractUlnMapperModuleFactory {
 
 }

@@ -17,10 +17,9 @@ import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
-import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
+import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocationBuilder;
@@ -43,16 +42,21 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * FabricMgrProvider - fabric resource management via virtual container for each tenant.
+ *
+ */
 public class FabricMgrProvider implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricMgrProvider.class);
     private final ExecutorService threadPool;
     private final VcontainerServiceProvider vcProvider;
-    private final VcNetNodeServiceProvider netNodeServiceProvider;
+    private final VContainerNetNodeServiceProvider netNodeServiceProvider;
     private Map<Uuid, VcConfigDataMgr> vcConfigDataMgrList; // tenantId-Vcontainer lookup map
     private VcNetNodeService vcNetNodeService;
+    private static FabricMgrProvider instance = null;
 
-    public FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
+    private FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
             final NotificationService notificationService) {
         super();
         FabMgrDatastoreDependency.setDataProvider(dataProvider);
@@ -63,19 +67,32 @@ public class FabricMgrProvider implements AutoCloseable {
         this.threadPool = Executors.newFixedThreadPool(numCPU * 2);
         this.vcProvider = new VcontainerServiceProvider(this.threadPool);
         this.vcProvider.initialize();
-        this.netNodeServiceProvider = new VcNetNodeServiceProvider(this.threadPool);
+        this.netNodeServiceProvider = new VContainerNetNodeServiceProvider(this.threadPool);
         this.netNodeServiceProvider.initialize();
 
         this.vcNetNodeService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(VcNetNodeService.class);
-        this.vcConfigDataMgrList = new ConcurrentHashMap<Uuid, VcConfigDataMgr>();
+        this.vcConfigDataMgrList = new ConcurrentHashMap<>();
 
-        VcontainerServiceProviderAPI.setFabricMgrProvider(this);
+        VContainerServiceProvider.setFabricMgrProvider(this);
 
-        LOG.info("FABMGR: FabricMgrProvider has Started");
+        LOG.info("FABMGR: FabricMgrProvider has Started with threadpool size {}", numCPU);
+    }
+
+    public static synchronized FabricMgrProvider getInstance(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
+            final NotificationService notificationService)
+    {
+        if(instance == null) {
+            return new FabricMgrProvider(dataProvider, rpcRegistry, notificationService);
+        }
+
+        return instance;
     }
 
     @Override
     public void close() throws Exception {
+
+        LOG.info("Shtting down FabricMgrProvider ...");
+
         this.vcProvider.close();
         this.netNodeServiceProvider.close();
         this.threadPool.shutdown();

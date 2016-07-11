@@ -24,7 +24,7 @@ module fabric-mgr-impl {
         base config:module-type;
 
         // Specifies the prefix for generated java classes.
-        config:java-name-prefix FabricMgr;
+        config:java-name-prefix fabric-mgr;
     }
 
     // Augment the 'configuration' choice node under modules/module.

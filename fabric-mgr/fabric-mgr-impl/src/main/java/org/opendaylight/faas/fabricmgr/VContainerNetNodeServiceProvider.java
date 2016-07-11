@@ -8,13 +8,13 @@
 
 package org.opendaylight.faas.fabricmgr;
 
+import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.faas.fabricmgr.api.VcontainerServiceProviderAPI;
+import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
@@ -74,18 +74,24 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.Futures;
+/**
+ * VContainerNetNodeServiceProvider implements RPC stub for FaaS Services.
+ *
+ */
+public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNodeService {
 
-public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService {
-
-    private static final Logger LOG = LoggerFactory.getLogger(VcNetNodeServiceProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VContainerNetNodeServiceProvider.class);
 
     private RpcRegistration<VcNetNodeService> rpcRegistration;
     private final ExecutorService threadPool;
     private FabricEndpointService epService;
     private FabricServiceService fabServiceService;
 
-    public VcNetNodeServiceProvider(ExecutorService executor) {
+    /**
+     * Constructor.
+     * @param executor
+     */
+    public VContainerNetNodeServiceProvider(ExecutorService executor) {
         this.threadPool = executor;
     }
 
@@ -115,7 +121,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         lswInputBuilder.setFabricId(fabricId);
         lswInputBuilder.setName(lswName);
         VcConfigDataMgr vcMgr =
-                VcontainerServiceProviderAPI.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+                VContainerServiceProvider.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: {}", tenantId.getValue());
             return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
@@ -243,7 +249,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         VcLneId lswId = input.getLneId();
 
         VcConfigDataMgr vcMgr =
-                VcontainerServiceProviderAPI.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+                VContainerServiceProvider.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: rmLneLayer2: vcMgr is null: {}", tenantId.getValue());
             return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
@@ -278,8 +284,6 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
 
     @Override
     public Future<RpcResult<Void>> rmLneLayer3(RmLneLayer3Input input) {
-        @SuppressWarnings("unused")
-        TenantId tenantId = input.getTenantId();
         NodeId vfabricId = input.getVfabricId();
         VcLneId lrId = input.getLneId();
 
@@ -383,7 +387,7 @@ public class VcNetNodeServiceProvider implements AutoCloseable, VcNetNodeService
         UnregisterEndpointInputBuilder epInputBuilder = new UnregisterEndpointInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         epInputBuilder.setFabricId(fabricId);
-        List<Uuid> epUuidList = new ArrayList<Uuid>();
+        List<Uuid> epUuidList = new ArrayList<>();
         epUuidList.add(new Uuid(epUuid));
         epInputBuilder.setIds(epUuidList);
 

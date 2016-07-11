@@ -11,13 +11,16 @@ import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabricmgr.FabricMgrProvider;
+import org.opendaylight.controller.config.api.ModuleIdentifier;
+import org.opendaylight.controller.config.yang.config.fabric_mgr.impl.AbstractFabricMgrModule;
+import org.opendaylight.controller.config.api.DependencyResolver;
 
-public class FabricMgrModule extends org.opendaylight.controller.config.yang.config.fabric_mgr.impl.AbstractFabricMgrModule {
-    public FabricMgrModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver) {
+public class FabricMgrModule extends AbstractFabricMgrModule {
+    public FabricMgrModule(ModuleIdentifier identifier, DependencyResolver dependencyResolver) {
         super(identifier, dependencyResolver);
     }
 
-    public FabricMgrModule(org.opendaylight.controller.config.api.ModuleIdentifier identifier, org.opendaylight.controller.config.api.DependencyResolver dependencyResolver, org.opendaylight.controller.config.yang.config.fabric_mgr.impl.FabricMgrModule oldModule, java.lang.AutoCloseable oldInstance) {
+    public FabricMgrModule(ModuleIdentifier identifier, DependencyResolver dependencyResolver, FabricMgrModule oldModule, java.lang.AutoCloseable oldInstance) {
         super(identifier, dependencyResolver, oldModule, oldInstance);
     }
 
@@ -32,7 +35,7 @@ public class FabricMgrModule extends org.opendaylight.controller.config.yang.con
         NotificationService notificationService = getNotificationAdapterDependency();
         RpcProviderRegistry rpcRegistry = getRpcRegistryDependency();
 
-        return new FabricMgrProvider(databroker, rpcRegistry, notificationService);
+        return FabricMgrProvider.getInstance(databroker, rpcRegistry, notificationService);
     }
 
 }
