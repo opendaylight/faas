@@ -99,6 +99,14 @@ module vc-net-node {
         }
     }
 
+    grouping ports {
+        list port {
+            leaf port-id {
+                type vctype:vfabric-port-id;
+            }
+        }
+    }
+
     /******************************* AUGMENT ***********************************/
 
     augment "/nt:network-topology/nt:topology/nt:node/vct:vc-node-attributes" {
@@ -154,7 +162,7 @@ module vc-net-node {
         }
     }
 
-    rpc removed-child-net-node {
+    rpc remove-child-net-node {
         input {
             leaf tenant-id {
                 type vctype:tenant-id;
@@ -230,11 +238,7 @@ module vc-net-node {
                 type nt:node-id;
             }
             uses vctype:vf-lsw-attributes;
-            list ports {
-                leaf port-id {
-                    type vctype:vfabric-port-id;
-                }
-            }
+            uses ports;
         }
         output {
             leaf lne-id {
@@ -254,11 +258,7 @@ module vc-net-node {
             leaf lne-id {
                 type vctype:vc-lne-id;
             }
-            list ports {
-                leaf port-id {
-                    type vctype:vfabric-port-id;
-                }
-            }
+            uses ports;
         }
     }
 
@@ -273,11 +273,7 @@ module vc-net-node {
             leaf lne-id {
                 type vctype:vc-lne-id;
             }
-            list ports {
-                leaf port-id {
-                    type vctype:vfabric-port-id;
-                }
-            }
+            uses ports;
         }
     }
 
@@ -304,11 +300,7 @@ module vc-net-node {
                 type nt:node-id;
             }
             uses vctype:vf-lr-attributes;
-            list ports {
-                leaf port-id {
-                    type vctype:vfabric-port-id;
-                }
-            }
+            uses ports;
         }
         output {
             leaf lne-id {
@@ -359,11 +351,7 @@ module vc-net-node {
             leaf lne-id {
                 type vctype:vc-lne-id;
             }
-            list ports {
-                leaf port-id {
-                    type vctype:vfabric-port-id;
-                }
-            }
+            uses ports;
         }
     }
 
@@ -378,11 +366,7 @@ module vc-net-node {
             leaf lne-id {
                 type vctype:vc-lne-id;
             }
-            list ports {
-                leaf port-id {
-                    type vctype:vfabric-port-id;
-                }
-            }
+            uses ports;
         }
     }
 

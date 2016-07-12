@@ -10,10 +10,22 @@ package org.opendaylight.faas.fabricmgr;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 
-public class VcNetNodeConfigDataMgr {
+/**
+ * VContainerNetConfMgr - manage the Net object of a virtual container.
+ * A Virtual Container object contains a Net Node and a Logical Device node.
+ * A Net Node object contains the fully provisioned logical network object configuration.
+ * A logical device node represents the unused network resource.
+ */
+//TODO : to implement later
+
+public final class VContainerNetConfigMgr {
     private Uuid tenantId;
 
-    public VcNetNodeConfigDataMgr(Uuid tenantId) {
+    /**
+     * Constructor.
+     * @param tenantId - tenant identifier
+     */
+    public VContainerNetConfigMgr(Uuid tenantId) {
         this.setTenantId(tenantId);
     }
 

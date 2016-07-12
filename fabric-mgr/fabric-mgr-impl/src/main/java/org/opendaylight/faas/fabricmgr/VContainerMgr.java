@@ -16,7 +16,6 @@ import java.util.concurrent.Future;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VfabricId;
@@ -46,15 +45,19 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Futures;
 
-public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopologyService {
+/**
+ * VContainerMgr - create, delete and modify Virtual Container objects.
+ *
+ */
+public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(VcontainerServiceProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VContainerMgr.class);
     private static final LogicalDatastoreType OPERATIONAL = LogicalDatastoreType.OPERATIONAL;
 
     private RpcRegistration<VcontainerTopologyService> rpcRegistration;
     private final ExecutorService threadPool;
 
-    public VcontainerServiceProvider(ExecutorService executor) {
+    public VContainerMgr(ExecutorService executor) {
         this.threadPool = executor;
     }
 
@@ -82,10 +85,10 @@ public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopol
         outputBuilder.setVcTopologyId(vcTopologyId);
 
         // TODO: This should be implemented as datastore listener event.
-        VContainerServiceProvider.getFabricMgrProvider().listenerActionOnVcCreate(new Uuid(tenantId.getValue()));
+        VContainerServiceProvider.getFabricMgrProvider().OnVcCreated(new Uuid(tenantId.getValue()));
 
         List<Vfabric> vfabricList = vcConfig.getVfabric();
-        List<NodeId> vfabricIdList = new ArrayList<NodeId>();
+        List<NodeId> vfabricIdList = new ArrayList<>();
         if (vfabricList != null && vfabricList.isEmpty() == false) {
             for (Vfabric vfab : vfabricList) {
                 VfabricId vfabId = vfab.getVfabricId();
@@ -93,12 +96,12 @@ public class VcontainerServiceProvider implements AutoCloseable, VcontainerTopol
             }
         }
 
-        VcConfigDataMgr vc =
+        VContainerConfigMgr vc =
                 VContainerServiceProvider.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vc == null) {
             LOG.error("FABMGR: ERROR: createVcontainer: vc is null");
         } else {
-            vc.getLdNodeConfigDataMgr().listenerActionOnVcLdNodeCreate(tenantId, vfabricIdList);
+            vc.getLdNodeConfigDataMgr().addVFabrics(tenantId, vfabricIdList);
         }
 
         return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());

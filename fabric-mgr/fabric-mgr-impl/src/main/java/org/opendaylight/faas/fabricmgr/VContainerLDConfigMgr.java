@@ -19,16 +19,27 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VcLdNodeConfigDataMgr {
+/**
+ * VContainerLDConfigMgr - manage the logical device object of a virtual container.
+ * A Virtual Container object contains a Net Node and a Logical Device node.
+ * A Net Node object contains the fully provisioned logical network object configuration.
+ * A logical device node represents the unused network resource which is represented by VContainerLDConfigMgr.
+ */
 
-    private static final Logger LOG = LoggerFactory.getLogger(VcLdNodeConfigDataMgr.class);
+public final class VContainerLDConfigMgr {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VContainerLDConfigMgr.class);
 
     private Uuid tenantId;
-    private Map<NodeId, VfabricConfigDataMgr> vfabricDataMgrStore; // vfabricId<-->vfabMgr Map
+    private Map<NodeId, VFabricConfigDataMgr> vfabricDataMgrStore; // vfabricId<-->vfabMgr Map
 
-    public VcLdNodeConfigDataMgr(Uuid tenantId) {
+    /**
+     * allocate a virtual container for a tenant.
+     * @param tenantId - tenant identifier.
+     */
+    public VContainerLDConfigMgr(Uuid tenantId) {
         this.setTenantId(tenantId);
-        this.vfabricDataMgrStore = new ConcurrentHashMap<NodeId, VfabricConfigDataMgr>();
+        this.vfabricDataMgrStore = new ConcurrentHashMap<>();
     }
 
     public Uuid getTenantId() {
@@ -39,33 +50,37 @@ public class VcLdNodeConfigDataMgr {
         this.tenantId = tenantId;
     }
 
-    // TODO: this function should a listener action.
-    public void listenerActionOnVcLdNodeCreate(TenantId tenantId, List<NodeId> vfabricIdList) {
+    public void addVFabrics(TenantId tenantId, List<NodeId> vfabricIdList) {
         for (NodeId vfabId : vfabricIdList) {
-            VfabricConfigDataMgr vfabDataMgr = new VfabricConfigDataMgr(vfabId);
+            VFabricConfigDataMgr vfabDataMgr = new VFabricConfigDataMgr(vfabId);
             vfabDataMgr.setTenantId(tenantId);
             this.vfabricDataMgrStore.put(vfabId, vfabDataMgr);
-            LOG.debug("FABMGR:listenerActionOnVcLdNodeCreate: vfabDataMgr created for vfabId: {}", vfabId.getValue());
+
+            LOG.debug("addFabrics: vfabDataMgr created for vfabId: {}", vfabId.getValue());
         }
     }
 
-    public NodeId getAvailableVfabricId() {
-        if (this.vfabricDataMgrStore == null || this.vfabricDataMgrStore.isEmpty() == true) {
+    /**
+     * Check resource availability.
+     * @param target - the resource ID to be checked.
+     * @return true if exists, otherwise false.
+     */
+    public boolean isVFabricAvailable(NodeId target) {
+        if (this.vfabricDataMgrStore == null || this.vfabricDataMgrStore.isEmpty() == Boolean.TRUE) {
             LOG.error("FABMGR: ERROR: getAvailableVfabricId: vfabricDataMgrStore is null");
-            return null;
+            return false;
         }
-
-        NodeId vfabricId = null;
 
         /*
          * Just (randomly) grab the first entry in the vfabMgr list for now.
          */
-        for (Entry<NodeId, VfabricConfigDataMgr> entry : this.vfabricDataMgrStore.entrySet()) {
-            vfabricId = entry.getKey();
-            break;
+        for (Entry<NodeId, VFabricConfigDataMgr> entry : this.vfabricDataMgrStore.entrySet()) {
+            if (entry.getKey() == target) {
+                return true;
+            }
         }
 
-        return vfabricId;
+        return false;
 
     }
 
@@ -75,7 +90,7 @@ public class VcLdNodeConfigDataMgr {
             return 0;
         }
 
-        VfabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
+        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
         if (vfabDataMgr == null) {
             LOG.error("FABMGR: ERROR: getAvailableL2Resurce: vfabDataMgr is null");
             return 0;
@@ -84,11 +99,11 @@ public class VcLdNodeConfigDataMgr {
         return vfabDataMgr.getAvailableL2Resource();
     }
 
-    public Map<NodeId, VfabricConfigDataMgr> getVfabricDataMgrStore() {
+    public Map<NodeId, VFabricConfigDataMgr> getVfabricDataMgrStore() {
         return vfabricDataMgrStore;
     }
 
-    public void setVfabricDataMgrStore(Map<NodeId, VfabricConfigDataMgr> vfabricDataMgrStore) {
+    public void setVfabricDataMgrStore(Map<NodeId, VFabricConfigDataMgr> vfabricDataMgrStore) {
         this.vfabricDataMgrStore = vfabricDataMgrStore;
     }
 
@@ -98,7 +113,7 @@ public class VcLdNodeConfigDataMgr {
             return;
         }
 
-        VfabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
+        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
         if (vfabDataMgr == null) {
             LOG.error("FABMGR: ERROR: releaseL2Resource: vfabDataMgr is null");
             return;
