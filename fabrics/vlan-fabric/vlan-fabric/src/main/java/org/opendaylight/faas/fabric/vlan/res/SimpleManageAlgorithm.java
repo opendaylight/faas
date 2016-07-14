@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
+ * Copyright (c) 2016 Huawei Technologies Co. Ltd. and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -11,7 +11,7 @@ public class SimpleManageAlgorithm implements SegmentManager, VrfCtxManager {
 
     private long seg = 1L;
 
-    private long vrfctx = 1L;
+    private int vrfctx = 1;
 
     @Override
     public long allocSeg() {
@@ -24,12 +24,12 @@ public class SimpleManageAlgorithm implements SegmentManager, VrfCtxManager {
     }
 
     @Override
-    public long allocVrfCtx() {
+    public int allocVrfCtx() {
         return vrfctx++;
     }
 
     @Override
-    public void freeVrfCtx(long vrf) {
+    public void freeVrfCtx(int vrf) {
         // do nothing
     }
 }

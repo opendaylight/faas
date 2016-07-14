@@ -8,19 +8,21 @@
 package org.opendaylight.faas.fabric.vlan;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -32,6 +34,8 @@ public class FabricContext implements AutoCloseable {
     private final Map<NodeId, LogicSwitchContext> logicSwitches = Maps.newConcurrentMap();
 
     private final Map<DeviceKey, DeviceContext> devices = Maps.newConcurrentMap();
+
+    private final Set<DeviceKey> spineDevices = Sets.newHashSet();
 
     private final Map<NodeId, LogicRouterContext> logicRouters = Maps.newConcurrentMap();
 
@@ -46,7 +50,7 @@ public class FabricContext implements AutoCloseable {
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(fabricId.getValue() + " - %d")
                 .build();
-        this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor(threadFactory));;
+        this.executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor(threadFactory));
     }
 
     public FabricId getFabricId() {
@@ -61,8 +65,8 @@ public class FabricContext implements AutoCloseable {
         logicRouters.remove(routerId);
     }
 
-    public LogicSwitchContext addLogicSwitch(NodeId nodeId, int vlan) {
-        LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vlan, nodeId, executor);
+    public LogicSwitchContext addLogicSwitch(NodeId nodeId, int vlan, boolean external) {
+        LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vlan, nodeId, executor, external);
         logicSwitches.put(nodeId, lswCtx);
         return lswCtx;
     }
@@ -71,9 +75,14 @@ public class FabricContext implements AutoCloseable {
         return logicSwitches.remove(nodeId);
     }
 
-    public DeviceContext addDeviceSwitch(InstanceIdentifier<Node> deviceIId, IpAddress vtep) {
-        DeviceContext devCtx = new DeviceContext(databroker, vtep, deviceIId, executor);
-        devices.put(DeviceKey.newInstance(deviceIId), devCtx);
+    public DeviceContext addDeviceSwitch(InstanceIdentifier<Node> deviceIId, String mgntIp, DeviceRole role) {
+        DeviceContext devCtx = new DeviceContext(databroker, mgntIp, deviceIId, executor);
+        DeviceKey key = DeviceKey.newInstance(deviceIId);
+        devices.put(key, devCtx);
+
+        if (role.equals(DeviceRole.SPINE)) {
+            spineDevices.add(key);
+        }
         return devCtx;
     }
 
@@ -90,9 +99,23 @@ public class FabricContext implements AutoCloseable {
     }
 
     public void associateSwitchToRouter(FabricId fabricid, NodeId lsw, NodeId lr, IpPrefix ip) {
+        LogicRouterContext routerCtx = getLogicRouterCtx(lr);
+        LogicSwitchContext switchCtx = getLogicSwitchCtx(lsw);
+        switchCtx.associateToRouter(routerCtx, ip);
+
+        for (DeviceKey devKey : getSpineDevices()) {
+            devices.get(devKey).createBdif(switchCtx.getVlan(), routerCtx);
+        }
     }
 
     public void unAssociateSwitchToRouter(NodeId lsw, NodeId lr) {
+        LogicRouterContext routerCtx = getLogicRouterCtx(lr);
+        LogicSwitchContext switchCtx = getLogicSwitchCtx(lsw);
+
+        GatewayPort gwPort = switchCtx.unAssociateToRouter(routerCtx);
+        for (DeviceKey devKey : getSpineDevices()) {
+            devices.get(devKey).removeBdif(switchCtx.getVlan(), gwPort);
+        }
     }
 
     public DeviceContext getDeviceCtx(DeviceKey key) {
@@ -121,5 +144,9 @@ public class FabricContext implements AutoCloseable {
         logicSwitches.clear();
         logicRouters.clear();
         devices.clear();
+    }
+
+    Set<DeviceKey> getSpineDevices() {
+        return spineDevices;
     }
 }

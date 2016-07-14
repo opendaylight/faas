@@ -36,7 +36,7 @@ import com.google.common.collect.Maps;
 public class LogicSwitchContext implements AutoCloseable {
     private final int vlan;
 
-    private Map<DeviceKey, IpAddress> members = Maps.newConcurrentMap();
+    private Map<DeviceKey, String> members = Maps.newConcurrentMap();
 
     private LogicRouterContext vrfCtx = null;
 
@@ -47,25 +47,28 @@ public class LogicSwitchContext implements AutoCloseable {
 
     private final FabricId fabricid;
     private final NodeId nodeid;
+    private final boolean external;
 
     private final ExecutorService executor;
 
-    LogicSwitchContext(DataBroker databroker, FabricId fabricid, int vlan, NodeId nodeid, ExecutorService executor) {
+    LogicSwitchContext(DataBroker databroker, FabricId fabricid, int vlan, NodeId nodeid, ExecutorService executor,
+            boolean external) {
         this.databroker = databroker;
         this.vlan = vlan;
         this.fabricid = fabricid;
         this.nodeid = nodeid;
         this.executor = executor;
+        this.external = external;
     }
 
     public int getVlan() {
         return vlan;
     }
 
-    public boolean checkAndSetNewMember(DeviceKey key, IpAddress vtepIp) {
+    public boolean checkAndSetNewMember(DeviceKey key, String mgntIp) {
         if (!members.containsKey(key)) {
-            members.put(key, vtepIp);
-            writeToDom(key, vtepIp);
+            members.put(key, mgntIp);
+            writeToDom(key, mgntIp);
             return true;
         } else {
             return false;
@@ -73,9 +76,9 @@ public class LogicSwitchContext implements AutoCloseable {
     }
 
     public void removeMember(DeviceKey key) {
-        IpAddress vtep = null;
-        if ((vtep = members.remove(key)) != null) {
-            deleteFromDom(key, vtep);
+        String mgntIp = null;
+        if ((mgntIp = members.remove(key)) != null) {
+            deleteFromDom(key, mgntIp);
         }
     }
 
@@ -132,6 +135,10 @@ public class LogicSwitchContext implements AutoCloseable {
         writeToDom(false, aclName, null);
     }
 
+    public boolean isExternal() {
+        return external;
+    }
+
     private boolean writeToDom(boolean delete, String aclName, WriteTransaction wt) {
         return true;
     }
@@ -150,11 +157,11 @@ public class LogicSwitchContext implements AutoCloseable {
         }
     }
 
-    private void writeToDom(DeviceKey key, IpAddress vtepIp) {
+    private void writeToDom(DeviceKey key, String mgntIp) {
 
     }
 
-    private void deleteFromDom(DeviceKey key, IpAddress vtepIp) {
+    private void deleteFromDom(DeviceKey key, String mgntIp) {
 
     }
 

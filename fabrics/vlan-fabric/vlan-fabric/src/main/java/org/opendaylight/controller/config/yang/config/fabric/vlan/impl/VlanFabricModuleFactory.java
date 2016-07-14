@@ -5,7 +5,7 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.opendaylight.controller.config.yang.config.vlan_fabric.impl;
-public class VlanFabricModuleFactory extends org.opendaylight.controller.config.yang.config.vlan_fabric.impl.AbstractVlanFabricModuleFactory {
+package org.opendaylight.controller.config.yang.config.fabric.vlan.impl;
+public class VlanFabricModuleFactory extends AbstractVlanFabricModuleFactory {
 
 }

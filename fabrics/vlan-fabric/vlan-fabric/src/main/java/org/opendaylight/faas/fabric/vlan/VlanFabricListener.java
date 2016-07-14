@@ -7,32 +7,47 @@
  */
 package org.opendaylight.faas.fabric.vlan;
 
+import com.google.common.base.Optional;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
+import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricListener;
+import org.opendaylight.faas.fabric.utils.InterfaceManager;
 import org.opendaylight.faas.fabric.vlan.res.ResourceManager;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.AddToVlanFabricInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.FabricVlanDeviceAdapterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceLinks;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalRouterAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
 
 public class VlanFabricListener implements AutoCloseable, FabricListener {
 
@@ -67,13 +82,19 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
         epMgr.close();
     }
 
+    private FabricVlanDeviceAdapterService getVlanDeviceAdapter() {
+        return rpcRegistry.getRpcService(FabricVlanDeviceAdapterService.class);
+    }
+
     @Override
     public void fabricCreated(FabricNode fabric) {
 
         List<DeviceLinks> links = fabric.getFabricAttribute().getDeviceLinks();
-        for (DeviceLinks link : links) {
-            @SuppressWarnings("unchecked")
-            InstanceIdentifier<Link> linkIId = (InstanceIdentifier<Link>) link.getLinkRef().getValue();
+        if (links != null) {
+            for (DeviceLinks link : links) {
+                @SuppressWarnings("unchecked")
+                InstanceIdentifier<Link> linkIId = (InstanceIdentifier<Link>) link.getLinkRef().getValue();
+            }
         }
 
         List<DeviceNodes> devices = fabric.getFabricAttribute().getDeviceNodes();
@@ -81,17 +102,53 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
             for (DeviceNodes deviceNode : devices) {
                 @SuppressWarnings("unchecked")
                 InstanceIdentifier<Node> deviceIId = (InstanceIdentifier<Node>) deviceNode.getDeviceRef().getValue();
-                deviceAdded(deviceIId);
+                DeviceRole role = deviceNode.getRole();
+                deviceAdded(deviceIId, role);
             }
         }
-
-        fabric.getFabricAttribute().getDeviceLinks();
 
         ResourceManager.initResourceManager(fabricid);
     }
 
     @Override
-    public void deviceAdded(final InstanceIdentifier<Node> deviceIId) {
+    public void deviceAdded(final InstanceIdentifier<Node> deviceIId, DeviceRole role) {
+        AddToVlanFabricInputBuilder builder = new AddToVlanFabricInputBuilder();
+        builder.setNodeId(deviceIId);
+        builder.setFabricId(fabricIId.firstKeyOf(Node.class).getNodeId());
+        try {
+            getVlanDeviceAdapter().addToVlanFabric(builder.build()).get();
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("", e);
+        }
+
+        ReadOnlyTransaction rt = dataBroker.newReadOnlyTransaction();
+        CheckedFuture<Optional<Node>,ReadFailedException> readFuture = rt.read(LogicalDatastoreType.OPERATIONAL,
+                deviceIId);
+        Futures.addCallback(readFuture, new FutureCallback<Optional<Node>>() {
+
+            @Override
+            public void onSuccess(Optional<Node> result) {
+                Node device = result.get();
+                String mgntIp = device.getNodeId().getValue();
+
+                DeviceContext devCtx = fabricCtx.addDeviceSwitch(deviceIId, mgntIp, role);
+
+                // if the logical switch has already exists, add this device to members.
+                Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
+                for (LogicSwitchContext lswCtx : lswCtxs) {
+                    if (lswCtx.isExternal()) {
+                        continue;
+                    }
+                    lswCtx.checkAndSetNewMember(DeviceKey.newInstance(deviceIId), mgntIp);
+                    devCtx.createBridgeDomain(lswCtx);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable th) {
+                LOG.error("unexecpted exception", th);
+            }
+        }, executor);
     }
 
     @Override
@@ -146,10 +203,11 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
 
     @Override
     public void logicSwitchCreated(NodeId nodeId, Node lse) {
-        // for distributed Fabric, we add logic switch to all device
 
-        long segmentId = lse.getAugmentation(LogicalSwitchAugment.class).getLswAttribute().getSegmentId();
-        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, (int) segmentId);
+        LswAttribute lswAttr = lse.getAugmentation(LogicalSwitchAugment.class).getLswAttribute();
+        final boolean isExternal = lswAttr.isExternal() == null ? false : lswAttr.isExternal().booleanValue();
+        long segmentId = lswAttr.getSegmentId();
+        LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, (int) segmentId, isExternal);
 
         Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
         if (devices != null) {
@@ -193,18 +251,51 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
 
     @Override
     public void portFuncUpdated(InstanceIdentifier<PortFunction> iid, PortFunction function, boolean isDelete) {
-        // TODO Auto-generated method stub
+        // NOT Supported now
 
     }
 
     @Override
     public void portLocated(InstanceIdentifier<TerminationPoint> iid, TpId fabricPort) {
-        // TODO Auto-generated method stub
+        NodeId nodeId = iid.firstKeyOf(Node.class).getNodeId();
+        if (fabricCtx.isValidLogicSwitch(nodeId)) {
+            InstanceIdentifier<TerminationPoint> devtp = InterfaceManager.convFabricPort2DevicePort(
+                    dataBroker, fabricid, fabricPort);
+
+            final long vlan = fabricCtx.getLogicSwitchCtx(nodeId).getVlan();
+
+            final LportAttribute logicalPortAttr = InterfaceManager.getLogicalPortAttr(dataBroker, iid);
+
+            fabricCtx.getDeviceCtx(new DeviceKey(devtp.firstKeyOf(Topology.class).getTopologyId(), nodeId));
+
+//            CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
+//            builder.setNodeId(devtp.firstIdentifierOf(Node.class));
+//            builder.setTpId(devtp.firstKeyOf(TerminationPoint.class).getTpId());
+//            PortLayer layerInfo = logicalPortAttr.getPortLayer();
+//            if (layerInfo != null) {
+//                Layer2Info layer2Info = layerInfo.getLayer2Info();
+//                if (layer2Info != null) {
+//                    builder.setAccessType(layer2Info.getAccessType());
+//                    builder.setAccessTag(layer2Info.getAccessSegment());
+//                }
+//            }
+//            builder.setBdId(String.valueOf(vni));
+//            CreateBridgeDomainPortInput input = builder.build();
+//            epMgr.getVxlanDeviceAdapter().createBridgeDomainPort(input);
+        } else {
+            LOG.warn("Not yet support layer3 port located.");
+        }
 
     }
 
     @Override
     public void routeUpdated(InstanceIdentifier<Node> lrIid, List<Route> routes, boolean isDelete) {
+        // NOT Supported now
+
+    }
+
+    @Override
+    public void routeCleared(InstanceIdentifier<Node> lrIid) {
         // TODO Auto-generated method stub
 
     }

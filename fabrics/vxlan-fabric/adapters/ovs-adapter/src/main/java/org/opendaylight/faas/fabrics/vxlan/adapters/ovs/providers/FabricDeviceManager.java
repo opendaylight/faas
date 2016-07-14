@@ -56,7 +56,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.termination.point.FportAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.FabricPortRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.ServiceCapabilities;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.TpRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.VxlanFabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowCapableNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.OvsdbBridgeAugmentation;
@@ -220,7 +222,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
                 this.rpcRegistration.registerPath(FabricCapableDeviceContext.class, targetIId);
 
                 OvsdbBridgeAugmentation ovsdbData = (OvsdbBridgeAugmentation) newBridges.get(bridgeIId);
-                readPredefinedVtepIp(bridgeIId, ovsdbData);
+                setupDeviceAttribute(bridgeIId, ovsdbData);
             }
         }
 
@@ -228,7 +230,8 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         if (deletedBridges != null) {
             for (InstanceIdentifier<?> nodeIId : deletedBridges) {
                 @SuppressWarnings("unchecked")
-                InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
+                InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId =
+                        (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
                 InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
 
                 this.rpcRegistration.unregisterPath(FabricCapableDeviceContext.class, targetIId);
@@ -236,8 +239,9 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
         }
     }
 
-    private void readPredefinedVtepIp(final InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId, OvsdbBridgeAugmentation ovsdbData) {
-
+    private void setupDeviceAttribute(final InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId,
+            OvsdbBridgeAugmentation ovsdbData) {
+        /* setup vtepid */
         String vtepIp = null;
 
         if (ovsdbData.getBridgeExternalIds() != null) {
@@ -249,18 +253,29 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
             }
         }
 
+        InstanceIdentifier<Node> nodeIId = bridgeIId.firstIdentifierOf(Node.class);
+        WriteTransaction wt = databroker.newWriteOnlyTransaction();
+
         if (vtepIp != null) {
-            InstanceIdentifier<Node> nodeIId = bridgeIId.firstIdentifierOf(Node.class);
             InstanceIdentifier<Vtep> vtepIId = nodeIId.augmentation(FabricCapableDevice.class).child(Attributes.class)
                     .augmentation(VtepAttribute.class).child(Vtep.class);
 
             VtepBuilder builder = new VtepBuilder();
             builder.setIp(new IpAddress(vtepIp.toCharArray()));
 
-            WriteTransaction wt = databroker.newWriteOnlyTransaction();
             wt.put(LogicalDatastoreType.OPERATIONAL, vtepIId, builder.build(), true);
-            wt.submit();
         }
+
+        /* setup supported-fabric-type */
+        {
+            InstanceIdentifier<FabricCapableDevice> deviceIid = nodeIId.augmentation(FabricCapableDevice.class);
+            FabricCapableDeviceBuilder builder = new FabricCapableDeviceBuilder();
+            builder.setSupportedFabric(Lists.newArrayList(VxlanFabric.class));
+            builder.setCapabilitySupported(
+                        Lists.newArrayList(ServiceCapabilities.AclRedirect, ServiceCapabilities.IpMapping));
+            wt.put(LogicalDatastoreType.OPERATIONAL, deviceIid, builder.build(), true);
+        }
+        wt.submit();
     }
 
     @Override

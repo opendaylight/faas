@@ -7,13 +7,18 @@
  */
 package org.opendaylight.faas.fabric.utils;
 
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.ReadTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
+import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.faas.fabric.general.Constants;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -32,6 +37,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.NodeKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
+import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +91,12 @@ public class MdSalUtils {
                 .child(TerminationPoint.class, new TerminationPointKey(new TpId(tpid)));
     }
 
+    public static InstanceIdentifier<Link> createInterFabricLinkIId(LinkId linkid) {
+        return InstanceIdentifier.create(NetworkTopology.class)
+                .child(Topology.class, new TopologyKey(new TopologyId(Constants.FABRICS_TOPOLOGY_ID)))
+                .child(Link.class, new LinkKey(linkid));
+    }
+
     public static InstanceIdentifier<Link> createLinkIId(FabricId fabricId, LinkId linkid) {
         return InstanceIdentifier.create(NetworkTopology.class)
                 .child(Topology.class, new TopologyKey(new TopologyId(fabricId)))
@@ -133,5 +145,30 @@ public class MdSalUtils {
                 LOG.error("submit failed.", th);
             }
         });
+    }
+
+    public static <T extends DataObject> Optional<T> syncReadOper(ReadTransaction rt,
+            InstanceIdentifier<T> path) {
+        Optional<T> opt;
+        try {
+            opt = rt.read(LogicalDatastoreType.OPERATIONAL, path).get();
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("unexcepte exception", e);
+            opt = Optional.absent();
+        }
+        return opt;
+    }
+
+    public static <T extends DataObject> Optional<T> syncReadOper(DataBroker db,
+            InstanceIdentifier<T> path) {
+        Optional<T> opt;
+        try {
+            ReadTransaction rt = db.newReadOnlyTransaction();
+            opt = rt.read(LogicalDatastoreType.OPERATIONAL, path).get();
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("unexcepte exception", e);
+            opt = Optional.absent();
+        }
+        return opt;
     }
 }

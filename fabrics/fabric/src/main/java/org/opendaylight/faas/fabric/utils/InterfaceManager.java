@@ -9,11 +9,8 @@ package org.opendaylight.faas.fabric.utils;
 
 import com.google.common.base.Optional;
 
-import java.util.concurrent.ExecutionException;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadTransaction;
-import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricPortAug;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricPortAugment;
@@ -22,7 +19,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
-import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +37,7 @@ public class InterfaceManager {
         InstanceIdentifier<TerminationPoint> iidFPort = MdSalUtils.createFabricPortIId(fabricid, tpid);
 
         ReadTransaction rt = broker.newReadOnlyTransaction();
-        Optional<TerminationPoint> opt = syncReadOper(rt, iidFPort);
+        Optional<TerminationPoint> opt = MdSalUtils.syncReadOper(rt, iidFPort);
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
             return (InstanceIdentifier<TerminationPoint>) tp.getAugmentation(FabricPortAugment.class)
@@ -57,7 +53,7 @@ public class InterfaceManager {
             DataBroker broker, FabricId fabricid, InstanceIdentifier<TerminationPoint> tpIid) {
 
         ReadTransaction rt = broker.newReadOnlyTransaction();
-        Optional<TerminationPoint> opt = syncReadOper(rt, tpIid);
+        Optional<TerminationPoint> opt = MdSalUtils.syncReadOper(rt, tpIid);
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
             return (InstanceIdentifier<TerminationPoint>) tp.getAugmentation(FabricPortAug.class)
@@ -68,7 +64,7 @@ public class InterfaceManager {
 
     public static LportAttribute getLogicalPortAttr(DataBroker broker, InstanceIdentifier<TerminationPoint> iid) {
         ReadTransaction rt = broker.newReadOnlyTransaction();
-        Optional<TerminationPoint> opt = syncReadOper(rt, iid);
+        Optional<TerminationPoint> opt = MdSalUtils.syncReadOper(rt, iid);
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
             return tp.getAugmentation(LogicalPortAugment.class).getLportAttribute();
@@ -76,15 +72,5 @@ public class InterfaceManager {
         return null;
     }
 
-    private static <T extends DataObject> Optional<T> syncReadOper(ReadTransaction rt,
-             InstanceIdentifier<T> path) {
-        Optional<T> opt;
-        try {
-            opt = rt.read(LogicalDatastoreType.OPERATIONAL, path).get();
-        } catch (InterruptedException | ExecutionException e) {
-            LOG.error("unexcepte exception", e);
-            opt = Optional.absent();
-        }
-        return opt;
-    }
+
 }

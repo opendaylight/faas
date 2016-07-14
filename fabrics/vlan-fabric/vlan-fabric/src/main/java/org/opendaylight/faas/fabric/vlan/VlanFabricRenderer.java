@@ -12,6 +12,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
+import org.opendaylight.faas.fabric.vlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -60,12 +61,16 @@ public class VlanFabricRenderer implements AutoCloseable, FabricRenderer {
 
     @Override
     public void buildLogicalSwitch(NodeId nodeid, LswAttributeBuilder lsw, CreateLogicalSwitchInput input) {
-
+        long segmentId = ResourceManager.getInstance(input.getFabricId()).allocSeg();
+        lsw.setSegmentId(segmentId);
     }
 
     @Override
     public void buildLogicalRouter(NodeId nodeid, LrAttributeBuilder lr, CreateLogicalRouterInput input) {
+        int vrfctx = ResourceManager.getInstance(input.getFabricId()).allocVrfCtx();
+        lr.setVrfCtx((long) vrfctx);
 
+        fabricCtx.addLogicRouter(nodeid, vrfctx);
     }
 
     @Override
@@ -80,6 +85,7 @@ public class VlanFabricRenderer implements AutoCloseable, FabricRenderer {
 
     @Override
     public boolean addNodeToFabric(DeviceNodesBuilder node, AddNodeToFabricInput input) {
+        node.setRole(input.getRole());
         return true;
     }
 

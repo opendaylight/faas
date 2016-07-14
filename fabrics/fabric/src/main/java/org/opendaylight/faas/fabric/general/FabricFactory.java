@@ -30,9 +30,11 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
-    private FabricManagementAPIProvider manageAPI;
+    private FabricManagementAPIProvider manageApi;
 
-    private FabricServiceAPIProvider serviceAPI;
+    private FabricResourceAPIProvider resourceApi;
+
+    private FabricServiceAPIProvider serviceApi;
 
     private EndPointRegister epRegister;
 
@@ -62,11 +64,14 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
         ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("fabric-factory-%d").build();
         executor = Executors.newSingleThreadExecutor(threadFact);
 
-        manageAPI = new FabricManagementAPIProvider(dataProvider, rpcRegistry, executor, this);
-        manageAPI.start();
+        manageApi = new FabricManagementAPIProvider(dataProvider, rpcRegistry, executor, this);
+        manageApi.start();
 
-        serviceAPI = new FabricServiceAPIProvider(dataProvider, rpcRegistry, executor);
-        serviceAPI.start();
+        resourceApi = new FabricResourceAPIProvider(dataProvider, rpcRegistry);
+        resourceApi.start();
+
+        serviceApi = new FabricServiceAPIProvider(dataProvider, rpcRegistry, executor);
+        serviceApi.start();
 
         epRegister = new EndPointRegister(dataProvider, rpcRegistry, executor);
         epRegister.start();
@@ -74,8 +79,9 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
 
     @Override
     public void close() throws Exception {
-        manageAPI.close();
-        serviceAPI.close();
+        manageApi.close();
+        resourceApi.close();
+        serviceApi.close();
         epRegister.close();
         executor.shutdown();
     }

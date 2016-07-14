@@ -30,4 +30,29 @@ module fabric-resources {
             }
         }
     }
+
+    rpc add-fabric-link {
+        description "Sometimes the link of fabrics can not be discovered automatically,
+        administrator can use this RPC to add link information manually. ";
+
+        input {
+            leaf source-fabric {
+                type fabric:fabric-id;
+            }
+            leaf source-fabric-port {
+                type topo:tp-id;
+            }
+            leaf dest-fabric {
+                type fabric:fabric-id; 
+            }
+            leaf dest-fabric-port {
+                type topo:tp-id;
+            }
+        }
+        output {
+        	leaf link-id {
+        		type topo:link-id;
+        	}
+        }
+    }
 }

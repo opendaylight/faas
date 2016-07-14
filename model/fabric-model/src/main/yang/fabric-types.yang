@@ -28,6 +28,14 @@ module fabric-types {
         base fabric-type;
     }
 
+    typedef service-capabilities { 
+        type enumeration {
+            enum ip-mapping;
+            enum acl-redirect;
+            enum dynamic-route-exchange;
+        }
+    }
+
     /*
      * Typedefs
      */
@@ -59,6 +67,7 @@ module fabric-types {
                 description "";
             }
         }
+        default "LEAF";
     }
 
     typedef fabric-port-role {

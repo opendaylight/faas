@@ -1,7 +1,7 @@
 module vlan-fabric-impl {
 
     yang-version 1;
-    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:vlan-fabric:impl";
+    namespace "urn:opendaylight:params:xml:ns:yang:controller:config:fabric:vlan:impl";
     prefix "vlan-fabric-impl";
 
     import config { prefix config; revision-date 2013-04-05; }

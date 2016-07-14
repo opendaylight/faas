@@ -33,11 +33,13 @@ import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddPortFunctionInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddStaticRouteInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.ClearStaticRouteInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInput;
@@ -63,6 +65,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalRouterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalSwitchInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmStaticRouteInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
@@ -78,6 +81,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer3InfoBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.LinkId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -814,4 +819,68 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         }, executor);
     }
 
+    @Override
+    public Future<RpcResult<Void>> clearStaticRoute(ClearStaticRouteInput input) {
+        FabricId fabricId = input.getFabricId();
+        NodeId ldev = input.getNodeId();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
+        }
+
+        final InstanceIdentifier<Route> routeIId = MdSalUtils.createNodeIId(fabricId, ldev)
+                .augmentation(LogicalRouterAugment.class)
+                .child(LrAttribute.class)
+                .child(Route.class);
+
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        trans.delete(LogicalDatastoreType.OPERATIONAL,routeIId);
+
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                fabricObj.notifyRouteCleared(routeIId.firstIdentifierOf(Node.class));
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }
+        }, executor);
+    }
+
+    @Override
+    public Future<RpcResult<Void>> rmStaticRoute(RmStaticRouteInput input) {
+        final List<Ipv4Prefix> destIps = input.getDestinationPrefix();
+        FabricId fabricId = input.getFabricId();
+        NodeId ldev = input.getNodeId();
+
+        final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
+        if (fabricObj == null) {
+            return Futures.immediateFailedFuture(
+                    new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
+        }
+
+        final List<Route> routes = Lists.newArrayList();
+        for (Ipv4Prefix destIp : destIps) {
+            routes.add(new RouteBuilder().setKey(new RouteKey(destIp)).build());
+        }
+
+        final InstanceIdentifier<LrAttribute> attrIId = MdSalUtils.createNodeIId(fabricId, ldev)
+                .augmentation(LogicalRouterAugment.class)
+                .child(LrAttribute.class);
+
+        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
+        for (Route route : routes) {
+            trans.delete(LogicalDatastoreType.OPERATIONAL,attrIId.child(Route.class, route.getKey()));
+        }
+
+        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                fabricObj.notifyRouteUpdated(attrIId.firstIdentifierOf(Node.class), routes, true);
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+            }
+        }, executor);
+    }
 }

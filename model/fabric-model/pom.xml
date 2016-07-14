@@ -54,6 +54,7 @@
                 <Export-Package>org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.*,
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.*,
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.*,
+                                org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.*,
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.*,
                                 org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.*;
                 </Export-Package>
