@@ -117,9 +117,9 @@ public class UlnMappingEngine {
         if (useSyncMap) {
             this.ulnStore = Collections.synchronizedMap(new HashMap<Uuid, UserLogicalNetworkCache>());
         } else {
-            this.ulnStore = new ConcurrentHashMap<Uuid, UserLogicalNetworkCache>();
+            this.ulnStore = new ConcurrentHashMap<>();
         }
-        this.lswLswPairStore = new HashMap<Uuid, Uuid>();
+        this.lswLswPairStore = new HashMap<>();
         this.exec = Executors.newSingleThreadExecutor();
         /*
          * Releases must occur before any acquires will be
@@ -390,7 +390,9 @@ public class UlnMappingEngine {
         uln.markEdgeAsRendered(subnetLswEdge.getEdge());
         uln.markSubnetAsRendered(subnet.getSubnet()); // subnet being rendered meaning its LSW has
                                                       // been chosen and rendered.
+
     }
+
 
     public synchronized void handleEdgeCreateEvent(Edge edge) {
         Uuid tenantId = edge.getTenantId();
