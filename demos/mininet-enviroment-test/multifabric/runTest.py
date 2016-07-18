@@ -79,6 +79,8 @@ UUID_EP1 = '75a4451e-eed0-4645-9194-64454bda2902'
 UUID_EP2 = 'ad08c19c-32cc-4cee-b902-3f4919f51bbc'
 UUID_EP3 = 'cae54555-7957-4d26-8515-7f2d1de5da55'
 UUID_EP4 = '4bc83eb7-4147-435c-8e0f-a546288fd639'
+UUID_EP5 = 'abc83eb7-4147-435c-8e0f-a546288fd622'
+UUID_EP6 = 'dce83eb7-4147-435c-8e0f-a546288fd626'
 
 UUID_EPX_1 = 'b598c42c-e830-4458-b7bb-0c0b61982f42'
 UUID_EPX_2 = 'fd8bd945-fe1d-4727-97bf-4572cc017303'
@@ -97,9 +99,11 @@ def rpc_compose_fabric_data1():
            "type":"VXLAN",
            "device-nodes" : [
              {
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s11']","vtep-ip":"192.168.20.101"
+                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s11']","vtep-ip":"192.168.20.111"
               },{
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s12']","vtep-ip":"192.168.20.102"
+                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s12']","vtep-ip":"192.168.20.112"
+             },{
+                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s1']","vtep-ip":"192.168.20.101"
              }
            ]
        }
@@ -112,9 +116,11 @@ def rpc_compose_fabric_data2():
            "type":"VXLAN",
            "device-nodes" : [
              {
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s21']","vtep-ip":"192.168.20.103"
+                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s21']","vtep-ip":"192.168.20.121"
               },{
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s22']","vtep-ip":"192.168.20.104"
+                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s22']","vtep-ip":"192.168.20.122"
+             },{
+                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s2']","vtep-ip":"192.168.20.102"
              }
            ]
        }
@@ -255,6 +261,36 @@ def rpc_register_endpoint_data4():
        }
     }
 
+def rpc_register_endpoint_data5():
+    return {
+        "input" : {
+           "fabric-id": "fabric:2",
+           "endpoint-uuid":UUID_EP5,
+           "mac-address":"62:02:1a:00:b7:14",
+           "ip-address":"172.16.1.14",
+           "gateway":"172.16.1.1",
+            "logical-location": {
+                "node-id":"vswitch-1",
+                "tp-id":"vswitch-1-p-1"
+            }
+       }
+    }
+
+def rpc_register_endpoint_data6():
+    return {
+        "input" : {
+           "fabric-id": "fabric:2",
+           "endpoint-uuid":UUID_EP6,
+           "mac-address":"62:02:1a:00:b7:23",
+           "ip-address":"172.16.2.23",
+           "gateway":"172.16.2.1",
+            "logical-location": {
+                "node-id":"vswitch-2",
+                "tp-id":"vswitch-2-p-1"
+            }
+       }
+    }
+
 def rpc_reg_inter_conn_endpoint_data(fabricId, epId, ipaddr):
     return {
         "input" : {
@@ -295,7 +331,7 @@ def rpc_unregister_endpoint_data():
     return {
         "input" : {
            "fabric-id": "fabric:1",
-           "ids":(UUID_EP1,UUID_EP2,UUID_EP3,UUID_EP4, UUID_EPX_1, UUID_EPX_2)
+           "ids":(UUID_EP1,UUID_EP2,UUID_EP3,UUID_EP4, UUID_EP5, UUID_EP6, UUID_EPX_1, UUID_EPX_2)
        }
     }
 
@@ -460,6 +496,8 @@ if __name__ == "__main__":
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data2(), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data3(), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data4(), True)
+    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data5(), True)
+    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_register_endpoint_data6(), True)
 
     print "locate endpoints ..."
     pause()
@@ -468,18 +506,21 @@ if __name__ == "__main__":
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:1", UUID_EP3, "s12", "s12-eth1"), True)
     post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:1", UUID_EP4, "s12", "s12-eth2"), True)
 
-    print "binding physical port"
-    pause()
-    post(controller, DEFAULT_PORT, rpc_port_binding_uri(), rpc_port_binding_data5(), True)
-    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data6(), True)
+    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:2", UUID_EP5, "s21", "s21-eth1"), True)
+    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:2", UUID_EP6, "s21", "s21-eth2"), True)
+
+    #print "binding physical port"
+    #pause()
+    #post(controller, DEFAULT_PORT, rpc_port_binding_uri(), rpc_port_binding_data5(), True)
+    #post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data6(), True)
 
     #---------------------------------- layer2 connectivity -------------------------------------
     print "create layer2 forwarder..."
     pause()
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data_vlan("fabric:1", "vswitch-1", "vswitch-1-p-con", 100), True)
-    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:1", "vswitch-1", "vswitch-1-p-con", "s12", "s12-eth3"), True)
+    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:1", "vswitch-1", "vswitch-1-p-con", "s1", "s1-eth1"), True)
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data_vlan("fabric:2", "vswitch-1", "vswitch-1-p-con", 100), True)
-    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:2", "vswitch-1", "vswitch-1-p-con", "s21", "s21-eth1"), True)
+    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:2", "vswitch-1", "vswitch-1-p-con", "s2", "s2-eth1"), True)
 
 
     print "create gateway ..."
@@ -503,8 +544,8 @@ if __name__ == "__main__":
 
     print "binding inter-connect port..."
     pause()
-    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:1", "lsw-inter-con", "inter-con-p-1", "s12", "s12-eth3"), True)
-    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:2", "lsw-inter-con", "inter-con-p-1", "s21", "s21-eth1"), True)
+    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:1", "lsw-inter-con", "inter-con-p-1", "s1", "s1-eth1"), True)
+    post(controller, DEFAULT_PORT, rpc_port_binding_dev_uri(), rpc_port_binding_dev_data("fabric:2", "lsw-inter-con", "inter-con-p-1", "s2", "s2-eth1"), True)
 
     print "create inter-connect gateway..."
     pause()
@@ -523,9 +564,9 @@ if __name__ == "__main__":
     print "create layer3 inter-connect endpoint..."
     pause()
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data("fabric:1", UUID_EPX_1, "10.0.0.2"), True)
-    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:1", UUID_EPX_1,  "s12", "s12-eth3"), True)
+    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:1", UUID_EPX_1,  "s1", "s1-eth1"), True)
     post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data("fabric:2", UUID_EPX_2, "10.0.0.1"), True)
-    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:2", UUID_EPX_2,  "s21", "s21-eth1"), True)
+    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:2", UUID_EPX_2,  "s2", "s2-eth1"), True)
 
     #----------------------------------- NAT -------------------------------------
     print "enable NAT Function..."
@@ -535,7 +576,7 @@ if __name__ == "__main__":
     # create logical port
     post(controller, DEFAULT_PORT, rpc_create_logic_port_uri(), rpc_create_logic_port_data("fabric:2", "lsw-external", "lsw-external-p-1"), True)
     # register external gateway endpoint
-    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_external_gw_ep_data("fabric:2", UUID_EXT_GW, "192.168.1.1", "s21", "s21-eth2"), True)
+    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_external_gw_ep_data("fabric:2", UUID_EXT_GW, "192.168.1.1", "s2", "s2-eth2"), True)
     # create outgoing logical port
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("fabric:2", "192.168.1.0", "192.168.1.0/24", "lsw-external"), True)
     # add default routing
