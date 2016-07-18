@@ -32,6 +32,16 @@
       <artifactId>fabric-model</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
+      <artifactId>base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.jung</groupId>
+      <artifactId>jung-algorithms</artifactId>
+      <version>2.0.1</version>
+    </dependency>
   </dependencies>
 
   <build>

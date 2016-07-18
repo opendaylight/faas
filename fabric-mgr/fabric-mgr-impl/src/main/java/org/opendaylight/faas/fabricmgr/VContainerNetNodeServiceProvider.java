@@ -10,6 +10,7 @@ package org.opendaylight.faas.fabricmgr;
 
 import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -17,6 +18,7 @@ import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistr
 import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
@@ -24,7 +26,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.UnregisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetAllFabricsOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddStaticRouteInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInputBuilder;
@@ -39,6 +44,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmGatewayInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalRouterInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalSwitchInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
@@ -76,6 +83,8 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable;
+
 /**
  * VContainerNetNodeServiceProvider implements RPC stub for FaaS Services.
  *
@@ -88,6 +97,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     private final ExecutorService threadPool;
     private FabricEndpointService epService;
     private FabricServiceService fabServiceService;
+    private FabricService fabService;
 
     /**
      * Constructor.
@@ -105,6 +115,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 FabMgrDatastoreDependency.getRpcRegistry().addRpcImplementation(VcNetNodeService.class, this);
         this.epService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricEndpointService.class);
         this.fabServiceService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricServiceService.class);
+        this.fabService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricService.class);
     }
 
     @Override
@@ -149,11 +160,11 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 CreateLogicalSwitchOutput createLswOutput = output.getResult();
 
                 NodeId nodeId = createLswOutput.getNodeId();
-                // VcLneRef lswRef = new
-                // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
                 builder.setLneId(new VcLneId(nodeId));
 
-                //TODO binding ports
+                //
+                // create logical ports on the logical switch and binding physical ports to them
+                //
                 for (Port fp : input.getPort())
                 {
                     TpId tp = this.createLogicalPortOnLsw(new Uuid (input.getTenantId().getValue()), new NodeId(fabricId), nodeId);
@@ -178,6 +189,16 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
     @Override
     public Future<RpcResult<Void>> addPortsToLneLayer2(AddPortsToLneLayer2Input input) {
+        for (Port fp : input.getPort())
+        {
+            TpId tp = this.createLogicalPortOnLsw(new Uuid (input.getTenantId().getValue()), input.getVfabricId(), input.getLneId());
+            PortBindingLogicalToFabricInputBuilder inputBuilder = new PortBindingLogicalToFabricInputBuilder();
+            inputBuilder.setFabricPort(fp.getPortId());
+            inputBuilder.setFabricId(new FabricId(input.getVfabricId()));
+            inputBuilder.setLogicalPort(tp);
+            this.fabServiceService.portBindingLogicalToFabric(inputBuilder.build());
+        }
+
         return null;
     }
 
@@ -350,6 +371,24 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
     @Override
     public Future<RpcResult<Void>> updateLneLayer3Routingtable(UpdateLneLayer3RoutingtableInput input) {
+
+        //TODO to remove all the existing route entries first.
+
+        //add the complete the routing table.
+        AddStaticRouteInputBuilder builder = new AddStaticRouteInputBuilder();
+        builder.setFabricId(new FabricId(input.getVfabricId()));
+        builder.setNodeId(input.getLneId());
+        List<Route> rl = new ArrayList<>();
+        for(Routingtable rt : input.getRoutingtable())
+        {
+            RouteBuilder rb = new RouteBuilder();
+            rb.setDestinationPrefix(new Ipv4Prefix(rt.getDestIp().getIpv4Address().getValue()));
+            rb.setNextHopOptions(rb.getNextHopOptions());
+            rl.add(rb.build());
+        }
+
+        builder.setRoute(rl);
+        this.fabServiceService.addStaticRoute(builder.build());
         return null;
     }
 
@@ -361,6 +400,26 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     @Override
     public Future<RpcResult<Void>> rmApplianceFromNetNode(RmApplianceFromNetNodeInput input) {
         return null;
+    }
+
+    public List<FabricId> getAllFabrics()
+    {
+        Future<RpcResult<GetAllFabricsOutput>> result = this.fabService.getAllFabrics();
+        try {
+            RpcResult<GetAllFabricsOutput> output = result.get();
+            RpcResultBuilder.<GetAllFabricsOutput>success();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: rmLneLayer3: fabService.getAllFabrics rpc success");
+                return output.getResult().getFabricId();
+            } else {
+                LOG.error("fabService.getAllFabrics RPC failed");
+                return Collections.EMPTY_LIST;
+            }
+        } catch (Exception e) {
+            LOG.error("ERROR: fabService.getAllFabrics RPC failed.", e);
+        }
+
+        return Collections.EMPTY_LIST;
     }
 
     public TpId createLogicalPortOnLsw(Uuid tenantId, NodeId vfabricId, NodeId lswId) {
