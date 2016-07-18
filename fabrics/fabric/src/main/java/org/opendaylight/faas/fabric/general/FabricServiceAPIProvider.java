@@ -66,6 +66,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalRouterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmLogicalSwitchInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.RmStaticRouteInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.create.logical.port.input.Attribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
@@ -549,11 +550,18 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpBuilder.setTpId(tpid);
         tpBuilder.setKey(new TerminationPointKey(tpid));
 
-        LogicalPortAugmentBuilder lpCtx = new LogicalPortAugmentBuilder();
         LportAttributeBuilder lpAttr = new LportAttributeBuilder();
         lpAttr.setName(input.getName());
+        Attribute portAttr = input.getAttribute();
+        if (portAttr != null) {
+            lpAttr.setPortLayer(portAttr.getPortLayer());
+            lpAttr.setFabricAcl(portAttr.getFabricAcl());
+            lpAttr.setPortFunction(portAttr.getPortFunction());
+        }
+
         fabricObj.buildLogicalPort(tpid, lpAttr, input);
 
+        LogicalPortAugmentBuilder lpCtx = new LogicalPortAugmentBuilder();
         lpCtx.setLportAttribute(lpAttr.build());
 
         tpBuilder.addAugmentation(LogicalPortAugment.class, lpCtx.build());
