@@ -10,6 +10,7 @@ package org.opendaylight.faas.fabric.general.spi;
 import java.util.List;
 
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
@@ -25,7 +26,7 @@ public interface FabricListener {
 
     void fabricDeleted(Node fabric);
 
-    void deviceAdded(InstanceIdentifier<Node> device);
+    void deviceAdded(InstanceIdentifier<Node> device, DeviceRole role);
 
     void deviceRemoved(InstanceIdentifier<Node> device);
 
@@ -46,4 +47,6 @@ public interface FabricListener {
     void portLocated(InstanceIdentifier<TerminationPoint> iid, TpId fabricPort);
 
     void routeUpdated(InstanceIdentifier<Node> lrIid, List<Route> routes, boolean isDelete);
+
+    void routeCleared(InstanceIdentifier<Node> lrIid);
 }

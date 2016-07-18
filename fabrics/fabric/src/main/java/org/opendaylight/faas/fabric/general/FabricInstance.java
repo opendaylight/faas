@@ -24,6 +24,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LrAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
@@ -140,9 +141,9 @@ public class FabricInstance implements FabricRenderer {
         }
     }
 
-    public void notifyDeviceAdded(InstanceIdentifier<Node> device) {
+    public void notifyDeviceAdded(InstanceIdentifier<Node> device, DeviceRole role) {
         for (FabricListener listener : listeners) {
-            listener.deviceAdded(device);
+            listener.deviceAdded(device, role);
         }
     }
 
@@ -173,6 +174,12 @@ public class FabricInstance implements FabricRenderer {
     public void notifyRouteUpdated(InstanceIdentifier<Node> lrIid, List<Route> routes, boolean isDelete) {
         for (FabricListener listener : listeners) {
             listener.routeUpdated(lrIid, routes, isDelete);
+        }
+    }
+
+    public void notifyRouteCleared(InstanceIdentifier<Node> lrIid) {
+        for (FabricListener listener : listeners) {
+            listener.routeCleared(lrIid);
         }
     }
 

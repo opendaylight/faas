@@ -45,6 +45,9 @@ module fabric-capable-device {
                 type boolean;
                 default false;
             }
+            leaf segment {
+          		type uint32;
+            }
         }
 
         list bd-port {
@@ -113,6 +116,10 @@ module fabric-capable-device {
             type identityref {
                 base fabrictype:fabric-type;
             }
+        }
+
+        leaf-list capability-supported {
+			type fabrictype:service-capabilities;
         }
 
         container attributes {

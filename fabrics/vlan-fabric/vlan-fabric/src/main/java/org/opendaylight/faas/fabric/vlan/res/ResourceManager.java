@@ -49,12 +49,12 @@ public class ResourceManager implements SegmentManager, VrfCtxManager {
     }
 
     @Override
-    public long allocVrfCtx() {
+    public int allocVrfCtx() {
         return vrfMgr.allocVrfCtx();
     }
 
     @Override
-    public void freeVrfCtx(long vrf) {
+    public void freeVrfCtx(int vrf) {
         vrfMgr.freeVrfCtx(vrf);
     }
 

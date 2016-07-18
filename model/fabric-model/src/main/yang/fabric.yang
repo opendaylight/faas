@@ -50,6 +50,10 @@ module fabric {
             }
             default "normal";
         }
+
+        leaf-list capability-supported {
+            type fabrictype:service-capabilities;
+        }
     }
 
     grouping device-attributes {
@@ -58,6 +62,7 @@ module fabric {
         }
         leaf role {
             type fabrictype:device-role;
+            default "LEAF";
         }
     }
 
@@ -105,7 +110,6 @@ module fabric {
         ext:context-instance "fabric-context";
 
         container fabric-attribute {
-            config false;
             uses fabric-attributes;
         }
     }

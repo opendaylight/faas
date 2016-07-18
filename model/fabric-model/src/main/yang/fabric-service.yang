@@ -129,6 +129,31 @@ module fabric-service {
         }
     }
 
+    rpc rm-static-route {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf node-id {
+                type topo:node-id;
+            }
+            leaf-list destination-prefix {
+                type inet:ipv4-prefix;
+            }
+        }
+    }
+
+    rpc clear-static-route {
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf node-id {
+                type topo:node-id;
+            }
+        }
+    }
+
     rpc create-logical-port {
         input {
             leaf fabric-id {

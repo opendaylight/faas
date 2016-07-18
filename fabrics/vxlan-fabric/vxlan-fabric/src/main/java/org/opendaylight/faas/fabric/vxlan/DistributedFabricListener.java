@@ -30,7 +30,6 @@ import org.opendaylight.faas.fabric.utils.InterfaceManager;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vxlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.AddToVxlanFabricInputBuilder;
@@ -47,6 +46,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayer;
@@ -54,6 +54,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.NextHopOptions;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.next.hop.options.SimpleNextHop;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
@@ -66,7 +67,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.rib.VxlanRouteAugBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -119,7 +119,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
                 @SuppressWarnings("unchecked")
                 InstanceIdentifier<Node> deviceIId = (InstanceIdentifier<Node>) deviceNode.getDeviceRef().getValue();
 
-                deviceAdded(deviceIId);
+                deviceAdded(deviceIId, deviceNode.getRole());
             }
         }
 
@@ -127,7 +127,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     }
 
     @Override
-    public void deviceAdded(final InstanceIdentifier<Node> deviceIId) {
+    public void deviceAdded(final InstanceIdentifier<Node> deviceIId, DeviceRole role) {
 
         AddToVxlanFabricInputBuilder builder = new AddToVxlanFabricInputBuilder();
         builder.setNodeId(deviceIId);
@@ -376,19 +376,25 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             return;
         }
 
-        // calculate outgoing vni
-        for (Route route : routes) {
-            RouteBuilder builder = new RouteBuilder(route);
-            renderRoute(builder, nodeId);
-
-            renderedRoutes.add(builder.build());
-        }
-
+        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
         long vrf = fabricCtx.getLogicRouterCtx(nodeId).getVrfCtx();
         InstanceIdentifier<Rib> iid = createRibIId(fabricCtx.getFabricId(), vrf);
 
-        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-        wt.merge(LogicalDatastoreType.OPERATIONAL, iid, new RibBuilder().setVrf(vrf).setRoute(renderedRoutes).build());
+        if (isDelete) {
+            for (Route route : routes) {
+                wt.delete(LogicalDatastoreType.OPERATIONAL, iid.child(Route.class, new RouteKey(route.getKey())));
+            }
+        } else {
+            // calculate outgoing vni
+            for (Route route : routes) {
+                RouteBuilder builder = new RouteBuilder(route);
+                renderRoute(builder, nodeId);
+
+                renderedRoutes.add(builder.build());
+            }
+            wt.merge(LogicalDatastoreType.OPERATIONAL, iid,
+                    new RibBuilder().setVrf(vrf).setRoute(renderedRoutes).build());
+        }
         MdSalUtils.wrapperSubmit(wt, executor);
     }
 
@@ -398,7 +404,6 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
         if (nexthop instanceof SimpleNextHop) {
             SimpleNextHop simpleNh  = (SimpleNextHop) nexthop;
 
-            Ipv4Address ipv4addr = simpleNh.getNextHop();
             TpId tpid = simpleNh.getOutgoingInterface();
 
             if (tpid != null) {
@@ -415,5 +420,23 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     private InstanceIdentifier<Rib> createRibIId(FabricId fabricId, long vrf) {
         return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
                 .child(Rib.class, new RibKey(vrf));
+    }
+
+    @Override
+    public void routeCleared(InstanceIdentifier<Node> lrIid) {
+        NodeId nodeId = lrIid.firstKeyOf(Node.class).getNodeId();
+
+        if (fabricCtx.isValidLogicSwitch(nodeId)) {
+            LOG.warn("Not support route on l2 logical port. %s", nodeId);
+            return;
+        }
+
+        long vrf = fabricCtx.getLogicRouterCtx(nodeId).getVrfCtx();
+        InstanceIdentifier<Rib> iid = createRibIId(fabricCtx.getFabricId(), vrf);
+
+        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+        wt.delete(LogicalDatastoreType.OPERATIONAL, iid);
+        MdSalUtils.wrapperSubmit(wt, executor);
+
     }
 }

@@ -118,8 +118,6 @@ def rpc_compose_fabric_data2():
              {
                 "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s21']","vtep-ip":"192.168.20.121"
               },{
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s22']","vtep-ip":"192.168.20.122"
-             },{
                 "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s2']","vtep-ip":"192.168.20.102"
              }
            ]

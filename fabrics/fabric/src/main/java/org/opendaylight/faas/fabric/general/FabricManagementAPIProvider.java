@@ -9,6 +9,7 @@ package org.opendaylight.faas.fabric.general;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -18,6 +19,7 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -34,9 +36,11 @@ import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.general.spi.FabricRendererFactory;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddLinkToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.ComposeFabricOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.DecomposeFabricInput;
@@ -54,10 +58,15 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.OptionsBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttributeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.LinkRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.ServiceCapabilities;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.VlanFabric;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.VxlanFabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930.FabricsSetting;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930.FabricsSettingBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -142,6 +151,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
                     WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
                     wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
+                    wt.delete(LogicalDatastoreType.CONFIGURATION, fabricpath);
                     wt.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()));
                     MdSalUtils.wrapperSubmit(wt, executor);
 
@@ -196,10 +206,14 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
     @Override
     public Future<RpcResult<ComposeFabricOutput>> composeFabric(final ComposeFabricInput input)  {
+        ComposeFabricInputBuilder inputBuilder = new ComposeFabricInputBuilder(input);
+        String msg = null;
+        if ((msg = checkFabricOptions(inputBuilder)) != null) {
+            return Futures.immediateFailedCheckedFuture(new IllegalArgumentException(msg));
+        }
 
         final FabricId fabricId = new FabricId(String.format("fabric:%d", this.genNextFabricNum()));
-        final RpcResultBuilder<ComposeFabricOutput> resultBuilder = RpcResultBuilder.<ComposeFabricOutput>success();
-        final ComposeFabricOutputBuilder outputBuilder = new ComposeFabricOutputBuilder();
+
 
         final InstanceIdentifier<Node> fnodepath = MdSalUtils.createFNodeIId(fabricId);
         final InstanceIdentifier<FabricNode> fabricpath = fnodepath.augmentation(FabricNode.class);
@@ -209,12 +223,13 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         FabricNodeBuilder fabricBuilder = new FabricNodeBuilder();
         FabricAttributeBuilder attrBuilder = new FabricAttributeBuilder();
-        buildFabricAttribute(attrBuilder, input);
+        buildFabricAttribute(attrBuilder, inputBuilder);
 
         FabricRendererFactory rendererFactory = rendererMgr.getFabricRendererFactory(input.getType());
         FabricRenderer renderer = rendererFactory.composeFabric(fabricpath, attrBuilder, input);
         if (renderer == null) {
-            LOG.error("can not compose fabric due the renderer return false.");
+            return Futures.immediateFailedCheckedFuture(
+                    new RuntimeException("Can not compose fabric due the renderer return false."));
         }
 
         fabricBuilder.setFabricAttribute(attrBuilder.build());
@@ -227,6 +242,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
 
         trans.put(LogicalDatastoreType.OPERATIONAL, fnodepath, fnodeBuilder.build(), true);
+        trans.put(LogicalDatastoreType.CONFIGURATION, fnodepath, fnodeBuilder.build(), true);
         trans.put(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()),
                 MdSalUtils.newTopo(fabricId.getValue()));
 
@@ -236,12 +252,91 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
             @Override
             public ListenableFuture<RpcResult<ComposeFabricOutput>> apply(Void submitResult) throws Exception {
+                RpcResultBuilder<ComposeFabricOutput> resultBuilder = RpcResultBuilder.<ComposeFabricOutput>success();
+                ComposeFabricOutputBuilder outputBuilder = new ComposeFabricOutputBuilder();
                 outputBuilder.setFabricId(fabricId);
 
                 FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricCreated(fabricNode);
                 return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
             }
         });
+    }
+
+    private String checkFabricOptions(final ComposeFabricInputBuilder input) {
+        List<ServiceCapabilities> capabilities = null;
+        if (input.getOptions() != null) {
+            capabilities = input.getOptions().getCapabilitySupported();
+        }
+
+        if (capabilities == null) {
+            capabilities = Lists.newArrayList();
+        }
+        Set<ServiceCapabilities> allDevCapabilities = Sets.newHashSet();
+
+        List<DeviceNodes> devices = input.getDeviceNodes();
+        if (devices == null || devices.isEmpty()) {
+            return "No device can support the capability of fabric.";
+        }
+
+        ReadOnlyTransaction rt = dataBroker.newReadOnlyTransaction();
+        List<CheckedFuture<Optional<FabricCapableDevice>,ReadFailedException>> futures = Lists.newArrayList();
+        for (DeviceNodes device : devices) {
+            @SuppressWarnings("unchecked")
+            InstanceIdentifier<Node> devIid = (InstanceIdentifier<Node>) device.getDeviceRef().getValue();
+            CheckedFuture<Optional<FabricCapableDevice>,ReadFailedException>  future =
+                    rt.read(LogicalDatastoreType.OPERATIONAL, devIid.augmentation(FabricCapableDevice.class));
+            futures.add(future);
+        }
+
+        try {
+            List<Optional<FabricCapableDevice>> capDevices = Futures.allAsList(futures).get();
+
+            for (Optional<FabricCapableDevice> opt : capDevices) {
+                if (opt.isPresent()) {
+                    FabricCapableDevice capDevice = opt.get();
+                    if (capDevice.getCapabilitySupported() != null) {
+                        allDevCapabilities.addAll(capDevice.getCapabilitySupported());
+                    }
+                    if (capDevice.getSupportedFabric() != null) {
+                        boolean supported = false;
+                        switch (input.getType()) {
+                            case VXLAN:
+                                supported = capDevice.getSupportedFabric().contains(VxlanFabric.class);
+                                break;
+                            case VLAN:
+                                supported = capDevice.getSupportedFabric().contains(VlanFabric.class);
+                                break;
+                            default:
+                                break;
+                        }
+                        if (!supported) {
+                            return String.format("Device does not support this fabric type.");
+                        }
+                    } else {
+                        return String.format("Device does not support this fabric type.");
+                    }
+                } else {
+                    return String.format("Device is not a fabric capable device.");
+                }
+            }
+
+            for (ServiceCapabilities cap : capabilities) {
+                if (!allDevCapabilities.contains(cap)) {
+                    return String.format("No device can support this capability [%s].", cap.name());
+                }
+            }
+
+            if (capabilities.isEmpty()) {
+                OptionsBuilder builder = input.getOptions() == null
+                        ? new OptionsBuilder() : new OptionsBuilder(input.getOptions());
+
+                input.setOptions(builder.setCapabilitySupported(Lists.newArrayList(allDevCapabilities)).build());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("", e);
+            return "Exception ocurred when reading DomStore.";
+        }
+        return null;
     }
 
     private void buildNodeAttribute(NodeBuilder builder, ComposeFabricInput input, FabricId fabricId) {
@@ -266,7 +361,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         }
     }
 
-    private void buildFabricAttribute(FabricAttributeBuilder builder, ComposeFabricInput input) {
+    private void buildFabricAttribute(FabricAttributeBuilder builder, ComposeFabricInputBuilder input) {
         builder.setName(input.getName());
 
         builder.setDescription(input.getDescription());
@@ -341,6 +436,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         trans.delete(LogicalDatastoreType.OPERATIONAL, devicepath);
 
         // del node attribute
+        @SuppressWarnings("unchecked")
         InstanceIdentifier<Node> noderef = (InstanceIdentifier<Node>) device.getValue();
         NodeId deviceid = noderef.firstKeyOf(Node.class).getNodeId();
         TopologyId topoid = noderef.firstKeyOf(Topology.class).getTopologyId();
@@ -369,6 +465,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         final FabricId fabricId = input.getFabricId();
         final NodeRef device = input.getNodeRef();
+        final DeviceRole role = input.getRole();
 
         final InstanceIdentifier<DeviceNodes> path = Constants.DOM_FABRICS_PATH.child(Node.class, new NodeKey(fabricId))
                 .augmentation(FabricNode.class).child(FabricAttribute.class)
@@ -387,6 +484,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         trans.put(LogicalDatastoreType.OPERATIONAL, path, dnodeBuilder.build(), true);
 
         // set node attribute
+        @SuppressWarnings("unchecked")
         InstanceIdentifier<Node> noderef = (InstanceIdentifier<Node>) device.getValue();
         NodeId deviceid = noderef.firstKeyOf(Node.class).getNodeId();
         TopologyId topoid = noderef.firstKeyOf(Topology.class).getTopologyId();
@@ -405,7 +503,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
             @SuppressWarnings("unchecked")
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyDeviceAdded((InstanceIdentifier<Node>) device.getValue());
+                fabricObj.notifyDeviceAdded((InstanceIdentifier<Node>) device.getValue(), role);
                 return Futures.immediateFuture(result);
             }
         });

@@ -168,7 +168,15 @@ def rpc_create_logic_port_data(deviceName, portName):
         "input" : {
            "fabric-id": "fabric:1",
            "name":portName,
-           "logical-device":deviceName
+           "logical-device":deviceName,
+           "attribute" : {
+              "port-layer" : {
+                 "layer-2-info" : {
+                     "access-type" : "vlan",
+                     "access-segment" : 3
+                  }
+              }
+           }
        }
     }
 

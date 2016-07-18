@@ -8,6 +8,9 @@
 package org.opendaylight.faas.fabric.vlan;
 
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -17,17 +20,16 @@ import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdifKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class DeviceContext {
 
@@ -41,7 +43,7 @@ public class DeviceContext {
 
     private final ExecutorService executor;
 
-    DeviceContext(DataBroker databroker, IpAddress vtep, InstanceIdentifier<Node> deviceIId, ExecutorService executor) {
+    DeviceContext(DataBroker databroker, String mgntIp, InstanceIdentifier<Node> deviceIId, ExecutorService executor) {
         this.databroker = databroker;
         this.deviceIId = deviceIId;
         this.executor = executor;
@@ -54,16 +56,18 @@ public class DeviceContext {
     public void createBridgeDomain(LogicSwitchContext switchCtx) {
         int vlan = switchCtx.getVlan();
         localBD.add(createBdId(vlan));
+        syncToDom(vlan, false);
 
         LogicRouterContext vrfctx = switchCtx.getVrfCtx();
         if (vrfctx != null) {
-            createBDif(vlan, vrfctx);
+            createBdif(vlan, vrfctx);
         }
     }
 
     public void removeBridgeDomain(LogicSwitchContext switchCtx) {
         int vlan = switchCtx.getVlan();
         localBD.remove(createBdId(vlan));
+        this.syncToDom(vlan, true);
 
         LogicRouterContext vrfctx = switchCtx.getVrfCtx();
         if (vrfctx != null) {
@@ -74,17 +78,37 @@ public class DeviceContext {
         }
     }
 
-    void createBDif(int vlan, LogicRouterContext vrfctx) {
+    void createBdif(int vlan, LogicRouterContext vrfctx) {
         GatewayPort gw = vrfctx.getGatewayPortByVlan(vlan);
 
         bdifs.put(vlan, gw);
         syncToDom(gw, false);
     }
 
-    void removeBDif(long vni, GatewayPort gw) {
+    void removeBdif(long vni, GatewayPort gw) {
         bdifs.remove(vni);
 
         syncToDom(gw, true);
+    }
+
+    private void syncToDom(int vlan, boolean delete) {
+        String bdid = createBdId(vlan);
+        InstanceIdentifier<BridgeDomain> bdIId = deviceIId.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bdid));
+
+        BridgeDomainBuilder builder = new BridgeDomainBuilder();
+        builder.setId(bdid);
+        builder.setSegment((long) vlan);
+        builder.setKey(new BridgeDomainKey(bdid));
+
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        if (delete) {
+            trans.delete(LogicalDatastoreType.OPERATIONAL, bdIId);
+        } else {
+            trans.put(LogicalDatastoreType.OPERATIONAL, bdIId, builder.build());
+        }
+        MdSalUtils.wrapperSubmit(trans, executor);
+
     }
 
     private void syncToDom(GatewayPort gw, boolean delete) {
