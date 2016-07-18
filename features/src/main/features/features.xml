@@ -30,7 +30,6 @@
     <bundle>wrap:mvn:concurrent/concurrent/{{VERSION}}</bundle>
 <!--
         <bundle>wrap:mvn:net.sf.jung/jung-api/2.0.1</bundle>
-        <bundle>wrap:mvn:net.sf.jung/jung-graph-impl/2.0.1</bundle>
 -->
 <!-- Do NOT include jung-api, because it causes ClassDefNotFound Error
           <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jung-api/2.0.1_2</bundle>
@@ -117,6 +116,7 @@
     <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
     <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
     <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
+    <feature version="${project.version}">odl-faas-base</feature>
 
     <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
 
