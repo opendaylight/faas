@@ -70,6 +70,16 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>uln-cache</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>uln-mapper-impl</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>fabric-mgr-model</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -110,7 +120,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>uln-mapper-model</artifactId>
+        <artifactId>uln-mapper-impl</artifactId>
         <version>${project.version}</version>
         <type>xml</type>
         <classifier>config</classifier>

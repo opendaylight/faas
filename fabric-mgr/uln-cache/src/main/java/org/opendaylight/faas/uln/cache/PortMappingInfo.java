@@ -6,7 +6,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-package org.opendaylight.faas.uln.manager;
+package org.opendaylight.faas.uln.cache;
 
 import java.util.HashSet;
 import java.util.Set;

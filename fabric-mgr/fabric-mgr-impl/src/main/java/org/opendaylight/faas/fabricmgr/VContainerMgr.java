@@ -141,7 +141,7 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
         TopologyId topoId = new TopologyId(topoIdStr);
         TopologyKey topoKey = new TopologyKey(topoId);
 
-        InstanceIdentifier<Topology> topoPath = FabMgrYangDataUtil.topologyPath(topoKey);
+        InstanceIdentifier<Topology> topoPath = FabMgrYangDataUtil.buildTopologyPath(topoIdStr);
         TopologyBuilder topoBuilder = new TopologyBuilder();
         topoBuilder.setKey(topoKey);
         topoBuilder.setTopologyId(topoId);

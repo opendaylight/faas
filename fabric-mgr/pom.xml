@@ -24,6 +24,8 @@
   <modules>
     <module>fabric-mgr-model</module>
     <module>fabric-mgr-impl</module>
+    <module>uln-model</module>
+    <module>uln-cache</module>
   </modules>
 
   <build>
