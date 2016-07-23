@@ -10,7 +10,6 @@ package org.opendaylight.faas.fabricmgr;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.Location;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.NodeRef;
@@ -54,7 +53,12 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier.InstanceIdentifierBuilder;
 
-public class FabMgrYangDataUtil {
+/**
+ *  SingleTon utility "static" class.
+ *  to define instance identifier  for FAAS objects in data store.
+ *
+ */
+public final class FabMgrYangDataUtil {
 
     public static final String VC_TOPOLOGY_ID = "faas-vcontainers";
     private static final String VC_LD_NODE_NAME = "vc-ldnode";
@@ -62,49 +66,70 @@ public class FabMgrYangDataUtil {
     private static final String VC_LINK_NAME = "vc-link";
     private static final String VC_NODE_TP_WEST = "tp-west";
     private static final String VC_NODE_TP_EAST = "tp-east";
+    private static final String FAAS_TOPOLOGY_ID = "faas";
 
-    public static final InstanceIdentifier<Topology> DOM_VCS_PATH = InstanceIdentifier.create(NetworkTopology.class)
+    public static final InstanceIdentifier<Topology> DOM_VCS_PATH =
+            InstanceIdentifier.create(NetworkTopology.class)
         .child(Topology.class, new TopologyKey(new TopologyId(VC_TOPOLOGY_ID)));
 
-    /*
-     * VContainer
+    public static final InstanceIdentifier<Topology> FAAS_TOPLOGY_PATH =
+            InstanceIdentifier.create(NetworkTopology.class)
+            .child(Topology.class, new TopologyKey(new TopologyId(FAAS_TOPOLOGY_ID)));
+
+
+    private FabMgrYangDataUtil(){
+
+    }
+
+    /**
+     * VContainer Topology path for certain tenant.
+     * @param tenantId - tenant identifier.
+     * @return
      */
-    public static InstanceIdentifier<Topology> vcTopology(String tenantId) {
+    public static InstanceIdentifier<Topology> buildVCTopologyPath(String tenantId) {
         return InstanceIdentifier.builder(NetworkTopology.class)
             .child(Topology.class, new TopologyKey(new TopologyId(tenantId)))
             .build();
     }
 
-    public static InstanceIdentifier<VcontainerTopology> vcTopologyType(String tenantId) {
+    /**
+     * buildVCTopologyTypePath - VC Topology type augmentation path.
+     * @param tenantId - tenant identifier
+     * @return - the path
+     */
+    public static InstanceIdentifier<VcontainerTopology> buildVCTopologyTypePath(String tenantId) {
         TopologyId topoId = new TopologyId(tenantId);
         TopologyKey topoKey = new TopologyKey(topoId);
         InstanceIdentifier<NetworkTopology> nt = InstanceIdentifier.create(NetworkTopology.class);
         InstanceIdentifier<Topology> topo = nt.child(Topology.class, topoKey);
         InstanceIdentifier<TopologyTypes> topoType = topo.child(TopologyTypes.class);
         InstanceIdentifier<TopologyTypes1> augTopoType = topoType.augmentation(TopologyTypes1.class);
-        InstanceIdentifier<VcontainerTopology> vcTopoType = augTopoType.child(VcontainerTopology.class);
-        return vcTopoType;
+        return augTopoType.child(VcontainerTopology.class);
     }
 
-    public static InstanceIdentifier<Topology> topologyPath(TopologyKey topoKey) {
-        return InstanceIdentifier.create(NetworkTopology.class).child(Topology.class, topoKey);
+    /**
+     * build topology path for certain topology id.
+     * @param topoID - topology id
+     * @return
+     */
+    public static InstanceIdentifier<Topology> buildTopologyPath(String topoID) {
+        return InstanceIdentifier.create(NetworkTopology.class).child(Topology.class, new TopologyKey(new TopologyId(topoID)));
     }
 
     public static InstanceIdentifier<Node> vcLdNodePath(InstanceIdentifier<Topology> topoPath) {
-        return nodePath(topoPath, VC_LD_NODE_NAME);
+        return buildNodePath(topoPath, VC_LD_NODE_NAME);
     }
 
     public static InstanceIdentifier<Node> vcNetNodePath(InstanceIdentifier<Topology> topoPath) {
-        return nodePath(topoPath, VC_NET_NODE_NAME);
+        return buildNodePath(topoPath, VC_NET_NODE_NAME);
     }
 
-    public static InstanceIdentifier<Node> nodePath(InstanceIdentifier<Topology> topoPath, String nodeName) {
+    public static InstanceIdentifier<Node> buildNodePath(InstanceIdentifier<Topology> topoPath, String nodeName) {
         NodeId nodeId = new NodeId(nodeName);
         NodeKey nodeKey = new NodeKey(nodeId);
         InstanceIdentifierBuilder<Topology> topoPathBuilder = topoPath.builder();
         InstanceIdentifierBuilder<Node> nodePathBuilder = topoPathBuilder.child(Node.class, nodeKey);
-        InstanceIdentifier<Node> nodePath = nodePathBuilder.build();
-        return nodePath;
+        return nodePathBuilder.build();
     }
 
     public static InstanceIdentifier<Node> createNodePath(TopologyId topoId, NodeId nodeId) {
@@ -128,6 +153,12 @@ public class FabMgrYangDataUtil {
             .child(Node.class, new NodeKey(nodeId))
             .child(TerminationPoint.class, new TerminationPointKey(tpId));
     }
+
+    public static InstanceIdentifier<TerminationPoint> createFabricTpPath( String nodeId, String tpId) {
+        return FabMgrYangDataUtil.FAAS_TOPLOGY_PATH.child(Node.class, new NodeKey(new NodeId(nodeId)))
+            .child(TerminationPoint.class, new TerminationPointKey(new TpId(tpId)));
+    }
+
 
     public static Node createBasicVcLdNode() {
         /*
@@ -177,7 +208,7 @@ public class FabMgrYangDataUtil {
 
     public static VcNode createBasicVcNode(String nodeIdStr) {
 
-        List<Class<? extends FlagIdentity>> flagList = new ArrayList<Class<? extends FlagIdentity>>();
+        List<Class<? extends FlagIdentity>> flagList = new ArrayList<>();
         VcNodeAttributesBuilder vcAttrBuilder = new VcNodeAttributesBuilder();
         vcAttrBuilder.setName(nodeIdStr);
         vcAttrBuilder.setFlag(flagList);
@@ -194,9 +225,9 @@ public class FabMgrYangDataUtil {
         NodeBuilder nodeBuilder = new NodeBuilder();
         nodeBuilder.setKey(nodeKey);
         nodeBuilder.setNodeId(nodeId);
-        List<SupportingNode> childNodeList = new ArrayList<SupportingNode>();
+        List<SupportingNode> childNodeList = new ArrayList<>();
         nodeBuilder.setSupportingNode(childNodeList);
-        List<TerminationPoint> ports = new ArrayList<TerminationPoint>();
+        List<TerminationPoint> ports = new ArrayList<>();
         TerminationPoint tpWest = createTp(VC_NODE_TP_WEST);
         ports.add(tpWest);
         TerminationPoint tpEast = createTp(VC_NODE_TP_EAST);
@@ -211,7 +242,7 @@ public class FabMgrYangDataUtil {
 
         TerminationPointBuilder tpBuilder = new TerminationPointBuilder();
         tpBuilder.setTpId(tpId);
-        List<TpId> childPortList = new ArrayList<TpId>();
+        List<TpId> childPortList = new ArrayList<>();
         tpBuilder.setTpRef(childPortList);
 
         return tpBuilder.build();
@@ -226,8 +257,7 @@ public class FabMgrYangDataUtil {
         LinkKey linkKey = new LinkKey(linkId);
         InstanceIdentifierBuilder<Topology> topoPathBuilder = topoPath.builder();
         InstanceIdentifierBuilder<Link> linkPathBuilder = topoPathBuilder.child(Link.class, linkKey);
-        InstanceIdentifier<Link> linkPath = linkPathBuilder.build();
-        return linkPath;
+        return linkPathBuilder.build();
     }
 
     public static Link createBasicVcLink(Node ldNode, Node netNode) {

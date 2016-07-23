@@ -30,6 +30,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetAllFabricsOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddStaticRouteInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.ClearStaticRouteInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInputBuilder;
@@ -196,6 +197,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
             inputBuilder.setFabricPort(fp.getPortId());
             inputBuilder.setFabricId(new FabricId(input.getVfabricId()));
             inputBuilder.setLogicalPort(tp);
+
             this.fabServiceService.portBindingLogicalToFabric(inputBuilder.build());
         }
 
@@ -225,11 +227,9 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 CreateLneLayer3OutputBuilder builder = new CreateLneLayer3OutputBuilder();
                 CreateLogicalRouterOutput createLrOutput = output.getResult();
                 NodeId nodeId = createLrOutput.getNodeId();
-                // VcLneRef lrRef = new
-                // VcLneRef(FabMgrYangDataUtil.createNodePath(fabricId.toString(), nodeId));
                 builder.setLneId(new VcLneId(nodeId));
 
-                //binding router
+                //binding router to each of logical switch.
                 //TODO TODO TODO
                 for (Port lswId : input.getPort())
                 {
@@ -372,9 +372,13 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     @Override
     public Future<RpcResult<Void>> updateLneLayer3Routingtable(UpdateLneLayer3RoutingtableInput input) {
 
-        //TODO to remove all the existing route entries first.
+        //First to remove all the existing route entries.
+        ClearStaticRouteInputBuilder cbuilder = new ClearStaticRouteInputBuilder();
+        cbuilder.setNodeId(input.getLneId());
+        cbuilder.setFabricId(new FabricId(input.getVfabricId()));
+        this.fabServiceService.clearStaticRoute(cbuilder.build());
 
-        //add the complete the routing table.
+        //Secondly add the complete the routing table.
         AddStaticRouteInputBuilder builder = new AddStaticRouteInputBuilder();
         builder.setFabricId(new FabricId(input.getVfabricId()));
         builder.setNodeId(input.getLneId());
@@ -388,8 +392,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
 
         builder.setRoute(rl);
-        this.fabServiceService.addStaticRoute(builder.build());
-        return null;
+        return this.fabServiceService.addStaticRoute(builder.build());
     }
 
     @Override
@@ -486,7 +489,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public void createLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+    public Uuid createLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
             IpPrefix ipPrefix) {
         CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
@@ -501,10 +504,14 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
             RpcResult<CreateGatewayOutput> output = result.get();
             if (output.isSuccessful()) {
                 LOG.debug("FABMGR: createLrLswGateway: createGateway RPC success");
+                CreateGatewayOutput o = output.getResult();
+                return o.getLportUuid();
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed.", e);
         }
+
+        return null;
     }
 
     public void removeLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, IpAddress gatewayIpAddr) {

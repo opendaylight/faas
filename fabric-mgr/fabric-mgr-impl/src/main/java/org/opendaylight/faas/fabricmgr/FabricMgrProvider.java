@@ -7,9 +7,17 @@
  */
 package org.opendaylight.faas.fabricmgr;
 
+import com.google.common.base.Optional;
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
+import edu.uci.ics.jung.algorithms.shortestpath.PrimMinimumSpanningTree;
+import edu.uci.ics.jung.graph.DelegateTree;
+import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.Tree;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +37,8 @@ import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricPortAug;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -55,20 +65,13 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Optional;
-import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
-import edu.uci.ics.jung.algorithms.shortestpath.PrimMinimumSpanningTree;
-import edu.uci.ics.jung.graph.DelegateTree;
-import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.Tree;
 
 
 /**
@@ -140,6 +143,7 @@ public class FabricMgrProvider implements AutoCloseable {
         return eps.stream().collect(Collectors.groupingBy(FabricPort::getFabricID));
     }
 
+    //Internal Port Exchange Format
     private final class FabricPort {
         private final Port p;
         private String fabricID;
@@ -153,9 +157,29 @@ public class FabricMgrProvider implements AutoCloseable {
             return p;
         }
 
-        //TODO
         public String getFabricID() {
-            throw new UnsupportedOperationException("Not implemented yet!");
+            String portid = p.getPortId().getValue();
+
+            //
+            //  According to fabric port id naming convention.
+            //  FabricPort :  [Node id] : [tp id]
+            //
+            String[] id = portid.split(":");
+            String nodeid = id[0];
+            String tpid = id[1];
+
+            InstanceIdentifier<TerminationPoint> tppath = FabMgrYangDataUtil.createFabricTpPath(nodeid, tpid);
+            Optional<TerminationPoint> opt = FabMgrDatastoreUtil.readData(LogicalDatastoreType.OPERATIONAL, tppath);
+
+            if (opt.isPresent())
+            {
+                TerminationPoint tp = opt.get();
+                FabricPortAug aug = tp.getAugmentation(FabricPortAug.class);
+                //TODO
+                return aug.getPortRef().getValue().toString();
+            }
+
+            return null;
         }
     }
 
@@ -221,9 +245,9 @@ public class FabricMgrProvider implements AutoCloseable {
         topo.setLink(new ArrayList(graph.getEdges()));
         topo.setNode(new ArrayList(graph.getVertices()));
         FabMgrDatastoreUtil.putData(LogicalDatastoreType.CONFIGURATION,
-                FabMgrYangDataUtil.vcTopology(lneInput.getName()), topo.build());
+                FabMgrYangDataUtil.buildTopologyPath(lneInput.getName()), topo.build());
 
-        InstanceIdentifier<Topology> nodeId = FabMgrYangDataUtil.vcTopology(lneInput.getName());
+        InstanceIdentifier<Topology> nodeId = FabMgrYangDataUtil.buildTopologyPath(lneInput.getName());
         bridgeAllSegments(tenantId,nodeId);
 
         return new NodeId(lneInput.getLswUuid().getValue());
@@ -238,10 +262,14 @@ public class FabricMgrProvider implements AutoCloseable {
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
-    //TODO - to get the Topology which contains all the lsws' fabrics.
+    //
+    // TODO - to get the Topology which contains all the lsws' fabrics.
+    //  FabricTopology is the biggest superset of the topology which satisfy the condition
+    //   but it is not obviously optimal.
+    //
     private Topology getTopology(List<NodeId> lsws)
     {
-        throw new UnsupportedOperationException("Not implemented yet!");
+        return this.getFabricTopology();
     }
 
     /**
@@ -268,43 +296,32 @@ public class FabricMgrProvider implements AutoCloseable {
         return alg.transform(tree);
     }
 
-    //TODO - return the logical device ID based on the TP id
-    private VcLneId getVcLneIDFromTP(TpId id)
-    {
-        throw new UnsupportedOperationException("Not implemented yet!");
-    }
-
-    //TODO - return the Fabric ID based on the TP id
-    private FabricId getFabricIDFromTP(TpId id)
-    {
-        throw new UnsupportedOperationException("Not implemented yet!");
-    }
-
-    //TODO - return the Port  based on the TP id
-    private Port getPortIDFromTP(TpId id)
-    {
-        throw new UnsupportedOperationException("Not implemented yet!");
-    }
-
 
     //TODO
-    private void bridgeTwoSegmentsOverALink(Uuid tenantId, int tag, Link l)
+    private void bridgeTwoSegmentsOverALink(Uuid tenantId, int tag, Link l, NodeId s, NodeId d)
     {
         AddPortsToLneLayer2InputBuilder builder = new AddPortsToLneLayer2InputBuilder();
         List<Port> ports = new ArrayList<>();
-        ports.add(this.getPortIDFromTP(l.getSource().getSourceTp()));
+        PortBuilder pb = new PortBuilder();
+        pb.setPortId(new VfabricPortId(l.getSource().getSourceTp()));
+
+        ports.add(pb.build());
         builder.setPort(ports);
         builder.setTenantId(new TenantId(tenantId));
-        builder.setLneId(this.getVcLneIDFromTP(l.getSource().getSourceTp()));
-        builder.setVfabricId(this.getFabricIDFromTP(l.getSource().getSourceTp()));
+        builder.setLneId(new VcLneId(s));
+        builder.setVfabricId(new FabricId((l.getSource().getSourceNode())));
         this.netNodeServiceProvider.addPortsToLneLayer2(builder.build());
 
         ports.clear();
-        ports.add(this.getPortIDFromTP(l.getDestination().getDestTp()));
+        pb.setPortId(new VfabricPortId(l.getDestination().getDestTp()));
+        ports.add(pb.build());
         builder.setPort(ports);
+
         builder.setTenantId(new TenantId(tenantId));
-        builder.setLneId(this.getVcLneIDFromTP(l.getDestination().getDestTp()));
-        builder.setVfabricId(this.getFabricIDFromTP(l.getDestination().getDestTp()));
+
+        builder.setLneId(new VcLneId(d));
+
+        builder.setVfabricId(new FabricId(l.getDestination().getDestNode()));
         this.netNodeServiceProvider.addPortsToLneLayer2(builder.build());
 
     }
@@ -318,28 +335,37 @@ public class FabricMgrProvider implements AutoCloseable {
         if (topo.isPresent())
         {
             Topology t = topo.get();
+            Map<FabricId, NodeId> maps = buildMaps(t.getNode());
+
             for(Link l : t.getLink())
             {
                 int tag = allocGlobalTag(l);
                 if (tag != EMPTY_TAG) {
-                    this.bridgeTwoSegmentsOverALink(tenantId, tag, l);
+                    this.bridgeTwoSegmentsOverALink(tenantId, tag, l,
+                            maps.get(new FabricId(l.getSource().getSourceNode())),
+                            maps.get(new FabricId(l.getDestination().getDestNode())));
                 }
             }
         }
     }
 
 
-    //TODO - to read from datastore.
+    /**
+     * To read from data store all the children nodes of the logical switch.
+     * @param lswId - logical switch identifier.
+     * @return the list of the children of the logical switch.
+     */
     private List<Node> getAllChildren(NodeId lswId)
     {
-        InstanceIdentifier<Topology> nodeId = FabMgrYangDataUtil.vcTopology(lswId.getValue());
+        InstanceIdentifier<Topology> nodeId = FabMgrYangDataUtil.buildTopologyPath(lswId.getValue());
         Optional<Topology> topo = FabMgrDatastoreUtil.readData(LogicalDatastoreType.CONFIGURATION, nodeId);
         if (topo.isPresent()) {
             Topology t = topo.get();
             return t.getNode();
         }
 
-        return null;
+        LOG.error("Failed to get the children of hte logical switch " + lswId);
+        return Collections.emptyList();
     }
 
 
@@ -464,8 +490,8 @@ public class FabricMgrProvider implements AutoCloseable {
             return value;
         }
 
-    }
 
+    }
     //TODO Dummy code
     private List<Capability> getCapability(FabricId id)
     {
@@ -535,25 +561,48 @@ public class FabricMgrProvider implements AutoCloseable {
 
     private Topology getFabricTopology()
     {
-        throw new UnsupportedOperationException("Not implemented yet!");
+        Optional<Topology> opt = FabMgrDatastoreUtil.readData(
+                LogicalDatastoreType.OPERATIONAL, FabMgrYangDataUtil.FAAS_TOPLOGY_PATH);
+        if (opt.isPresent()) {
+            return opt.get();
+        } else {
+            return null;
+        }
     }
 
     private List<IpAddress> getAllHostIPs(NodeId lr)
     {
+    	List<Node> lsws = this.getAllChildren(lr);
+    	for(Node node : lsws)
+    	{
+    		
+    	}
+    	
+    	
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
 
-    //TODO
-    private FabricId getFabricIDForNode(Node ld)
+    private FabricId getFabricIDForNode(Node node)
     {
-        throw new UnsupportedOperationException("Not implemented yet!");
+        return new FabricId(node.getAugmentation(FabricCapableDevice.class).getAttributes().getFabricId());
     }
 
     //TODO
     private IpAddress getIPAddress (TpId t)
     {
         throw new UnsupportedOperationException("getIPAddress not implemented yet!");
+    }
+
+    private Map<FabricId, NodeId> buildMaps(List<Node> nodes)
+    {
+        Map<FabricId, NodeId> maps = new HashMap<>();
+        for(Node node :  nodes)
+        {
+            maps.put(new FabricId(node.getAugmentation(FabricCapableDevice.class).getAttributes().getFabricId()), node.getNodeId());
+        }
+
+        return maps;
     }
     //
     // Connects all distributed logical routers into one big logical router
@@ -563,6 +612,7 @@ public class FabricMgrProvider implements AutoCloseable {
     private void connectAllDVRs(Uuid tenantID, NodeId lr)
     {
         List<Node> nodes = getAllChildren(lr);
+        Map<FabricId, NodeId> maps = buildMaps(nodes);
         Collection<Link> links = calcMinimumSpanningTree(getFabricTopology()).getEdges();
         for(Link l : links)
         {
@@ -570,13 +620,13 @@ public class FabricMgrProvider implements AutoCloseable {
             CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder();
             builder.setSegmentId(new Long(tag));
             builder.setTenantId(new TenantId(tenantID));
-            builder.setVfabricId(this.getFabricIDFromTP(l.getSource().getSourceTp()));
+            builder.setVfabricId(new FabricId(l.getSource().getSourceNode()));
             NodeId lsw1 = this.createLneLayer2(new TenantId(tenantID), builder.build());
-            this.createLrLswGateway(new TenantId(tenantID), this.getVcLneIDFromTP(l.getSource().getSourceTp()), lsw1, this.getGatewayIP(), this.getGatewayPrefix());
+            this.createLrLswGateway(new TenantId(tenantID), maps.get(l.getSource().getSourceNode()), lsw1, this.getGatewayIP(), this.getGatewayPrefix());
 
-            builder.setVfabricId(this.getFabricIDFromTP(l.getDestination().getDestTp()));
+            builder.setVfabricId(new FabricId(l.getDestination().getDestNode()));
             NodeId lsw2 = this.createLneLayer2(new TenantId(tenantID), builder.build());
-            this.createLrLswGateway(new TenantId(tenantID), this.getVcLneIDFromTP(l.getDestination().getDestTp()), lsw2, this.getGatewayIP(), this.getGatewayPrefix());
+            this.createLrLswGateway(new TenantId(tenantID), maps.get(l.getDestination().getDestNode()), lsw2, this.getGatewayIP(), this.getGatewayPrefix());
 
 
             // adding static routes

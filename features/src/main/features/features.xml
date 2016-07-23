@@ -94,6 +94,21 @@
     <configfile finalname="${config.configfile.directory}/vxlan-fabric-ovs-adapter.xml">mvn:org.opendaylight.faas/vxlan-fabric-ovs-adapter/{{VERSION}}/xml/config</configfile>
   </feature>
 
+  <feature name='odl-faas-fabricmgr' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
+    <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
+    <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
+    <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
+    <feature version="${project.version}">odl-faas-base</feature>
+    <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
+    <bundle>mvn:org.opendaylight.faas/fabric-model/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.controller.model/model-inventory/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/uln-mapper-model/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/uln-cache/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/fabric-mgr-model/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/fabric-mgr-impl/{{VERSION}}</bundle>
+
+    <configfile finalname="${config.configfile.directory}/fabric-mgr.xml">mvn:org.opendaylight.faas/fabric-mgr-impl/{{VERSION}}/xml/config</configfile>
+  </feature>
   <feature name='odl-faas-uln-mapper' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
     <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
     <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
@@ -106,25 +121,10 @@
     <feature version="${project.version}">odl-faas-fabricmgr</feature>
 
     <bundle>mvn:org.opendaylight.controller.model/model-inventory/{{VERSION}}</bundle>
+    <bundle>mvn:org.opendaylight.faas/uln-mapper-impl/{{VERSION}}</bundle>
 
-    <bundle>mvn:org.opendaylight.faas/uln-mapper-model/{{VERSION}}</bundle>
-
-    <configfile finalname="${config.configfile.directory}/uln-mapper.xml">mvn:org.opendaylight.faas/uln-mapper-model/{{VERSION}}/xml/config</configfile>
+    <configfile finalname="${config.configfile.directory}/uln-mapper.xml">mvn:org.opendaylight.faas/uln-mapper-impl/{{VERSION}}/xml/config</configfile>
   </feature>
 
-  <feature name='odl-faas-fabricmgr' version='${project.version}' description='OpenDaylight :: faas :: vxlan fabric'>
-    <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
-    <feature version="${controller.mdsal.version}">odl-mdsal-broker</feature>
-    <feature version='${mdsal.version}'>odl-mdsal-binding-runtime</feature>
-    <feature version="${project.version}">odl-faas-base</feature>
-
-    <feature version="${project.version}">odl-faas-vxlan-fabric</feature>
-
-    <bundle>mvn:org.opendaylight.faas/fabric-model/{{VERSION}}</bundle>
-    <bundle>mvn:org.opendaylight.faas/fabric-mgr-model/{{VERSION}}</bundle>
-    <bundle>mvn:org.opendaylight.faas/fabric-mgr-impl/{{VERSION}}</bundle>
-
-    <configfile finalname="${config.configfile.directory}/fabric-mgr.xml">mvn:org.opendaylight.faas/fabric-mgr-impl/{{VERSION}}/xml/config</configfile>
-  </feature>
 
 </features>

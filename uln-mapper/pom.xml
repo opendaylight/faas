@@ -22,7 +22,7 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>uln-model</module>
+    <module>uln-mapper-impl</module>
   </modules>
 
   <build>

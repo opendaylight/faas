@@ -29,8 +29,8 @@
     <module>base</module>
     <module>model</module>
     <module>fabrics</module>
-    <module>uln-mapper</module>
     <module>fabric-mgr</module>
+    <module>uln-mapper</module>
     <module>distribution-karaf</module>
     <module>features</module>
   </modules>

@@ -6,28 +6,30 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-package org.opendaylight.faas.uln.manager;
+package org.opendaylight.faas.uln.cache;
 
 import java.util.HashSet;
 import java.util.Set;
 
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
-public class LogicalSwitchMappingInfo {
+public class LogicalRouterMappingInfo {
 
-    private LogicalSwitch lsw;
+    private LogicalRouter lr;
     private NodeId renderedDeviceId;
     private boolean serviceHasBeenRendered;
     private boolean isToBeDeleted;
     private Set<Uuid> securityRuleGroupsList;
     private Set<Uuid> portList;
     private Set<Uuid> lrLswEdgeList;
+    private IpAddress gatewayIpAddr;
 
-    public LogicalSwitchMappingInfo(LogicalSwitch lsw) {
+    public LogicalRouterMappingInfo(LogicalRouter lr) {
         super();
-        this.lsw = lsw;
+        this.lr = lr;
         this.serviceHasBeenRendered = false;
         this.isToBeDeleted = false;
         this.securityRuleGroupsList = new HashSet<Uuid>();
@@ -41,12 +43,12 @@ public class LogicalSwitchMappingInfo {
 
     }
 
-    public LogicalSwitch getLsw() {
-        return lsw;
+    public LogicalRouter getLr() {
+        return lr;
     }
 
-    public void setLsw(LogicalSwitch lsw) {
-        this.lsw = lsw;
+    public void setLr(LogicalRouter lr) {
+        this.lr = lr;
     }
 
     public NodeId getRenderedDeviceId() {
@@ -95,6 +97,14 @@ public class LogicalSwitchMappingInfo {
 
     public void removeLrLswEdge(Uuid lrLswEdgeId) {
         this.lrLswEdgeList.remove(lrLswEdgeId);
+    }
+
+    public void addGatewayIp(IpAddress gatewayIp) {
+        this.gatewayIpAddr = gatewayIp;
+    }
+
+    public IpAddress getGatewayIpAddr() {
+        return gatewayIpAddr;
     }
 
     public int getSecurityRuleGroupsListSize() {
