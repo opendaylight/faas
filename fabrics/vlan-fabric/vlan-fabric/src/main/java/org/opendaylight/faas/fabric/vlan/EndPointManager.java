@@ -7,24 +7,37 @@
  */
 package org.opendaylight.faas.fabric.vlan;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
+import org.opendaylight.controller.md.sal.binding.api.DataObjectModification.ModificationType;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
+import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.Constants;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.Location;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoints.Endpoint;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 
 public class EndPointManager implements AutoCloseable, DataTreeChangeListener<Endpoint> {
 
@@ -80,7 +93,7 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
 
                             @Override
                             public Void call() throws Exception {
-                                //FIX ME
+                                removeEndPointIId(iid, ep);
                                 return null;
                             }
                         }), simpleFutureMonitor, fabricCtx.executor);
@@ -95,7 +108,7 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
 
                                 @Override
                                 public Void call() throws Exception {
-                                    // FIXME
+                                    rendererEndpoint(ep);
                                     return null;
                                 }
                             }), simpleFutureMonitor, fabricCtx.executor);
@@ -104,12 +117,67 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
                     break;
                 }
                 case SUBTREE_MODIFIED: {
-                    // DO NOTHING
+                    final Endpoint newEp = change.getRootNode().getDataAfter();
+                    DataObjectModification<Location> loc = change.getRootNode().getModifiedChildContainer(Location.class);
+                    if (loc != null && loc.getModificationType().equals(ModificationType.WRITE)) {
+                        if (fabricCtx.getFabricId().equals(newEp.getOwnFabric())) {
+                            Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
+
+                                @Override
+                                public Void call() throws Exception {
+                                    rendererEndpoint(newEp);
+                                    return null;
+                                }
+                            }), simpleFutureMonitor, fabricCtx.executor);
+                        }
+                    }
                     break;
                 }
                 default:
                     break;
             }
         }
+    }
+
+    private void removeEndPointIId(final InstanceIdentifier<Endpoint> epIId, Endpoint ep) {
+
+        if (ep.getLogicalLocation() != null) {
+            @SuppressWarnings("unchecked")
+            InstanceIdentifier<TerminationPoint> lportIid = (InstanceIdentifier<TerminationPoint>) ep.getLocation().getTpRef().getValue();
+            EpAccessPortRenderer portRender = EpAccessPortRenderer.newRenderer(databroker, lportIid);
+            try {
+                portRender.removeEpAccessPort();
+            } catch (Exception e) {
+                LOG.error("", e);
+            }
+        }
+    }
+
+    private void rendererEndpoint(Endpoint ep) throws Exception {
+
+        // 1, create bridge domain port
+        NodeId logicNode = ep.getLogicalLocation().getNodeId();
+
+        LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
+        if (switchCtx == null) {
+            LOG.warn("There are no such switch's context.({})", logicNode.getValue());
+            return;
+        }
+        final int vlan = switchCtx.getVlan();
+
+        TpId destTpPort = ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId();
+        InstanceIdentifier<Node> devIid = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
+        DeviceContext devCtx = fabricCtx.getDeviceCtx(DeviceKey.newInstance(devIid));
+        String bdPortId = devCtx.createBdPort(vlan,
+                destTpPort, ep.getLocation().getAccessType(), ep.getLocation().getAccessSegment());
+
+        InstanceIdentifier<BdPort> bdPortIid = devIid.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(BdPort.class, new BdPortKey(bdPortId));
+
+        // 2, use bridge domain port to renderer logic port
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+
+        EpAccessPortRenderer portRender = EpAccessPortRenderer.newRenderer(databroker);
+        portRender.createEpAccessPort(trans, ep, bdPortIid);
     }
 }

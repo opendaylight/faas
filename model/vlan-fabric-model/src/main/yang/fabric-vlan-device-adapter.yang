@@ -25,8 +25,13 @@ module fabric-vlan-device-adapter {
         }
     }
 
-	rpc addToVlanFabric {
-		input {
+    augment "/topo:network-topology/topo:topology/topo:node/device:config/device:vrf" {
+        ext:augment-identifier "vlan-vrf-route";
+        uses fabrictype:route-group ;
+    }
+
+    rpc addToVlanFabric {
+        input {
             leaf node-id {
                 type instance-identifier;
                 ext:context-reference "device:fabric-capable-device-context";
@@ -38,10 +43,10 @@ module fabric-vlan-device-adapter {
                 type topo:tp-id;
             }
         }
-	}
+    }
 
-	rpc rmFromVlanFabric {
-		input {
+    rpc rmFromVlanFabric {
+        input {
             leaf node-id {
                 type instance-identifier;
                 ext:context-reference "device:fabric-capable-device-context";
@@ -50,5 +55,5 @@ module fabric-vlan-device-adapter {
                 type topo:node-id;
             }
         }
-	}
+    }
 }

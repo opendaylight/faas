@@ -13,7 +13,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
@@ -28,7 +27,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev16
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.AddFabricLinkOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.CreateFabricPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.FabricResourcesService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.SetFabricPortRoleInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricPortAugment;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.termination.point.FportAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.termination.point.FportAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.LinkId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.link.attributes.DestinationBuilder;
@@ -108,5 +111,29 @@ public class FabricResourceAPIProvider implements AutoCloseable, FabricResources
     public Future<RpcResult<Void>> createFabricPort(CreateFabricPortInput input) {
         return Futures.immediateFailedFuture(
                 new RuntimeException("Not implemet yet!"));
+    }
+
+    @Override
+    public Future<RpcResult<Void>> setFabricPortRole(SetFabricPortRoleInput input) {
+
+        InstanceIdentifier<FportAttribute> iid = MdSalUtils.createFabricPortIId(input.getFabricId(), input.getFabricPortId())
+                .augmentation(FabricPortAugment.class).child(FportAttribute.class);
+
+        FportAttributeBuilder builder = new FportAttributeBuilder();
+        builder.setRole(input.getPortRole());
+
+        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+        wt.put(LogicalDatastoreType.OPERATIONAL, iid, builder.build());
+
+        CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
+
+        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+
+            @Override
+            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
+                return Futures.immediateFuture(resultBuilder.build());
+            }
+        });
     }
 }

@@ -19,14 +19,18 @@ import java.util.concurrent.ExecutionException;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
+import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricListener;
 import org.opendaylight.faas.fabric.utils.InterfaceManager;
+import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.AddToVlanFabricInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.FabricVlanDeviceAdapterService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.VlanVrfRoute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.VlanVrfRouteBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricNode;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceLinks;
@@ -35,13 +39,16 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.LogicalSwitchAugment;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.LswAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayer;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer2Info;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
@@ -209,10 +216,12 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
         long segmentId = lswAttr.getSegmentId();
         LogicSwitchContext lswCtx = fabricCtx.addLogicSwitch(nodeId, (int) segmentId, isExternal);
 
-        Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
-        if (devices != null) {
-            for (DeviceContext devCtx : devices) {
-                devCtx.createBridgeDomain(lswCtx);
+        if (!isExternal) {
+            Collection<DeviceContext> devices = fabricCtx.getDeviceCtxs();
+            if (devices != null) {
+                for (DeviceContext devCtx : devices) {
+                    devCtx.createBridgeDomain(lswCtx);
+                }
             }
         }
     }
@@ -266,22 +275,19 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
 
             final LportAttribute logicalPortAttr = InterfaceManager.getLogicalPortAttr(dataBroker, iid);
 
-            fabricCtx.getDeviceCtx(new DeviceKey(devtp.firstKeyOf(Topology.class).getTopologyId(), nodeId));
+            TpId tpid = devtp.firstKeyOf(TerminationPoint.class).getTpId();
 
-//            CreateBridgeDomainPortInputBuilder builder = new CreateBridgeDomainPortInputBuilder();
-//            builder.setNodeId(devtp.firstIdentifierOf(Node.class));
-//            builder.setTpId(devtp.firstKeyOf(TerminationPoint.class).getTpId());
-//            PortLayer layerInfo = logicalPortAttr.getPortLayer();
-//            if (layerInfo != null) {
-//                Layer2Info layer2Info = layerInfo.getLayer2Info();
-//                if (layer2Info != null) {
-//                    builder.setAccessType(layer2Info.getAccessType());
-//                    builder.setAccessTag(layer2Info.getAccessSegment());
-//                }
-//            }
-//            builder.setBdId(String.valueOf(vni));
-//            CreateBridgeDomainPortInput input = builder.build();
-//            epMgr.getVxlanDeviceAdapter().createBridgeDomainPort(input);
+            DeviceContext devCtx = fabricCtx.getDeviceCtx(
+                    DeviceKey.newInstance(devtp.firstIdentifierOf(Node.class)));
+
+            PortLayer layerInfo = logicalPortAttr.getPortLayer();
+            Layer2Info layer2Info = layerInfo.getLayer2Info();
+            if (layer2Info != null) {
+                devCtx.createBdPort(vlan, tpid, layer2Info.getAccessType(), layer2Info.getAccessSegment());
+            } else {
+                devCtx.createBdPort(vlan, tpid, AccessType.Exclusive, 0);
+            }
+
         } else {
             LOG.warn("Not yet support layer3 port located.");
         }
@@ -290,13 +296,44 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
 
     @Override
     public void routeUpdated(InstanceIdentifier<Node> lrIid, List<Route> routes, boolean isDelete) {
-        // NOT Supported now
+        NodeId nodeId = lrIid.firstKeyOf(Node.class).getNodeId();
+        LogicRouterContext routerCtx = fabricCtx.getLogicRouterCtx(nodeId);
 
+        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+        if (isDelete) {
+            for (DeviceKey key : fabricCtx.getSpineDevices()) {
+                DeviceContext devCtx = fabricCtx.getDeviceCtx(key);
+
+                InstanceIdentifier<VlanVrfRoute> routeIid = devCtx.createVrfRouteIId((int) routerCtx.getVrfCtx());
+
+                for (Route route : routes) {
+                    wt.delete(LogicalDatastoreType.OPERATIONAL, routeIid.child(Route.class, new RouteKey(route.getKey())));
+                }
+            }
+        } else {
+            for (DeviceKey key : fabricCtx.getSpineDevices()) {
+                DeviceContext devCtx = fabricCtx.getDeviceCtx(key);
+
+                InstanceIdentifier<VlanVrfRoute> routeIid = devCtx.createVrfRouteIId((int) routerCtx.getVrfCtx());
+                VlanVrfRouteBuilder builder = new VlanVrfRouteBuilder();
+                builder.setRoute(routes);
+                wt.merge(LogicalDatastoreType.OPERATIONAL, routeIid, builder.build());
+            }
+        }
+        MdSalUtils.wrapperSubmit(wt, executor);
     }
 
     @Override
     public void routeCleared(InstanceIdentifier<Node> lrIid) {
-        // TODO Auto-generated method stub
+        NodeId nodeId = lrIid.firstKeyOf(Node.class).getNodeId();
+        LogicRouterContext routerCtx = fabricCtx.getLogicRouterCtx(nodeId);
 
+        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+
+        for (DeviceKey key : fabricCtx.getSpineDevices()) {
+            DeviceContext devCtx = fabricCtx.getDeviceCtx(key);
+            wt.delete(LogicalDatastoreType.OPERATIONAL, devCtx.createVrfRouteIId((int) routerCtx.getVrfCtx()));
+        }
+        MdSalUtils.wrapperSubmit(wt, executor);
     }
 }

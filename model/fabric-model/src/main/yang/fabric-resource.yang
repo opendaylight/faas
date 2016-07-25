@@ -18,6 +18,7 @@ module fabric-resources {
     }
 
     rpc create-fabric-port {
+    	description "Administrator can use this RPC to create a new fabric port, for example a tunnel port.";
         input {
             leaf fabric-id {
                 type fabric:fabric-id;
@@ -55,4 +56,20 @@ module fabric-resources {
         	}
         }
     }
+
+	rpc set-fabric-port-role {
+		description "Administrator can use this RPC to set role of physical port according whole network design.";
+
+        input {
+            leaf fabric-id {
+                type fabric:fabric-id;
+            }
+            leaf fabric-port-id {
+                type topo:tp-id;
+            }
+            leaf port-role {
+                type fabrictype:fabric-port-role;
+            }
+        }
+	}
 }
