@@ -35,6 +35,8 @@
                       <type xmlns:fabric-impl="urn:opendaylight:params:xml:ns:yang:controller:config:fabric:impl">fabric-impl:fabric-renderer-registry</type>
                       <name>fabric-renderer-registry</name>
                     </renderer-registry>
+
+                    <gateway-mac><mac-address>80:38:bC:a1:33:c7</mac-address></gateway-mac>
                 </module>
             </modules>
         </data>

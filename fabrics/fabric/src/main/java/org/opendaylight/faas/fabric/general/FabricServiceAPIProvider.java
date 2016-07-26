@@ -42,6 +42,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.ClearStaticRouteInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateLogicalPortOutputBuilder;
@@ -249,19 +250,10 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
     public Future<RpcResult<CreateGatewayOutput>> createGateway(CreateGatewayInput input) {
         final RpcResultBuilder<CreateGatewayOutput> resultBuilder = RpcResultBuilder
                 .<CreateGatewayOutput>success();
+        CreateGatewayOutputBuilder outputBuilder = new CreateGatewayOutputBuilder();
         final FabricId fabricId = input.getFabricId();
         final NodeId routerId = input.getLogicalRouter();
         final NodeId swId = input.getLogicalSwitch();
-
-        final IpAddress gwIp = input.getIpAddress();
-        IpPrefix network = input.getNetwork();
-        if (network == null) {
-            network = IpAddressUtils.createDefaultPrefix(gwIp);
-        } else {
-            network = IpAddressUtils.createGwPrefix(gwIp, network);
-        }
-
-        final IpPrefix ipPrefix = network;
 
         final FabricInstance fabricObj = FabricInstanceCache.INSTANCE.retrieveFabric(fabricId);
         if (fabricObj == null) {
@@ -272,7 +264,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
 
         // add logic port to Router
-        TpId tpid1 = createGWPortOnRouter(fabricId, routerId, gwIp, ipPrefix, trans);
+        TpId tpid1 = createGWPortOnRouter(input, outputBuilder, trans, fabricObj);
 
         // add logic port to switch
         TpId tpid2 = createGWPortOnSwitch(fabricId, swId, trans);
@@ -285,7 +277,6 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
             @Override
             public ListenableFuture<RpcResult<CreateGatewayOutput>> apply(Void submitResult) throws Exception {
-                fabricObj.buildGateway(swId, ipPrefix, routerId, fabricId);
                 return Futures.immediateFuture(resultBuilder.build());
             }
         }, executor);
@@ -334,8 +325,21 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         return tpid;
     }
 
-    private TpId createGWPortOnRouter(FabricId fabricid, NodeId routerId, IpAddress gwIp,
-            IpPrefix prefix, WriteTransaction trans) {
+    private TpId createGWPortOnRouter(CreateGatewayInput input, CreateGatewayOutputBuilder outputBuilder, WriteTransaction trans, FabricInstance fabricObj) {
+        final FabricId fabricId = input.getFabricId();
+        final NodeId routerId = input.getLogicalRouter();
+        final NodeId swId = input.getLogicalSwitch();
+
+        final IpAddress gwIp = input.getIpAddress();
+        IpPrefix network = input.getNetwork();
+        if (network == null) {
+            network = IpAddressUtils.createDefaultPrefix(gwIp);
+        } else {
+            network = IpAddressUtils.createGwPrefix(gwIp, network);
+        }
+
+        final IpPrefix ipPrefix = network;
+
         final TpId tpid = new TpId(String.valueOf(gwIp.getValue()));
         TerminationPointBuilder tpBuilder = new TerminationPointBuilder();
         tpBuilder.setTpId(tpid);
@@ -346,15 +350,20 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                 new PortLayerBuilder().setLayer3Info(
                         new Layer3InfoBuilder()
                             .setIp(gwIp)
-                            .setNetwork(prefix)
+                            .setNetwork(ipPrefix)
                             .setForwardEnable(true).build()).build());
+
+        fabricObj.buildGateway(swId, ipPrefix, routerId, fabricId, lpAttr);
 
         LogicalPortAugmentBuilder lpCtx = new LogicalPortAugmentBuilder();
         lpCtx.setLportAttribute(lpAttr.build());
         tpBuilder.addAugmentation(LogicalPortAugment.class, lpCtx.build());
 
-        InstanceIdentifier<TerminationPoint> tpIId = MdSalUtils.createLogicPortIId(fabricid, routerId, tpid);
+        InstanceIdentifier<TerminationPoint> tpIId = MdSalUtils.createLogicPortIId(fabricId, routerId, tpid);
         trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
+
+        outputBuilder.setTpId(tpid);
+        outputBuilder.setPortLayer(lpAttr.getPortLayer());
 
         return tpid;
     }

@@ -49,7 +49,6 @@ public class DeviceContext {
     Set<String> localBD = Sets.newHashSet();
 
     Map<Integer, GatewayPort> bdifs = Maps.newHashMap();
-    Map<Integer, Integer> vrfs = Maps.newHashMap();
 
     private final ExecutorService executor;
 
@@ -128,6 +127,27 @@ public class DeviceContext {
         syncToDom(gw, true);
     }
 
+    public void createVrf(int vrf) {
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        String vrfId = createVrfId(vrf);
+        InstanceIdentifier<Vrf> vrfIId = deviceIId.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(Vrf.class, new VrfKey(vrfId));
+
+        VrfBuilder vrfBuilder = new VrfBuilder().setId(vrfId).setName(vrfId).setVrfCtx(vrf);
+        trans.put(LogicalDatastoreType.OPERATIONAL, vrfIId, vrfBuilder.build());
+        MdSalUtils.wrapperSubmit(trans, executor);
+    }
+
+    public void removeVrf(int vrf) {
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        String vrfId = createVrfId(vrf);
+        InstanceIdentifier<Vrf> vrfIId = deviceIId.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(Vrf.class, new VrfKey(vrfId));
+
+        trans.delete(LogicalDatastoreType.OPERATIONAL, vrfIId);
+        MdSalUtils.wrapperSubmit(trans, executor);
+    }
+
    public InstanceIdentifier<VlanVrfRoute> createVrfRouteIId(int vrf) {
        return deviceIId
                .augmentation(FabricCapableDevice.class)
@@ -158,8 +178,6 @@ public class DeviceContext {
     }
 
     private void syncToDom(GatewayPort gw, boolean delete) {
-        Integer vrf = gw.getVrf();
-
         String bdifid = createBdIfId(gw.getVlan());
         InstanceIdentifier<Bdif> bdifIId = deviceIId.augmentation(FabricCapableDevice.class)
                         .child(Config.class).child(Bdif.class, new BdifKey(bdifid));
@@ -169,6 +187,7 @@ public class DeviceContext {
         builder.setId(bdifid);
         builder.setKey(new BdifKey(bdifid));
         builder.setIpAddress(IpAddressUtils.getIpAddress(gw.getIp()));
+        builder.setMacAddress(gw.getMac());
         builder.setMask(IpAddressUtils.getMask(gw.getIp()));
         builder.setVrf(gw.getVrf().intValue());
 
@@ -176,33 +195,8 @@ public class DeviceContext {
         if (delete) {
             trans.delete(LogicalDatastoreType.OPERATIONAL, bdifIId);
 
-            int gwCnt = vrfs.get(vrf) - 1;
-            if (gwCnt == 0) {
-                vrfs.remove(vrf);
-                String vrfId = createVrfId(gw.getVrf());
-                InstanceIdentifier<Vrf> vrfIId = deviceIId.augmentation(FabricCapableDevice.class)
-                        .child(Config.class).child(Vrf.class, new VrfKey(vrfId));
-
-                trans.delete(LogicalDatastoreType.OPERATIONAL, vrfIId);
-            } else {
-                vrfs.put(vrf, gwCnt);
-            }
         } else {
             trans.put(LogicalDatastoreType.OPERATIONAL, bdifIId, builder.build());
-
-            if (!vrfs.containsKey(gw.getVrf())) {
-                String vrfId = createVrfId(gw.getVrf());
-                InstanceIdentifier<Vrf> vrfIId = deviceIId.augmentation(FabricCapableDevice.class)
-                        .child(Config.class).child(Vrf.class, new VrfKey(vrfId));
-
-                VrfBuilder vrfBuilder = new VrfBuilder().setId(vrfId).setName(vrfId).setVrfCtx(gw.getVrf());
-                trans.put(LogicalDatastoreType.OPERATIONAL, vrfIId, vrfBuilder.build());
-
-                vrfs.put(gw.getVrf(), 1);
-            } else {
-                int gwCnt = vrfs.get(gw.getVrf()) + 1;
-                vrfs.put(gw.getVrf(), gwCnt);
-            }
         }
 
         MdSalUtils.wrapperSubmit(trans, executor);

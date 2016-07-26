@@ -32,7 +32,7 @@ public interface FabricRenderer {
 
     void buildLogicalPort(TpId tpid, LportAttributeBuilder lp, CreateLogicalPortInput input);
 
-    void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid, FabricId fabricid);
+    void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid, FabricId fabricid, LportAttributeBuilder lp);
 
     InstanceIdentifier<FabricAcl> addAcl(NodeId deviceid, TpId tpid, String aclName);
 

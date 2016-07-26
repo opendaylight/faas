@@ -84,8 +84,8 @@ public class FabricInstance implements FabricRenderer {
     }
 
     @Override
-    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
-        renderer.buildGateway(switchid, ip, routerid, fabricid);
+    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid, LportAttributeBuilder lp) {
+        renderer.buildGateway(switchid, ip, routerid, fabricid, lp);
 
     }
 

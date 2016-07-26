@@ -11,9 +11,11 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
+import org.opendaylight.controller.config.yang.config.fabric.vlan.impl.GatewayMac;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationPublishService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
@@ -40,6 +42,8 @@ public class VlanFabricProvider implements AutoCloseable, FabricRendererFactory 
     private final RpcProviderRegistry rpcRegistry;
     private final FabricRendererRegistry rendererRegistry;
 
+    private final List<GatewayMac> availableMacs;
+
     private ListeningExecutorService executor;
 
     private final Map<InstanceIdentifier<FabricNode>, FabricContext> fabricCtxs = Maps.newHashMap();
@@ -47,10 +51,12 @@ public class VlanFabricProvider implements AutoCloseable, FabricRendererFactory 
     public VlanFabricProvider(final DataBroker dataProvider,
                              final RpcProviderRegistry rpcRegistry,
                              final NotificationPublishService notificationService,
-                             final FabricRendererRegistry rendererRegistry) {
+                             final FabricRendererRegistry rendererRegistry,
+                             final List<GatewayMac> availableMacs) {
         this.dataBroker = dataProvider;
         this.rpcRegistry = rpcRegistry;
         this.rendererRegistry = rendererRegistry;
+        this.availableMacs = availableMacs;
 
         executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 
@@ -71,7 +77,7 @@ public class VlanFabricProvider implements AutoCloseable, FabricRendererFactory 
     public FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid, FabricAttributeBuilder fabric,
             ComposeFabricInput input) {
         FabricId fabricId = new FabricId(iid.firstKeyOf(Node.class).getNodeId());
-        FabricContext fabricCtx = new FabricContext(fabricId, dataBroker);
+        FabricContext fabricCtx = new FabricContext(fabricId, dataBroker, availableMacs);
         fabricCtxs.put(iid, fabricCtx);
 
         return new VlanFabricRenderer(dataBroker, fabricCtx);
@@ -83,7 +89,7 @@ public class VlanFabricProvider implements AutoCloseable, FabricRendererFactory 
         FabricContext fabricCtx = fabricCtxs.get(iid);
         if (fabricCtx == null) {
             FabricId fabricId = new FabricId(iid.firstKeyOf(Node.class).getNodeId());
-            fabricCtx = new FabricContext(fabricId, dataBroker);
+            fabricCtx = new FabricContext(fabricId, dataBroker, availableMacs);
             fabricCtxs.put(iid, fabricCtx);
         }
 

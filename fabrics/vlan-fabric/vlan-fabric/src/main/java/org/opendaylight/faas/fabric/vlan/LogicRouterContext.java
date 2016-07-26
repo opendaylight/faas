@@ -7,16 +7,17 @@
  */
 package org.opendaylight.faas.fabric.vlan;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class LogicRouterContext {
     private final int vrf;
@@ -33,8 +34,10 @@ public class LogicRouterContext {
         return vrf;
     }
 
-    public GatewayPort addGatewayPort(IpPrefix ip, int vlan, NodeId lsw) {
-        return gatewayPorts.put(vlan, new GatewayPort(ip, vlan, lsw, vrf));
+    public GatewayPort addGatewayPort(IpPrefix ip, int vlan, NodeId lsw, MacAddress mac) {
+        GatewayPort port = new GatewayPort(ip, vlan, lsw, vrf);
+        port.setMac(mac);
+        return gatewayPorts.put(vlan, port);
     }
 
     public GatewayPort removeGatewayPort(int vlan) {

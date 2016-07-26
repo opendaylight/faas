@@ -7,6 +7,8 @@
  */
 package org.opendaylight.controller.config.yang.config.fabric.vlan.impl;
 
+import java.util.List;
+
 import org.opendaylight.controller.config.api.DependencyResolver;
 import org.opendaylight.controller.config.api.ModuleIdentifier;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
@@ -39,8 +41,9 @@ public class VlanFabricModule extends AbstractVlanFabricModule {
         RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
 
         FabricRendererRegistry rendererRegistry = this.getRendererRegistryDependency();
+        List<GatewayMac> availableMacs = this.getGatewayMac();
 
-        return new VlanFabricProvider(databroker, rpcRegistry, notificationPubService, rendererRegistry);
+        return new VlanFabricProvider(databroker, rpcRegistry, notificationPubService, rendererRegistry, availableMacs);
     }
 
 }
