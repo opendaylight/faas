@@ -23,7 +23,6 @@ import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.Constants;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPortKey;
@@ -83,8 +82,16 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         epListener = databroker.registerDataTreeChangeListener(dtid, this);
     }
 
-    private void removeEndPointIId(final InstanceIdentifier<Endpoint> epIId, Endpoint ep) {
-        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
+    private void removeEndPointIId(final InstanceIdentifier<Endpoint> epIId, Endpoint ep) {        // VNI
+        NodeId logicNode = ep.getLogicalLocation().getNodeId();
+
+        LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
+        if (switchCtx == null) {
+            LOG.warn("There are no such switch's context.({})", logicNode.getValue());
+            return;
+        }
+        final long vni = switchCtx.getVni();
+        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getIpAddress(), vni);
         WriteTransaction wt = databroker.newWriteOnlyTransaction();
         wt.delete(LogicalDatastoreType.OPERATIONAL, hostRouteIId);
         MdSalUtils.wrapperSubmit(wt);
@@ -119,7 +126,7 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         portRender.createEpAccessPort(trans, ep, bdPortIid);
 
         // 3, write host route
-        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getEndpointUuid());
+        InstanceIdentifier<HostRoute> hostRouteIId = createHostRouteIId(fabricCtx.getFabricId(), ep.getIpAddress(), vni);
 
         HostRouteBuilder hrBuilder = new HostRouteBuilder();
         if (!buildHostRoute(hrBuilder, ep, destTpPort)) {
@@ -155,7 +162,6 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         }
 
         // dest-bridge-port
-        builder.setHostid(ep.getEndpointUuid());
         builder.setMac(ep.getMacAddress());
         builder.setVni(vni);
         builder.setIp(ip);
@@ -170,9 +176,9 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         return true;
     }
 
-    private InstanceIdentifier<HostRoute> createHostRouteIId(FabricId fabricId, Uuid hostid) {
+    private InstanceIdentifier<HostRoute> createHostRouteIId(FabricId fabricId, IpAddress ip, long vni) {
         return InstanceIdentifier.create(FabricRenderedMapping.class).child(Fabric.class, new FabricKey(fabricId))
-                .child(HostRoute.class, new HostRouteKey(hostid));
+                .child(HostRoute.class, new HostRouteKey(ip, vni));
     }
 
     @Override

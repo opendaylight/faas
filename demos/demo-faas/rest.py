@@ -6,6 +6,7 @@ from subprocess import call
 import time
 import sys
 import os
+from infrastructure_config import *
 
 
 DEFAULT_PORT='8181'
@@ -19,8 +20,6 @@ OPER_NODES='/restconf/operational/opendaylight-inventory:nodes/'
 CONF_TENANT='/restconf/config/policy:tenants'
 OPER_OVSDB_TOPO='/restconf/operational/network-topology:network-topology/topology/ovsdb:1'
 
-NODE_ID_OVSDB_SW1 = ''
-NODE_ID_OVSDB_SW6 = ''
 
 def get_jsondata(host, port, uri):
     url = 'http://' + host + ":" + port + uri
@@ -248,6 +247,9 @@ def get_service_function_paths_data():
     }
 }
 
+
+
+
 # Main definition - constants
 
 # =======================
@@ -268,23 +270,6 @@ def get_tunnel_oper_uri():
 def get_topology_oper_uri():
     return "/restconf/operational/network-topology:network-topology/topology/ovsdb:1/"
 
-def rpc_compose_fabric_uri():
-    return "/restconf/operations/fabric:compose-fabric"
-
-def rpc_compose_fabric_data():
-    return {
-      "input" : {
-           "name": "first fabric",
-           "type":"VXLAN",
-           "device-nodes" : [
-             {
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']","vtep-ip":"192.168.50.70"
-              },{
-                "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']","vtep-ip":"192.168.50.75"
-             }
-           ]
-       }
-    }
 
 def get_create_service_path_uri():
     return "/restconf/operations/rendered-service-path:create-rendered-path"
@@ -324,24 +309,6 @@ if __name__ == "__main__":
     put(controller, DEFAULT_PORT, get_service_function_chains_uri(), get_service_function_chains_data(), True)
     print "sending service function paths"
     put(controller, DEFAULT_PORT, get_service_function_paths_uri(), get_service_function_paths_data(), True)
-    print "create service path"
-    post(controller, DEFAULT_PORT, get_create_service_path_uri(), get_create_service_path_data(), True)
+    #print "create service path"
+    #post(controller, DEFAULT_PORT, get_create_service_path_uri(), get_create_service_path_data(), True)
 
-    pause()
-    print "get ovsdb node-id"
-    ovsdb_topo = get_jsondata(controller, DEFAULT_PORT,OPER_OVSDB_TOPO)["topology"]
-    for topo_item in ovsdb_topo:
-        if topo_item["node"] is not None:
-            for ovsdb_node in topo_item["node"]:
-                if ovsdb_node.has_key("ovsdb:bridge-name"):
-                    #uuid_ovsdb = ovsdb_node["node-id"][13:]
-                    if ovsdb_node["ovsdb:bridge-name"] == "sw1":
-                        NODE_ID_OVSDB_SW1 = ovsdb_node["node-id"]
-                        print "sw1 node-id= "+NODE_ID_OVSDB_SW1
-                    if ovsdb_node["ovsdb:bridge-name"] == "sw6":
-                        NODE_ID_OVSDB_SW6 = ovsdb_node["node-id"]
-                        print "sw6 node-id= "+NODE_ID_OVSDB_SW6
-
-    pause()
-    print "compose fabric"
-    post(controller, DEFAULT_PORT, rpc_compose_fabric_uri(), rpc_compose_fabric_data(), True)

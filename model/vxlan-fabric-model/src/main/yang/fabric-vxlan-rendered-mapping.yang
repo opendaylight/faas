@@ -49,10 +49,7 @@ module fabric-vxlan-rendered-mapping {
             }
 
             list host-route {
-                key "hostid";
-                leaf hostid {
-                    type yang:uuid;
-                }
+                key "vni ip";
                 leaf mac {
                     type yang:mac-address;
                 }
