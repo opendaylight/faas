@@ -289,6 +289,7 @@ module fabric-types {
             choice function-type {
                 case ip-mapping {
                     list ip-mapping {
+                        key "external-ip";
                         leaf external-ip {
                             type inet:ipv4-address;
                         }

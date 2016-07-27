@@ -15,13 +15,23 @@ import java.util.Map;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 //import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomain;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BridgeDomainKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.VtepAttribute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRoute;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRouteKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.OvsdbBridgeAugmentation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.OvsdbTerminationPointAugmentation;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.OvsdbTerminationPointAugmentationBuilder;
@@ -34,6 +44,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.KeyedInstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,20 +94,20 @@ public class OvsSouthboundUtils {
     }
 
     private static String generateTpName(String bridgeName, String tunnelType) {
-    	return generateTpName(bridgeName, tunnelType, "");
+        return generateTpName(bridgeName, tunnelType, "");
     }
 
     private static String generateTpName(String bridgeName, String tunnelType, String prefix) {
-    	return String.format("%s%s-%s", tunnelType, prefix, bridgeName);
+        return String.format("%s%s-%s", tunnelType, prefix, bridgeName);
     }
 
-    private static List<OvsdbTerminationPointAugmentation> extractTerminationPointAugmentations( Node node ) {
+    private static List<OvsdbTerminationPointAugmentation> extractTerminationPointAugmentations(Node node) {
         List<OvsdbTerminationPointAugmentation> tpAugmentations = new ArrayList<OvsdbTerminationPointAugmentation>();
         List<TerminationPoint> terminationPoints = node.getTerminationPoint();
-        if(terminationPoints != null && !terminationPoints.isEmpty()){
-            for(TerminationPoint tp : terminationPoints){
-                OvsdbTerminationPointAugmentation ovsdbTerminationPointAugmentation =
-                        tp.getAugmentation(OvsdbTerminationPointAugmentation.class);
+        if (terminationPoints != null && !terminationPoints.isEmpty()) {
+            for (TerminationPoint tp : terminationPoints) {
+                OvsdbTerminationPointAugmentation ovsdbTerminationPointAugmentation = tp
+                        .getAugmentation(OvsdbTerminationPointAugmentation.class);
                 if (ovsdbTerminationPointAugmentation != null) {
                     tpAugmentations.add(ovsdbTerminationPointAugmentation);
                 }
@@ -105,7 +116,8 @@ public class OvsSouthboundUtils {
         return tpAugmentations;
     }
 
-    private static OvsdbTerminationPointAugmentation extractTerminationPointAugmentation(Node bridgeNode, String portName) {
+    private static OvsdbTerminationPointAugmentation extractTerminationPointAugmentation(Node bridgeNode,
+            String portName) {
         if (bridgeNode.getAugmentation(OvsdbBridgeAugmentation.class) != null) {
             List<OvsdbTerminationPointAugmentation> tpAugmentations = extractTerminationPointAugmentations(bridgeNode);
             for (OvsdbTerminationPointAugmentation ovsdbTerminationPointAugmentation : tpAugmentations) {
@@ -117,20 +129,22 @@ public class OvsSouthboundUtils {
         return null;
     }
 
-    private static TerminationPoint readTerminationPoint(Node bridgeNode, String bridgeName, String portName, DataBroker databroker) {
-        InstanceIdentifier<TerminationPoint> tpIid = MdsalUtils.createTerminationPointInstanceIdentifier(
-                bridgeNode, portName);
+    private static TerminationPoint readTerminationPoint(Node bridgeNode, String bridgeName, String portName,
+            DataBroker databroker) {
+        InstanceIdentifier<TerminationPoint> tpIid = MdsalUtils.createTerminationPointInstanceIdentifier(bridgeNode,
+                portName);
         return MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
     }
 
-    private static Boolean isTunnelTerminationPointExist(Node bridgeNode, String bridgeName, String portName, DataBroker databroker){
+    private static Boolean isTunnelTerminationPointExist(Node bridgeNode, String bridgeName, String portName,
+            DataBroker databroker) {
         return readTerminationPoint(bridgeNode, bridgeName, portName, databroker) != null;
     }
 
-    private static Boolean addTerminationPoint(Node bridgeNode, String bridgeName, String portName,
-            String type, Map<String, String> options, DataBroker databroker) {
-        InstanceIdentifier<TerminationPoint> tpIid = MdsalUtils.createTerminationPointInstanceIdentifier(
-                bridgeNode, portName);
+    private static Boolean addTerminationPoint(Node bridgeNode, String bridgeName, String portName, String type,
+            Map<String, String> options, DataBroker databroker) {
+        InstanceIdentifier<TerminationPoint> tpIid = MdsalUtils.createTerminationPointInstanceIdentifier(bridgeNode,
+                portName);
         OvsdbTerminationPointAugmentationBuilder tpAugmentationBuilder = new OvsdbTerminationPointAugmentationBuilder();
 
         tpAugmentationBuilder.setName(portName);
@@ -159,11 +173,11 @@ public class OvsSouthboundUtils {
         return addTerminationPoint(bridgeNode, bridgeName, portName, type, options, databroker);
     }
 
-    //Add Vxlan Tunnel port
+    // Add Vxlan Tunnel port
 
-    public static boolean addVxlanTunnelPort (Node node, DataBroker databroker) {
-        //yzy: read tunnelBridgeName from where??
-        //String tunnelBridgeName = getIntegrationBridgeName();
+    public static boolean addVxlanTunnelPort(Node node, DataBroker databroker) {
+        // yzy: read tunnelBridgeName from where??
+        // String tunnelBridgeName = getIntegrationBridgeName();
         String tunnelBridgeName = getBridgeName(node);
         String tunnelType = "vxlan";
         String portName = generateTpName(tunnelBridgeName, tunnelType);
@@ -221,14 +235,14 @@ public class OvsSouthboundUtils {
         return true;
     }
 
-    public static IpAddress getVtepIp (Node bridgeNode) {
+    public static IpAddress getVtepIp(Node bridgeNode) {
         return bridgeNode.getAugmentation(FabricCapableDevice.class).getAttributes()
-        .getAugmentation(VtepAttribute.class).getVtep().getIp();
+                .getAugmentation(VtepAttribute.class).getVtep().getIp();
     }
 
     private static Boolean deleteTerminationPoint(Node bridgeNode, String portName, DataBroker databroker) {
-        InstanceIdentifier<TerminationPoint> tpIid =
-                MdsalUtils.createTerminationPointInstanceIdentifier(bridgeNode, portName);
+        InstanceIdentifier<TerminationPoint> tpIid = MdsalUtils.createTerminationPointInstanceIdentifier(bridgeNode,
+                portName);
         return MdsalUtils.delete(LogicalDatastoreType.CONFIGURATION, tpIid, databroker);
     }
 
@@ -282,7 +296,8 @@ public class OvsSouthboundUtils {
         return ofPort;
     }
 
-    public static Long getVxlanTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
+    public static Long getVxlanTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName,
+            DataBroker databroker) {
         Long ofPort = null;
 
         String tunnelType = "vxlan";
@@ -293,7 +308,8 @@ public class OvsSouthboundUtils {
         return ofPort;
     }
 
-    public static Long getVxlanGpeTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName, DataBroker databroker) {
+    public static Long getVxlanGpeTunnelOFPort(InstanceIdentifier<Node> nodeIid, String tunnelBridgeName,
+            DataBroker databroker) {
         Long ofPort = null;
 
         String tunnelType = "vxlan";
@@ -320,10 +336,12 @@ public class OvsSouthboundUtils {
 
     public static Long getOfPort(InstanceIdentifier<Node> nodeIid, TpId tpid, DataBroker databroker) {
         Long ofPort = null;
-        InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class, new TerminationPointKey(tpid));
+        InstanceIdentifier<TerminationPoint> tpIid = nodeIid.child(TerminationPoint.class,
+                new TerminationPointKey(tpid));
         TerminationPoint teminationPoint = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, tpIid, databroker);
         if (teminationPoint != null) {
-            OvsdbTerminationPointAugmentation port = teminationPoint.getAugmentation(OvsdbTerminationPointAugmentation.class);
+            OvsdbTerminationPointAugmentation port = teminationPoint
+                    .getAugmentation(OvsdbTerminationPointAugmentation.class);
 
             if (port != null) {
                 ofPort = port.getOfport();
@@ -332,15 +350,72 @@ public class OvsSouthboundUtils {
         return ofPort;
     }
 
-    public static Long getBridgeDomainVni(InstanceIdentifier<Node> nodeIid, String bridgeDomainId, DataBroker databroker) {
-        InstanceIdentifier<BridgeDomain> bridgeDomainIid =
-                nodeIid.augmentation(FabricCapableDevice.class).child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bridgeDomainId));
+    public static Long getBridgeDomainVni(InstanceIdentifier<Node> nodeIid, String bridgeDomainId,
+            DataBroker databroker) {
+        InstanceIdentifier<BridgeDomain> bridgeDomainIid = nodeIid.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bridgeDomainId));
 
         BridgeDomain bridgeDomain = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bridgeDomainIid, databroker);
 
         Long segmentationId = bridgeDomain.getAugmentation(BridgeDomain1.class).getVni();
 
         return segmentationId;
+    }
+
+    public static Long getBridgeDomainVni(InstanceIdentifier<Node> nodeIid, InstanceIdentifier<Bdif> bdifIid,
+            DataBroker databroker) {
+        Bdif bdif = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, bdifIid, databroker);
+
+        Long segmentationId = getBridgeDomainVni(nodeIid, bdif.getBdid(), databroker);
+        return segmentationId;
+    }
+
+    public static String getNexthopMac(FabricId fabricId, Long vni, Ipv4Address nexthopIp, DataBroker databroker) {
+        InstanceIdentifier<HostRoute> hostRouteIId = InstanceIdentifier.create(FabricRenderedMapping.class)
+                .child(Fabric.class, new FabricKey(fabricId))
+                .child(HostRoute.class, new HostRouteKey(new IpAddress(nexthopIp), vni));
+
+        if (hostRouteIId != null) {
+            HostRoute hostRoute = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, hostRouteIId, databroker);
+            if (hostRoute.getMac() != null) {
+                return hostRoute.getMac().getValue();
+            }
+        }
+
+        return null;
+
+    }
+
+    public static IpAddress getNexthopTunnelIp(FabricId fabricId, Long vni, Ipv4Address nexthopIp, DataBroker databroker) {
+        InstanceIdentifier<HostRoute> hostRouteIId = InstanceIdentifier.create(FabricRenderedMapping.class)
+                .child(Fabric.class, new FabricKey(fabricId))
+                .child(HostRoute.class, new HostRouteKey(new IpAddress(nexthopIp), vni));
+
+        if (hostRouteIId != null) {
+            HostRoute hostRoute = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, hostRouteIId, databroker);
+            if (hostRoute.getDestVtep() != null) {
+                return hostRoute.getDestVtep();
+            }
+        }
+
+        return null;
+
+    }
+
+    public static boolean isLocalNexthop(FabricId fabricId, Long vni, Ipv4Address nexthopIp, IpAddress destVtepIp, DataBroker databroker) {
+        InstanceIdentifier<HostRoute> hostRouteIId = InstanceIdentifier.create(FabricRenderedMapping.class)
+                .child(Fabric.class, new FabricKey(fabricId))
+                .child(HostRoute.class, new HostRouteKey(new IpAddress(nexthopIp), vni));
+
+        if (hostRouteIId != null) {
+            HostRoute hostRoute = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, hostRouteIId, databroker);
+            LOG.warn("yaoziyang: hostRoute.getDestVtep()={}, destVtepIp={}", hostRoute.getDestVtep(), destVtepIp);
+            if (hostRoute.getDestVtep().equals(destVtepIp)) {
+                LOG.warn("yaoziyang: true");
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -20,6 +20,9 @@ import org.opendaylight.netvirt.utils.mdsal.openflow.MatchUtils.RegMatch;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.access.lists.acl.access.list.entries.ace.matches.ace.type.AceIp;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.access.lists.acl.access.list.entries.ace.matches.ace.type.ace.ip.ace.ip.version.AceIpv4;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Dscp;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv6Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.PortNumber;
@@ -1743,6 +1746,17 @@ public class OfMatchUtils {
      */
     public static Ipv6Prefix iPv6PrefixFromIPv6Address(String ipv6AddressString) {
         return new Ipv6Prefix(ipv6AddressString + "/128");
+    }
+
+    public static Ipv4Address getIpv4Address(Ipv4Prefix ip) {
+        StringBuilder buf = new StringBuilder();
+        for (char x : ip.getValue().toCharArray()) {
+            if (x == '/') {
+                break;
+            }
+            buf.append(x);
+        }
+        return new Ipv4Address(buf.toString());
     }
 
     /**
