@@ -20,11 +20,12 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+import org.opendaylight.controller.config.yang.config.fabric.vlan.impl.GatewayMac;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.DeviceRole;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -32,6 +33,8 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 public class FabricContext implements AutoCloseable {
 
     private final FabricId fabricId;
+
+    private final List<GatewayMac> availableMacs;
 
     private final Map<NodeId, LogicSwitchContext> logicSwitches = Maps.newConcurrentMap();
 
@@ -45,9 +48,10 @@ public class FabricContext implements AutoCloseable {
 
     protected final ListeningExecutorService executor;
 
-    public FabricContext(FabricId fabricId, DataBroker databroker) {
+    public FabricContext(FabricId fabricId, DataBroker databroker, List<GatewayMac> availableMacs) {
         this.fabricId = fabricId;
         this.databroker = databroker;
+        this.availableMacs = availableMacs;
 
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(fabricId.getValue() + " - %d")
@@ -61,6 +65,9 @@ public class FabricContext implements AutoCloseable {
 
     public void addLogicRouter(NodeId routerId, int vrf) {
         logicRouters.put(routerId, new LogicRouterContext(vrf));
+        for (DeviceKey devKey : getSpineDevices()) {
+            devices.get(devKey).createVrf(vrf);
+        }
     }
 
     public void removeLogicRouter(NodeId routerId) {
@@ -103,7 +110,7 @@ public class FabricContext implements AutoCloseable {
     public void associateSwitchToRouter(FabricId fabricid, NodeId lsw, NodeId lr, IpPrefix ip) {
         LogicRouterContext routerCtx = getLogicRouterCtx(lr);
         LogicSwitchContext switchCtx = getLogicSwitchCtx(lsw);
-        switchCtx.associateToRouter(routerCtx, ip);
+        switchCtx.associateToRouter(routerCtx, ip, findAvaiableMac(ip, routerCtx.getVrfCtx()));
 
         for (DeviceKey devKey : getSpineDevices()) {
             devices.get(devKey).createBdif(switchCtx.getVlan(), routerCtx);
@@ -138,6 +145,11 @@ public class FabricContext implements AutoCloseable {
 
     public boolean isValidLogicRouter(NodeId nodeid) {
         return logicRouters.containsKey(nodeid);
+    }
+
+    public MacAddress findAvaiableMac(IpPrefix ip, long vrf) {
+        // FIXME need some algorithm to allocate mac
+        return availableMacs.get(0).getMacAddress();
     }
 
     @Override

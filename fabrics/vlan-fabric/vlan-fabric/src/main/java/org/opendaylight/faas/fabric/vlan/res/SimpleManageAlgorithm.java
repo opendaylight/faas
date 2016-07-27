@@ -9,7 +9,7 @@ package org.opendaylight.faas.fabric.vlan.res;
 
 public class SimpleManageAlgorithm implements SegmentManager, VrfCtxManager {
 
-    private long seg = 1L;
+    private long seg = 2L;
 
     private int vrfctx = 1;
 

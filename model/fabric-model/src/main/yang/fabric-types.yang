@@ -231,7 +231,7 @@ module fabric-types {
                     type inet:ip-prefix;
                 }
                 leaf mac {
-                    type yang:phys-address;
+                    type yang:mac-address;
                 }
                 leaf forward-enable {
                     type boolean;

@@ -22,6 +22,7 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
@@ -97,9 +98,9 @@ public class LogicSwitchContext implements AutoCloseable {
         }
     }
 
-    public void associateToRouter(LogicRouterContext vrfCtx, IpPrefix ip) {
+    public void associateToRouter(LogicRouterContext vrfCtx, IpPrefix ip, MacAddress mac) {
         this.vrfCtx = vrfCtx;
-        vrfCtx.addGatewayPort(ip, vni, this.nodeid);
+        vrfCtx.addGatewayPort(ip, vni, this.nodeid, mac);
 
         inhertAcls.addAll(vrfCtx.getAcls());
         writeToDom(false, vrfCtx.getAcls());

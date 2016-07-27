@@ -31,6 +31,10 @@ public class GatewayPort {
         this.mac = mac;
     }
 
+    public MacAddress getMac() {
+        return mac;
+    }
+
     IpPrefix getIp() {
         return ip;
     }

@@ -18,6 +18,7 @@ import java.util.Set;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 /**
@@ -42,8 +43,10 @@ public class LogicRouterContext {
         return vrf;
     }
 
-    public GatewayPort addGatewayPort(IpPrefix ip, long vni, NodeId lsw) {
-        return gatewayPorts.put(vni, new GatewayPort(ip, vni, lsw, vrf));
+    public GatewayPort addGatewayPort(IpPrefix ip, long vni, NodeId lsw, MacAddress mac) {
+        GatewayPort port = new GatewayPort(ip, vni, lsw, vrf);
+        port.setMac(mac);
+        return gatewayPorts.put(vni, port);
     }
 
     public GatewayPort removeGatewayPort(long vni) {

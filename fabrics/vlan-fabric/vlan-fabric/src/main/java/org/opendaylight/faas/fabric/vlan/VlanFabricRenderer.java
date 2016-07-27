@@ -14,6 +14,7 @@ import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabric.vlan.res.ResourceManager;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.AddNodeToFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceNodesBuilder;
@@ -31,6 +32,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.network.topology.topology.node.termination.point.LportAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayerBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer3InfoBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -79,8 +82,17 @@ public class VlanFabricRenderer implements AutoCloseable, FabricRenderer {
     }
 
     @Override
-    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid) {
+    public void buildGateway(NodeId switchid, IpPrefix ip, NodeId routerid,  FabricId fabricid, LportAttributeBuilder lp) {
         fabricCtx.associateSwitchToRouter(fabricid, switchid, routerid, ip);
+
+        long vrf = fabricCtx.getLogicRouterCtx(routerid).getVrfCtx();
+        MacAddress mac = fabricCtx.findAvaiableMac(ip, vrf);
+
+        lp.setPortLayer(
+                new PortLayerBuilder(lp.getPortLayer()).setLayer3Info(
+                        new Layer3InfoBuilder(lp.getPortLayer().getLayer3Info())
+                            .setMac(mac)
+                            .build()).build());
     }
 
     @Override

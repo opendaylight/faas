@@ -19,8 +19,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 
 public class GatewayPort {
 
-    private static final MacAddress GATEWAY_MAC = new MacAddress("80:38:bC:a1:33:c7");
-
     private IpPrefix ip;
     private long vni;
     private long vrf;
@@ -52,7 +50,7 @@ public class GatewayPort {
     }
 
     MacAddress getMac() {
-        return mac == null ? GATEWAY_MAC : mac;
+        return mac;
     }
 
     Long getVni() {

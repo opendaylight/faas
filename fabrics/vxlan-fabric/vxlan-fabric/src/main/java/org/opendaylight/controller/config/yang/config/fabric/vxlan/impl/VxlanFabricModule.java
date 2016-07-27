@@ -7,8 +7,11 @@
  */
 package org.opendaylight.controller.config.yang.config.fabric.vxlan.impl;
 
+import java.util.List;
+
 import org.opendaylight.controller.config.api.DependencyResolver;
 import org.opendaylight.controller.config.api.ModuleIdentifier;
+import org.opendaylight.controller.config.yang.config.fabric.vxlan.impl.GatewayMac;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationPublishService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
@@ -39,8 +42,9 @@ public class VxlanFabricModule extends AbstractVxlanFabricModule {
         RpcProviderRegistry rpcRegistry = this.getRpcRegistryDependency();
 
         FabricRendererRegistry rendererRegistry = this.getRendererRegistryDependency();
+        List<GatewayMac> availableMacs = this.getGatewayMac();
 
-        return new VxlanFabricProvider(databroker, rpcRegistry, notificationService, rendererRegistry);
+        return new VxlanFabricProvider(databroker, rpcRegistry, notificationService, rendererRegistry, availableMacs);
 
     }
 

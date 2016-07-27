@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
+import org.opendaylight.controller.config.yang.config.fabric.vxlan.impl.GatewayMac;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationPublishService;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
@@ -52,6 +53,7 @@ public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
     private final FabricRendererRegistry rendererRegistry;
+    private final List<GatewayMac> availableMacs;
 
     private ListeningExecutorService executor;
 
@@ -60,10 +62,12 @@ public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory
     public VxlanFabricProvider(final DataBroker dataProvider,
                              final RpcProviderRegistry rpcRegistry,
                              final NotificationPublishService notificationService,
-                             final FabricRendererRegistry rendererRegistry) {
+                             final FabricRendererRegistry rendererRegistry,
+                             final List<GatewayMac> availableMacs) {
         this.dataBroker = dataProvider;
         this.rpcRegistry = rpcRegistry;
         this.rendererRegistry = rendererRegistry;
+        this.availableMacs = availableMacs;
 
         executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 
@@ -98,7 +102,7 @@ public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory
             }
         }
         FabricId fabricId = new FabricId(iid.firstKeyOf(Node.class).getNodeId());
-        FabricContext fabricCtx = new FabricContext(fabricId, dataBroker);
+        FabricContext fabricCtx = new FabricContext(fabricId, dataBroker, availableMacs);
         fabricCtxs.put(iid, fabricCtx);
 
         return new DistributedFabricRenderer(dataBroker, fabricCtx);
@@ -110,7 +114,7 @@ public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory
         FabricContext fabricCtx = fabricCtxs.get(iid);
         if (fabricCtx == null) {
             FabricId fabricId = new FabricId(iid.firstKeyOf(Node.class).getNodeId());
-            fabricCtx = new FabricContext(fabricId, dataBroker);
+            fabricCtx = new FabricContext(fabricId, dataBroker, availableMacs);
             fabricCtxs.put(iid, fabricCtx);
         }
 
