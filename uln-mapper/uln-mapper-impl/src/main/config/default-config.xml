@@ -11,8 +11,8 @@
         <data xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
             <modules xmlns="urn:opendaylight:params:xml:ns:yang:controller:config">
                 <module>
-                    <type xmlns:uln-mapper="urn:opendaylight:params:xml:ns:yang:controller:config:uln-mapper:impl">
-                        uln-mapper:uln-mapper-impl
+                    <type xmlns:uln-mapper="urn:opendaylight:params:xml:ns:yang:controller:config:ulnmapper:impl">
+                        uln-mapper:ulnmapper-impl
                     </type>
                     <name>uln-mapper-impl</name>
 
@@ -37,7 +37,7 @@
     </configuration>
 
     <required-capabilities>
-        <capability>urn:opendaylight:params:xml:ns:yang:controller:config:uln-mapper:impl?module=uln-mapper-impl&amp;revision=2015-11-09</capability>
+        <capability>urn:opendaylight:params:xml:ns:yang:controller:config:ulnmapper:impl?module=ulnmapper-impl&amp;revision=2015-11-09</capability>
     </required-capabilities>
 
 </snapshot>
