@@ -317,6 +317,72 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         }
     }
 
+    public void programNexthopTunnelOut(Long dpid, Long OFPortOut, IpAddress dstTunIpAddress, boolean isWriteFlow) {
+
+        String nodeName = OPENFLOW + dpid;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        // Create the OF Match using MatchBuilder
+        OfMatchUtils.addNxRegMatch(matchBuilder, new OfMatchUtils.RegMatch(PipelineTrafficClassifier.REG_FIELD,
+                PipelineL3Routing.REG_VALUE_IS_STATIC_ROUTING));
+        flowBuilder.setMatch(matchBuilder.build());
+
+        String flowId = "NexthopTunnelOut_" +  OFPortOut + "_" + dstTunIpAddress.getIpv4Address().getValue();
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setStrict(true);
+        flowBuilder.setBarrier(false);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setPriority(32769);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (isWriteFlow) {
+            // Instantiate the Builders for the OF Actions and Instructions
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+            List<Action> actionList = new ArrayList<Action>();
+            List<Instruction> instructions = Lists.newArrayList();
+
+            ActionBuilder ab = new ActionBuilder();
+
+            // add Load Tunnel Ip Action
+            ab.setAction(OfActionUtils.nxLoadTunIPv4Action(dstTunIpAddress.getIpv4Address().getValue(), false));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
+            // add Output Action
+            NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpid + ":" + OFPortOut);
+            ab.setAction(OfActionUtils.outputAction(ncid));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
+            ApplyActionsBuilder aab = new ApplyActionsBuilder();
+            aab.setAction(actionList);
+
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
+
+            instructions.add(ib.build());
+            isb.setInstruction(instructions);
+
+            flowBuilder.setInstructions(isb.build());
+
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+    }
+
     public void programSfcTunnelOut(Long dpid, Long segmentationId, Long OFSfcTunPort, String attachedMac,
             IpAddress dstVmVtepIp, boolean isWriteFlow) {
 

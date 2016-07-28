@@ -34,6 +34,7 @@ import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.MdsalUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OvsSouthboundUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.BdPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
@@ -47,7 +48,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.netwo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.next.hop.options.SimpleNextHop;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
@@ -55,6 +58,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRoute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.Rib;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.VniMembers;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.rib.VxlanRouteAug;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.vni.members.Members;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
@@ -85,7 +89,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private ListenerRegistration<DataChangeListener> bridgePortAclListener = null;
     private ListenerRegistration<DataChangeListener> bdPortListener = null;
     private ListenerRegistration<DataChangeListener> ribRouteListener = null;
-    private ListenerRegistration<DataChangeListener> portFunctionListener = null;
+    private ListenerRegistration<DataChangeListener> ipMappingListener = null;
 
     public DeviceRenderer(ExecutorService exector, DataBroker databroker, InstanceIdentifier<Node> iid, Node node,
             FabricId fabricId) {
@@ -130,24 +134,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 bridgeDomainAclIId, this, DataChangeScope.BASE);
 
         // Acl function in the scope of Bridge Port
-        // InstanceIdentifier<FabricAcl> bridgePortAclIId =
-        // iid.child(TerminationPoint.class)
-        // .augmentation(BridgeDomainPort.class).child(FabricAcl.class);
-        // bridgePortAclListener =
-        // databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
-        // bridgePortAclIId, this, DataChangeScope.BASE);
         InstanceIdentifier<FabricAcl> bdPortAclIId = iid.augmentation(FabricCapableDevice.class).child(Config.class)
                 .child(BdPort.class).child(FabricAcl.class);
         bridgePortAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdPortAclIId,
                 this, DataChangeScope.BASE);
-
-        // If Bridge Domain Port has access tag info, do vlan vni mapping
-        // InstanceIdentifier<BridgeDomainPort> bridgeDomainPortIID =
-        // iid.child(TerminationPoint.class)
-        // .augmentation(BridgeDomainPort.class);
-        // bridgeDomainPortListener =
-        // databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
-        // bridgeDomainPortIID, this, DataChangeScope.BASE);
 
         InstanceIdentifier<BdPort> bdPortIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
                 .child(BdPort.class);
@@ -159,10 +149,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         ribRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, routeIID, this,
                 DataChangeScope.BASE);
 
-        InstanceIdentifier<PortFunction> portFunctionIID = iid.augmentation(FabricCapableDevice.class)
-                .child(Config.class).child(Bdif.class).child(PortFunction.class);
-        portFunctionListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, portFunctionIID,
-                this, DataChangeScope.BASE);
+        InstanceIdentifier<IpMapping> ipMappingIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
+                .child(Bdif.class).child(PortFunction.class).child(IpMapping.class);
+        ipMappingListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, ipMappingIID, this,
+                DataChangeScope.BASE);
 
         readFabricOptions(node);
     }
@@ -222,8 +212,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         if (ribRouteListener != null) {
             ribRouteListener.close();
         }
-        if (portFunctionListener != null) {
-            portFunctionListener.close();
+        if (ipMappingListener != null) {
+            ipMappingListener.close();
         }
         executor.shutdownNow();
     }
@@ -329,15 +319,15 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                     return null;
                 }
             });
-        } else if (entry.getValue() instanceof PortFunction) {
+        } else if (entry.getValue() instanceof IpMapping) {
             @SuppressWarnings("unchecked")
-            final InstanceIdentifier<PortFunction> portFunctionIid = (InstanceIdentifier<PortFunction>) entry.getKey();
-            final PortFunction newRec = (PortFunction) entry.getValue();
+            final InstanceIdentifier<IpMapping> ipMappingIid = (InstanceIdentifier<IpMapping>) entry.getKey();
+            final IpMapping newRec = (IpMapping) entry.getValue();
             executor.submit(new Callable<Void>() {
 
                 @Override
                 public Void call() throws Exception {
-                    onPortFunctionCreate(portFunctionIid, newRec);
+                    onIpMappingCreate(ipMappingIid, newRec);
                     return null;
                 }
             });
@@ -434,16 +424,16 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 }
             });
 
-        } else if (entry instanceof PortFunction) {
+        } else if (entry instanceof IpMapping) {
 
             @SuppressWarnings("unchecked")
-            final InstanceIdentifier<PortFunction> portFunctionIid = (InstanceIdentifier<PortFunction>) iid;
-            final PortFunction newRec = (PortFunction) entry;
+            final InstanceIdentifier<IpMapping> ipMappingIid = (InstanceIdentifier<IpMapping>) iid;
+            final IpMapping newRec = (IpMapping) entry;
             executor.submit(new Callable<Void>() {
 
                 @Override
                 public Void call() throws Exception {
-                    onPortFunctionDelete(portFunctionIid, newRec);
+                    onIpMappingDelete(ipMappingIid, newRec);
                     return null;
                 }
             });
@@ -706,8 +696,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
     private void onBdPortDelete(InstanceIdentifier<BdPort> iid, BdPort newRec) {
         Long dpid = ctx.getDpid();
-        Long ofInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getRefTpId(),
-                databroker);
+        Long ofInPort = OvsSouthboundUtils.getOfPort(ctx.getMyIId(), newRec.getRefTpId(), databroker);
 
         if (ofInPort != null) {
             Long vni = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), newRec.getBdid(), databroker);
@@ -717,15 +706,49 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
     }
 
+
     private void onRouteCreate(InstanceIdentifier<Route> iid, Route newRec) {
         Long dpid = ctx.getDpid();
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
-        for (AdapterBdIf bdIf : bdIfs) {
-            String bdifMac = bdIf.getMacAddress().getValue();
-            if (bdifMac != null) {
-                openflow13Provider.updateRouteInDevice(dpid, bdifMac, newRec, true);
+        if (newRec.getNextHopOptions() instanceof SimpleNextHop) {
+            SimpleNextHop simpleNextHop = (SimpleNextHop) newRec.getNextHopOptions();
+            Ipv4Address nexthopIp = simpleNextHop.getNextHop();
+            boolean isLocalNexthop = OvsSouthboundUtils.isLocalNexthop(fabricId,
+                    newRec.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), nexthopIp, ctx.getVtep(), databroker);
+
+            if (isLocalNexthop) {
+                for (AdapterBdIf bdIf : bdIfs) {
+                    String bdifMac = bdIf.getMacAddress().getValue();
+                    if (bdifMac != null) {
+                        openflow13Provider.updateRouteInLocalDevice(dpid, bdifMac, newRec, true);
+                    }
+                }
+            } else {
+                for (AdapterBdIf bdIf : bdIfs) {
+                    String bdifMac = bdIf.getMacAddress().getValue();
+                    if (bdifMac != null) {
+                        openflow13Provider.updateRouteInRemoteDevice(dpid, bdifMac, newRec, true);
+                    }
+                }
+            }
+
+            String nexthopMacAddress = OvsSouthboundUtils.getNexthopMac(this.fabricId,
+                    newRec.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), nexthopIp, databroker);
+            if (nexthopMacAddress != null) {
+                // Nexthop In this Device
+                if (isLocalNexthop) {
+                    openflow13Provider.updateNexthopInLocalDevice(dpid, nexthopMacAddress, newRec, true);
+                }
+                // Nexthop in remote Device
+                else {
+                    IpAddress dstTunIpAddress = OvsSouthboundUtils.getNexthopTunnelIp(this.fabricId,
+                            newRec.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), nexthopIp, databroker);
+
+                    Long tunnelOfPort = ctx.getVtep_ofPort();
+                    openflow13Provider.updateNexthopInRemoteDevice(dpid, tunnelOfPort, dstTunIpAddress, true);
+                }
             }
         }
     }
@@ -735,45 +758,79 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
-        for (AdapterBdIf bdIf : bdIfs) {
-            String bdifMac = bdIf.getMacAddress().getValue();
-            if (bdifMac != null) {
-                openflow13Provider.updateRouteInDevice(dpid, bdifMac, newRec, false);
+        if (newRec.getNextHopOptions() instanceof SimpleNextHop) {
+            SimpleNextHop simpleNextHop = (SimpleNextHop) newRec.getNextHopOptions();
+            Ipv4Address nexthopIp = simpleNextHop.getNextHop();
+            boolean isLocalNexthop = OvsSouthboundUtils.isLocalNexthop(fabricId,
+                    newRec.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), nexthopIp, ctx.getVtep(), databroker);
+
+            if (isLocalNexthop) {
+                for (AdapterBdIf bdIf : bdIfs) {
+                    String bdifMac = bdIf.getMacAddress().getValue();
+                    if (bdifMac != null) {
+                        openflow13Provider.updateRouteInLocalDevice(dpid, bdifMac, newRec, false);
+                    }
+                }
+            } else {
+                for (AdapterBdIf bdIf : bdIfs) {
+                    String bdifMac = bdIf.getMacAddress().getValue();
+                    if (bdifMac != null) {
+                        openflow13Provider.updateRouteInRemoteDevice(dpid, bdifMac, newRec, false);
+                    }
+                }
+            }
+
+            String nexthopMacAddress = OvsSouthboundUtils.getNexthopMac(this.fabricId,
+                    newRec.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), nexthopIp, databroker);
+            if (nexthopMacAddress != null) {
+                // Nexthop In this Device
+                if (isLocalNexthop) {
+                    openflow13Provider.updateNexthopInLocalDevice(dpid, nexthopMacAddress, newRec, false);
+                }
+                // Nexthop in remote Device
+                else {
+                    IpAddress dstTunIpAddress = OvsSouthboundUtils.getNexthopTunnelIp(this.fabricId,
+                            newRec.getAugmentation(VxlanRouteAug.class).getOutgoingVni(), nexthopIp, databroker);
+
+                    Long tunnelOfPort = ctx.getVtep_ofPort();
+                    openflow13Provider.updateNexthopInRemoteDevice(dpid, tunnelOfPort, dstTunIpAddress, false);
+                }
             }
         }
     }
 
-    private void onPortFunctionCreate(InstanceIdentifier<PortFunction> iid, PortFunction newRec) {
+    private void onIpMappingCreate(InstanceIdentifier<IpMapping> iid, IpMapping newRec) {
         Long dpid = ctx.getDpid();
         Long segmentationId = null;
 
         if (iid.firstKeyOf(Bdif.class) != null) {
-            Bdif bdif = (Bdif) iid.firstKeyOf(Bdif.class);
-            segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdif.getBdid(), databroker);
+            InstanceIdentifier<Bdif> bdifIid = iid.firstIdentifierOf(Bdif.class);
+            segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdifIid, databroker);
         }
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
         for (AdapterBdIf bdIf : bdIfs) {
             String bdifMac = bdIf.getMacAddress().getValue();
-            openflow13Provider.updatePortFunctionInDevice(dpid, segmentationId, bdifMac, newRec, true);
+
+            openflow13Provider.updateIpMappingInDevice(dpid, segmentationId, bdifMac, newRec, true);
         }
     }
 
-    private void onPortFunctionDelete(InstanceIdentifier<PortFunction> iid, PortFunction newRec) {
+    private void onIpMappingDelete(InstanceIdentifier<IpMapping> iid, IpMapping newRec) {
         Long dpid = ctx.getDpid();
         Long segmentationId = null;
 
         if (iid.firstKeyOf(Bdif.class) != null) {
-            Bdif bdif = (Bdif) iid.firstKeyOf(Bdif.class);
-            segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdif.getBdid(), databroker);
+            InstanceIdentifier<Bdif> bdifIid = iid.firstIdentifierOf(Bdif.class);
+            segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdifIid, databroker);
         }
 
         List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
 
         for (AdapterBdIf bdIf : bdIfs) {
             String bdifMac = bdIf.getMacAddress().getValue();
-            openflow13Provider.updatePortFunctionInDevice(dpid, segmentationId, bdifMac, newRec, false);
+            openflow13Provider.updateIpMappingInDevice(dpid, segmentationId, bdifMac, newRec, false);
         }
     }
 

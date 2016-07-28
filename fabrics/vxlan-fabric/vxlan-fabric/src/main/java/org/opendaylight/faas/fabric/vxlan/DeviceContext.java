@@ -134,7 +134,7 @@ public class DeviceContext {
 
         BdifBuilder builder = new BdifBuilder().setKey(new BdifKey(bdifid)).setPortFunction(function);
         WriteTransaction wt = databroker.newWriteOnlyTransaction();
-        wt.put(LogicalDatastoreType.OPERATIONAL, bdifIId, builder.build());
+        wt.merge(LogicalDatastoreType.OPERATIONAL, bdifIId, builder.build());
 
         MdSalUtils.wrapperSubmit(wt, executor);
     }

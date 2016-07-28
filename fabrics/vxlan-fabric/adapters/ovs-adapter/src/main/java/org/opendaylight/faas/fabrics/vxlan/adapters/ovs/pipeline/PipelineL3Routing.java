@@ -31,6 +31,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxRegCaseBuilder;
 
 import com.google.common.collect.Lists;
 
@@ -39,6 +40,8 @@ public class PipelineL3Routing extends AbstractServiceInstance {
     // LoggerFactory.getLogger(PipelineL3Routing.class);
     private static final Integer L3_ROUTING_PRIORITY = 2048;
     private static final Integer STATIC_ROUTING_PRIORITY = 2049;
+
+    public final static long REG_VALUE_IS_STATIC_ROUTING = 0x60L;
 
     public PipelineL3Routing(DataBroker dataBroker) {
         super(Service.L3_ROUTING, dataBroker);
@@ -129,14 +132,16 @@ public class PipelineL3Routing extends AbstractServiceInstance {
     }
 
     /*
-     * (Table: L3_ROUTING) For Static route entry in RIB
-     * Match: static route IP address, Destination Mac is Local Gateway MAC
-     * Actions: Set ethernet source address to Gateway mac, Set TunnelId to dest subnet tunnel id
-     * Examples: table=60, priority=2049,ip,nw_dst=172.16.2.2,dl_dst=80:38:bc:a1:33:c7
-     * actions=set_field:80:38:bc:a1:33:c7->eth_src,dec_ttl,set_field:0x100->tun_id,goto_table:70
+     * (Table: L3_ROUTING) For Static route entry in RIB Match: static route IP
+     * address, Destination Mac is Local Gateway MAC Actions: Set ethernet
+     * source address to Gateway mac, Set TunnelId to dest subnet tunnel id
+     * Examples: table=60,
+     * priority=2049,ip,nw_dst=172.16.2.2,dl_dst=80:38:bc:a1:33:c7
+     * actions=set_field:80:38:bc:a1:33:c7->eth_src,dec_ttl,set_field:0x100->
+     * tun_id,goto_table:70
      */
-    public void programStaticRouting(Long dpid, String gwMacAddress,
-            Ipv4Prefix destIpv4Prefix, Long nexthopSegId,  boolean isWriteFlow) {
+    public void programStaticRoutingInLocalDevice(Long dpid, String gwMacAddress, Ipv4Prefix destIpv4Prefix,
+            Long nexthopSegId, boolean isWriteFlow) {
 
         String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
 
@@ -153,14 +158,11 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         List<org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action> actionList = Lists
                 .newArrayList();
 
-//        OfMatchUtils.createDestEthMatch(matchBuilder, gwMacAddress, "");
-//
         final String prefixString = destIpv4Prefix.getValue();
-//        OfMatchUtils.createDstL3IPv4Match(matchBuilder, prefixString);
 
         OfMatchUtils.createDmacDestIpMatch(matchBuilder, gwMacAddress, destIpv4Prefix);
 
-        String flowId = "StaticRouting_" + nexthopSegId + "_" + prefixString;
+        String flowId = "StaticRoutingInLocalDevice_" + nexthopSegId + "_" + prefixString;
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
         flowBuilder.setBarrier(true);
@@ -187,6 +189,75 @@ public class PipelineL3Routing extends AbstractServiceInstance {
 
             // Set Destination Tunnel ID
             ab.setAction(OfActionUtils.setTunnelIdAction(BigInteger.valueOf(nexthopSegId.longValue())));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
+            // Create Apply Actions Instruction
+            aab.setAction(actionList);
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
+            instructions.add(ib.build());
+
+            // Goto Next Table
+            ib = getMutablePipelineInstructionBuilder();
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
+            instructions.add(ib.build());
+
+            flowBuilder.setInstructions(isb.setInstruction(instructions).build());
+
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+    }
+
+    public void programStaticRoutingInRemoteDevice(Long dpid, String gwMacAddress, Ipv4Prefix destIpv4Prefix,
+            Long nexthopSegId, boolean isWriteFlow) {
+
+        String nodeName = Constants.OPENFLOW_NODE_PREFIX + dpid;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = Openflow13Provider.createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        // Instructions List Stores Individual Instructions
+        InstructionsBuilder isb = new InstructionsBuilder();
+        List<Instruction> instructions = Lists.newArrayList();
+        InstructionBuilder ib = new InstructionBuilder();
+        ApplyActionsBuilder aab = new ApplyActionsBuilder();
+        ActionBuilder ab = new ActionBuilder();
+        List<org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action> actionList = Lists
+                .newArrayList();
+
+        final String prefixString = destIpv4Prefix.getValue();
+
+        OfMatchUtils.createDmacDestIpMatch(matchBuilder, gwMacAddress, destIpv4Prefix);
+
+        String flowId = "StaticRoutingInRemoteDevice_" + nexthopSegId + "_" + prefixString;
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setBarrier(true);
+        flowBuilder.setTableId(this.getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setPriority(STATIC_ROUTING_PRIORITY);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+        flowBuilder.setMatch(matchBuilder.build());
+
+        if (isWriteFlow) {
+            // DecTTL
+            ab.setAction(OfActionUtils.decNwTtlAction());
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
+            ab.setAction(OfActionUtils.nxLoadRegAction(
+                    new DstNxRegCaseBuilder().setNxReg(PipelineTrafficClassifier.REG_FIELD).build(),
+                    BigInteger.valueOf(REG_VALUE_IS_STATIC_ROUTING)));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
