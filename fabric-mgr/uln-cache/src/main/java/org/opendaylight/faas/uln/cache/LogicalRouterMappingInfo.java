@@ -8,63 +8,60 @@
 
 package org.opendaylight.faas.uln.cache;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-
+import javax.annotation.Nonnull;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
-public class LogicalRouterMappingInfo {
+public final class LogicalRouterMappingInfo {
 
-    private LogicalRouter lr;
-    private NodeId renderedDeviceId;
-    private boolean serviceHasBeenRendered;
+    private final LogicalRouter lr;
+    private final Map<NodeId, RenderedRouter> renderedRouters;
     private boolean isToBeDeleted;
-    private Set<Uuid> securityRuleGroupsList;
-    private Set<Uuid> portList;
-    private Set<Uuid> lrLswEdgeList;
+    private final Set<Uuid> securityRuleGroupsList;
+    private final Set<Uuid> portList;
+    private final Set<Uuid> lrLswEdgeList;
     private IpAddress gatewayIpAddr;
 
     public LogicalRouterMappingInfo(LogicalRouter lr) {
         super();
         this.lr = lr;
-        this.serviceHasBeenRendered = false;
         this.isToBeDeleted = false;
-        this.securityRuleGroupsList = new HashSet<Uuid>();
-        this.portList = new HashSet<Uuid>();
-        this.lrLswEdgeList = new HashSet<Uuid>();
+        this.securityRuleGroupsList = new HashSet<>();
+        this.portList = new HashSet<>();
+        this.lrLswEdgeList = new HashSet<>();
+        this.renderedRouters = new HashMap<>();
     }
 
-    public void markAsRendered(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
-        this.serviceHasBeenRendered = true;
-
+    @Nonnull
+    public Map<NodeId, RenderedRouter> getRenderedRouters() {
+        return this.renderedRouters;
     }
+
 
     public LogicalRouter getLr() {
         return lr;
     }
 
-    public void setLr(LogicalRouter lr) {
-        this.lr = lr;
+    public NodeId getRenderedDeviceIdOnFabric(NodeId fabricId) {
+        return renderedRouters.get(fabricId).getRouterID();
     }
 
-    public NodeId getRenderedDeviceId() {
-        return renderedDeviceId;
-    }
-
-    public void setRenderedDeviceId(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
+    public void addRenderedRouter(RenderedRouter renderedRouter) {
+        this.renderedRouters.put(renderedRouter.getFabricId(),  renderedRouter);
     }
 
     public boolean hasServiceBeenRendered() {
-        return serviceHasBeenRendered;
+        return !renderedRouters.isEmpty();
     }
 
-    public void setServiceHasBeenRendered(boolean serviceHasBeenRendered) {
-        this.serviceHasBeenRendered = serviceHasBeenRendered;
+    public boolean hasServiceBeenRenderedOnFabric(NodeId fabricID) {
+        return renderedRouters.containsKey(fabricID);
     }
 
     public boolean isToBeDeleted() {

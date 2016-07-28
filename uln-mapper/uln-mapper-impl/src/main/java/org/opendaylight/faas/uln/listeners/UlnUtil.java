@@ -23,11 +23,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+//import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 
 public class UlnUtil {
 
-    public static CreateLneLayer2Input createLneLayer2Input(Uuid tenantId, LogicalSwitch lsw) {
+    public static CreateLneLayer2Input createLneLayer2Input(Uuid tenantId, NodeId fabricid, LogicalSwitch lsw) {
         CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder();
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid lswId =
                 new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
@@ -35,10 +36,11 @@ public class UlnUtil {
         builder.setTenantId(new TenantId(tenantId.getValue()));
         builder.setLswUuid(lswId);
         builder.setName(lswId.getValue());
+        builder.setVfabricId(fabricid);
         return builder.build();
     }
 
-    public static CreateLneLayer3Input createLneLayer3Input(Uuid tenantId, LogicalRouter lr) {
+    public static CreateLneLayer3Input createLneLayer3Input(Uuid tenantId, NodeId fabricId, LogicalRouter lr) {
         CreateLneLayer3InputBuilder builder = new CreateLneLayer3InputBuilder();
         org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid lrId =
                 new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
@@ -46,6 +48,7 @@ public class UlnUtil {
         builder.setTenantId(new TenantId(tenantId.getValue()));
         builder.setLrUuid(lrId);
         builder.setName(lrId.getValue());
+        builder.setVfabricId(fabricId);
         return builder.build();
     }
 
@@ -70,7 +73,7 @@ public class UlnUtil {
 
         Uuid epFaasUuid = epLocation.getUuid();
 
-        NodeId nodeId = epLocation.getNodeId();
+        org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId nodeId = epLocation.getNodeId();
         NodeConnectorId nodeConnectorId = epLocation.getNodeConnectorId();
 
         // IpAddress gatewayIpAddr = subnet.getExternalGateways().get(0).getExternalGateway();

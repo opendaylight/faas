@@ -8,62 +8,61 @@
 
 package org.opendaylight.faas.uln.cache;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
-public class LogicalSwitchMappingInfo {
+public final class LogicalSwitchMappingInfo {
 
-    private LogicalSwitch lsw;
-    private NodeId renderedDeviceId;
-    private boolean serviceHasBeenRendered;
+    private final LogicalSwitch lsw;
+    private final Map<NodeId, RenderedSwitch> renderedSwitches;
     private boolean isToBeDeleted;
-    private Set<Uuid> securityRuleGroupsList;
-    private Set<Uuid> portList;
-    private Set<Uuid> lrLswEdgeList;
+    private final Set<Uuid> securityRuleGroupsList;
+    private final Set<Uuid> portList;
+    private final Set<Uuid> lrLswEdgeList;
 
     public LogicalSwitchMappingInfo(LogicalSwitch lsw) {
         super();
         this.lsw = lsw;
-        this.serviceHasBeenRendered = false;
         this.isToBeDeleted = false;
-        this.securityRuleGroupsList = new HashSet<Uuid>();
-        this.portList = new HashSet<Uuid>();
-        this.lrLswEdgeList = new HashSet<Uuid>();
+        this.securityRuleGroupsList = new HashSet<>();
+        this.portList = new HashSet<>();
+        this.lrLswEdgeList = new HashSet<>();
+        this.renderedSwitches = new HashMap<>();
     }
 
-    public void markAsRendered(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
-        this.serviceHasBeenRendered = true;
-
+    public void addRenderedSwitch(RenderedSwitch renderedSW) {
+        this.renderedSwitches.put(renderedSW.getFabricId(),renderedSW);
     }
+
+
+    public Map<NodeId, RenderedSwitch> getRenderedSwitches() {
+        return this.renderedSwitches;
+    }
+
 
     public LogicalSwitch getLsw() {
         return lsw;
     }
 
-    public void setLsw(LogicalSwitch lsw) {
-        this.lsw = lsw;
-    }
-
-    public NodeId getRenderedDeviceId() {
-        return renderedDeviceId;
-    }
-
-    public void setRenderedDeviceId(NodeId renderedLswId) {
-        this.renderedDeviceId = renderedLswId;
+    public NodeId getRenderedDeviceIdOnFabric(NodeId fabricID) {
+        return renderedSwitches.get(fabricID).getSwitchID();
     }
 
     public boolean hasServiceBeenRendered() {
-        return serviceHasBeenRendered;
+        return !renderedSwitches.isEmpty();
     }
 
-    public void setServiceHasBeenRendered(boolean serviceHasBeenRendered) {
-        this.serviceHasBeenRendered = serviceHasBeenRendered;
+
+    public boolean hasServiceBeenRenderedOnFabric(NodeId fabricID) {
+        return renderedSwitches.containsKey(fabricID);
     }
+
 
     public boolean isToBeDeleted() {
         return this.isToBeDeleted;

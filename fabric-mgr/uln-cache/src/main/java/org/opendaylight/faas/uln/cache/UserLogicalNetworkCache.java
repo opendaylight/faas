@@ -9,13 +9,11 @@
 package org.opendaylight.faas.uln.cache;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-
+import javax.annotation.Nonnull;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.edges.rev151013.edges.container.edges.Edge;
@@ -30,168 +28,184 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UserLogicalNetworkCache {
-
-    public enum EdgeType {
-        unknownType, LrToLr, LswToLsw, LrToLsw, LswToSubnet, SubnetToEpLocation;
-    }
+/**
+ * Logical Network Cache within FaaS module.
+ * It stores "enriched"logical network model stored from data store along with
+ * operational state information such as rendered logical entities on fabric.
+ * it is read only information except those state information regarding how rendering
+ * is done.
+ * The listeners provide synchronization from data store to the cache.
+ * The state information is updated by the mapping engine.
+ *
+ */
+public final class UserLogicalNetworkCache {
 
     private static final Logger LOG = LoggerFactory.getLogger(UserLogicalNetworkCache.class);
 
-    private Uuid tenantId;
+    private final Uuid tenantId;
 
     private Map<Uuid, LogicalSwitchMappingInfo> lswStore;
     private Map<Uuid, LogicalRouterMappingInfo> lrStore;
+
     private Map<Uuid, SecurityRuleGroupsMappingInfo> securityRuleGroupsStore;
     private Map<Uuid, SubnetMappingInfo> subnetStore;
     private Map<Uuid, PortMappingInfo> portStore;
     private Map<Uuid, EdgeMappingInfo> edgeStore;
     private Map<Uuid, EndpointLocationMappingInfo> epLocationStore;
-    private LogicalRouterMappingInfo renderedlrOnFabric; // workaround for Bug 5146: We cache
+    //private LogicalRouterMappingInfo renderedlrOnFabric; // workaround for Bug 5146: We cache
                                                          // the LR once it is rendered.
 
+/**
+ * Constructor. each Cache has exactly one tenant owner.
+ * @param tenantId - tenant identifier.
+ */
     public UserLogicalNetworkCache(Uuid tenantId) {
         super();
-        this.setTenantId(tenantId);
-        /*
-         * TODO: We are testing Full Sync vs. concurrentMap.
-         */
-        boolean useSyncMap = false;
-        if (useSyncMap) {
-            lswStore = Collections.synchronizedMap(new HashMap<Uuid, LogicalSwitchMappingInfo>());
-            lrStore = Collections.synchronizedMap(new HashMap<Uuid, LogicalRouterMappingInfo>());
-            securityRuleGroupsStore = Collections.synchronizedMap(new HashMap<Uuid, SecurityRuleGroupsMappingInfo>());
-            subnetStore = Collections.synchronizedMap(new HashMap<Uuid, SubnetMappingInfo>());
-            portStore = Collections.synchronizedMap(new HashMap<Uuid, PortMappingInfo>());
-            edgeStore = Collections.synchronizedMap(new HashMap<Uuid, EdgeMappingInfo>());
-            epLocationStore = Collections.synchronizedMap(new HashMap<Uuid, EndpointLocationMappingInfo>());
-        } else {
-            lswStore = new ConcurrentHashMap<Uuid, LogicalSwitchMappingInfo>();
-            lrStore = new ConcurrentHashMap<Uuid, LogicalRouterMappingInfo>();
-            securityRuleGroupsStore = new ConcurrentHashMap<Uuid, SecurityRuleGroupsMappingInfo>();
-            subnetStore = new ConcurrentHashMap<Uuid, SubnetMappingInfo>();
-            portStore = new ConcurrentHashMap<Uuid, PortMappingInfo>();
-            edgeStore = new ConcurrentHashMap<Uuid, EdgeMappingInfo>();
-            epLocationStore = new ConcurrentHashMap<Uuid, EndpointLocationMappingInfo>();
-        }
+
+        this.tenantId = tenantId;
+
+        lswStore = new ConcurrentHashMap<>();
+        lrStore = new ConcurrentHashMap<>();
+        securityRuleGroupsStore = new ConcurrentHashMap<>();
+        subnetStore = new ConcurrentHashMap<>();
+        portStore = new ConcurrentHashMap<>();
+        edgeStore = new ConcurrentHashMap<>();
+        epLocationStore = new ConcurrentHashMap<>();
     }
 
     public Uuid getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(Uuid tenantId) {
-        this.tenantId = tenantId;
-    }
-
+    /**
+     * Check if a logical switch already has a cache entry.
+     * @param lsw - the logical switch object.
+     * @return
+     */
     public boolean isLswAlreadyCached(LogicalSwitch lsw) {
-        boolean found = false;
-
-        Uuid lswId = lsw.getUuid();
-        if (this.lswStore.get(lswId) != null) {
-            found = true;
-        }
-
-        return found;
+        return this.lswStore.get(lsw.getUuid()) != null;
     }
 
+    /**
+     * Check if a logical router already has a cache entry.
+     * @param lr - the logical router object.
+     * @return
+     */
     public boolean isLrAlreadyCached(LogicalRouter lr) {
-        boolean found = false;
-
-        Uuid lrId = lr.getUuid();
-        if (this.lrStore.get(lrId) != null) {
-            found = true;
-        }
-
-        return found;
+        return this.lrStore.get(lr.getUuid()) != null;
     }
 
-    public void markLswAsRendered(LogicalSwitch lsw, NodeId renderedLswId) {
+    /**
+     * Cache a rendered logical switch.
+     * @param lsw - the logical switch
+     * @param renderedSW - the corresponding rendered logical switch on a fabric.
+     */
+    public void addRenderedLSW(LogicalSwitch lsw, RenderedSwitch renderedSW) {
         Uuid lswId = lsw.getUuid();
-        this.lswStore.get(lswId).markAsRendered(renderedLswId);
+        this.lswStore.get(lswId).addRenderedSwitch(renderedSW);
     }
 
-    public void markLrAsRendered(LogicalRouter lr, NodeId renderedLrId) {
+    /**
+     * Cache a rendered logical router
+     * @param lr - the logical router to be rendered
+     * @param renderedLr - the corresponding rendered logical router on a fabric.
+     */
+    public void addRenderedRouter(LogicalRouter lr, RenderedRouter renderedLr) {
         Uuid lrId = lr.getUuid();
-        this.lrStore.get(lrId).markAsRendered(renderedLrId);
+        this.lrStore.get(lrId).addRenderedRouter(renderedLr);
     }
 
+    /**
+     * Check if a given security group has been rendered.
+     * @param ruleGroups - the group of rules to be rendered.
+     * @return true if rendered, false otherwise.
+     */
     public boolean isSecurityRuleGroupsAlreadyCached(SecurityRuleGroups ruleGroups) {
-        boolean found = false;
-
         Uuid ruleGroupsId = ruleGroups.getUuid();
-        if (this.securityRuleGroupsStore.get(ruleGroupsId) != null) {
-            found = true;
-        }
-
-        return found;
+        return this.securityRuleGroupsStore.get(ruleGroupsId) != null;
     }
 
+    /**
+     * To mark a security group's render status.
+     * @param ruleGroups - the group of rules to be rendered.
+     */
     public void markSecurityRuleGroupsAsRendered(SecurityRuleGroups ruleGroups) {
         Uuid ruleGroupsId = ruleGroups.getUuid();
         this.securityRuleGroupsStore.get(ruleGroupsId).setServiceHasBeenRendered(true);
     }
 
+    /**
+     * check if a subnet has been cached.
+     * @param subnet - the subnet object to be rendered.
+     * @return true if rendered, false otherwise.
+     */
     public boolean isSubnetAlreadyCached(Subnet subnet) {
-        boolean found = false;
-
         Uuid subnetId = subnet.getUuid();
-        if (this.subnetStore.get(subnetId) != null) {
-            found = true;
-        }
-
-        return found;
+        return this.subnetStore.get(subnetId) != null;
     }
 
+    /**
+     * To mark a subnet object's rendere status.
+     * @param subnet - rendered subnet object.
+     */
     public void markSubnetAsRendered(Subnet subnet) {
         Uuid subnetId = subnet.getUuid();
         this.subnetStore.get(subnetId).setServiceHasBeenRendered(true);
     }
 
+    /**
+     * check if a port object has been cached.
+     * @param port to be cached.
+     * @return ture if found, false otherwise
+     */
     public boolean isPortAlreadyCached(Port port) {
-        boolean found = false;
-
         Uuid portId = port.getUuid();
-        if (this.portStore.get(portId) != null) {
-            found = true;
-        }
-
-        return found;
+        return this.portStore.get(portId) != null;
     }
 
+    /**
+     * TO mark a port as rendered.
+     * @param port to be rendered.
+     */
     public void markPortAsRendered(Port port) {
         Uuid portId = port.getUuid();
         this.portStore.get(portId).setServiceHasBeenRendered(true);
     }
 
+    /**
+     * Check if an edge object has been cached.
+     * @param edge to be cached.
+     * @return true if found, false otherwise.
+     */
     public boolean isEdgeAlreadyCached(Edge edge) {
-        boolean found = false;
-
         Uuid edgeId = edge.getUuid();
-        if (this.edgeStore.get(edgeId) != null) {
-            found = true;
-        }
-
-        return found;
+        return this.edgeStore.get(edgeId) != null;
     }
 
+    /**
+     * To mark an edge as rendered.
+     * @param edge rendered object.
+     */
     public void markEdgeAsRendered(Edge edge) {
         Uuid edgeId = edge.getUuid();
         this.edgeStore.get(edgeId).setServiceHasBeenRendered(true);
     }
 
+    /**
+     * Check if an Eplocaiton has been cached.
+     * @param epLocation to be checked.
+     * @return true if cached, false otherwise.
+     */
     public boolean isEpLocationAlreadyCached(EndpointLocation epLocation) {
-        boolean found = false;
-
         Uuid epLocationId = epLocation.getUuid();
-        if (this.epLocationStore.get(epLocationId) != null) {
-            found = true;
-        }
-
-        return found;
-
+        return this.epLocationStore.get(epLocationId) != null;
     }
 
+    /**
+     * To mark an end point location as rendered.
+     * @param epLocation - the object to be marked
+     * @param renderedEpId - rendered Ep identifier.
+     */
     public void markEpLocationAsRendered(EndpointLocation epLocation,
             org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderedEpId) {
         Uuid epLocationId = epLocation.getUuid();
@@ -199,116 +213,179 @@ public class UserLogicalNetworkCache {
         this.epLocationStore.get(epLocationId).setServiceHasBeenRendered(true);
     }
 
-    public void cacheLsw(LogicalSwitch lsw) {
-        if (this.isLswAlreadyCached(lsw) == true) {
-            return;
-        }
+    /**
+     * To cache an LogicalSwitch.
+     * @param lsw to be cached.
+     */
 
-        this.lswStore.put(lsw.getUuid(), new LogicalSwitchMappingInfo(lsw));
+    public void cacheLsw(LogicalSwitch lsw) {
+        if (!this.isLswAlreadyCached(lsw)) {
+            this.lswStore.put(lsw.getUuid(), new LogicalSwitchMappingInfo(lsw));
+        }
     }
+
+    /**
+     * To cache an LogicalRouter.
+     * @param lr to be cached.
+     */
 
     public void cacheLr(LogicalRouter lr) {
-        if (this.isLrAlreadyCached(lr) == true) {
-            return;
+        if (!this.isLrAlreadyCached(lr)) {
+            this.lrStore.put(lr.getUuid(), new LogicalRouterMappingInfo(lr));
         }
-
-        this.lrStore.put(lr.getUuid(), new LogicalRouterMappingInfo(lr));
     }
+
+    /**
+     * To cache an SecurityRuleGroups.
+     * @param ruleGroups to be cached.
+     */
 
     public void cacheSecurityRuleGroups(SecurityRuleGroups ruleGroups) {
-        if (this.isSecurityRuleGroupsAlreadyCached(ruleGroups) == true) {
-            return;
+        if (!this.isSecurityRuleGroupsAlreadyCached(ruleGroups)) {
+            this.securityRuleGroupsStore.put(ruleGroups.getUuid(), new SecurityRuleGroupsMappingInfo(ruleGroups));
         }
-
-        this.securityRuleGroupsStore.put(ruleGroups.getUuid(), new SecurityRuleGroupsMappingInfo(ruleGroups));
     }
+
+    /**
+     * To cache an subnet.
+     * @param subnet to be cached.
+     */
 
     public void cacheSubnet(Subnet subnet) {
-        if (this.isSubnetAlreadyCached(subnet) == true) {
-            return;
+        if (!this.isSubnetAlreadyCached(subnet)) {
+            this.subnetStore.put(subnet.getUuid(), new SubnetMappingInfo(subnet));
         }
-
-        this.subnetStore.put(subnet.getUuid(), new SubnetMappingInfo(subnet));
     }
+
+    /**
+     * To cache an Port.
+     * @param port to be cached.
+     */
 
     public void cachePort(Port port) {
-        if (this.isPortAlreadyCached(port) == true) {
-            return;
+        if (!this.isPortAlreadyCached(port)) {
+            this.portStore.put(port.getUuid(), new PortMappingInfo(port));
         }
-
-        this.portStore.put(port.getUuid(), new PortMappingInfo(port));
     }
+
+    /**
+     * To cache an edge.
+     * @param edge to be cached.
+     */
 
     public void cacheEdge(Edge edge) {
-        if (this.isEdgeAlreadyCached(edge) == true) {
-            return;
+        if (!this.isEdgeAlreadyCached(edge)) {
+            this.edgeStore.put(edge.getUuid(), new EdgeMappingInfo(edge));
         }
-
-        this.edgeStore.put(edge.getUuid(), new EdgeMappingInfo(edge));
     }
 
+    /**
+     * To cache an EndpointLocation.
+     * @param epLocation to be cached.
+     */
     public void cacheEpLocation(EndpointLocation epLocation) {
-        if (this.isEpLocationAlreadyCached(epLocation) == true) {
-            return;
+        if (!this.isEpLocationAlreadyCached(epLocation)) {
+            this.epLocationStore.put(epLocation.getUuid(), new EndpointLocationMappingInfo(epLocation));
         }
-
-        this.epLocationStore.put(epLocation.getUuid(), new EndpointLocationMappingInfo(epLocation));
     }
 
-    public boolean isLswRendered(LogicalSwitch lsw) {
-        if (this.isLswAlreadyCached(lsw) == false) {
+    /**
+     * Check if an logical switch has been rendered.
+     * @param lsw - the logical switch to be checked.
+     * @param fabricID - the target fabric
+     * @return true if rendered, false otherwise.
+     */
+
+    public boolean isLswRendered(LogicalSwitch lsw, NodeId fabricID) {
+        if (!this.isLswAlreadyCached(lsw)) {
             return false;
         }
-        return this.lswStore.get(lsw.getUuid()).hasServiceBeenRendered();
+        return this.lswStore.get(lsw.getUuid()).hasServiceBeenRenderedOnFabric(fabricID);
     }
 
-    public boolean isLrRendered(LogicalRouter lr) {
-        if (this.isLrAlreadyCached(lr) == false) {
+    /**
+     * Check if an logical router has been rendered.
+     * @param lr - the logical router to be checked.
+     * @param fabricId - the target fabric
+     * @return true if rendered, false otherwise.
+     */
+    public boolean isLrRendered(LogicalRouter lr, NodeId fabricId) {
+        if (!this.isLrAlreadyCached(lr)) {
             return false;
         }
-        return this.lrStore.get(lr.getUuid()).hasServiceBeenRendered();
+        return this.lrStore.get(lr.getUuid()).hasServiceBeenRenderedOnFabric(fabricId);
     }
+
+    /**
+     * Check if an subnet has been rendered.
+     * @param subnet - the subnet to be checked.
+     * @return true if rendered. false otherwise.
+     */
 
     public boolean isSubnetRendered(Subnet subnet) {
-        if (this.isSubnetAlreadyCached(subnet) == false) {
+        if (!this.isSubnetAlreadyCached(subnet)) {
             return false;
         }
         return this.subnetStore.get(subnet.getUuid()).hasServiceBeenRendered();
     }
 
+    /**
+     * Check if an Port has been rendered.
+     * @param port - the port to be checked.
+     * @return true if rendered. false otherwise.
+     */
+
     public boolean isPortRendered(Port port) {
-        if (this.isPortAlreadyCached(port) == false) {
+        if (!this.isPortAlreadyCached(port)) {
             return false;
         }
         return this.portStore.get(port.getUuid()).hasServiceBeenRendered();
     }
 
+    /**
+     * Check if a security group  has been rendered.
+     * @param ruleGroups - the group to be checked.
+     * @return true if rendered. false otherwise.
+     */
+
     public boolean isSecurityRuleGroupsRendered(SecurityRuleGroups ruleGroups) {
-        if (this.isSecurityRuleGroupsAlreadyCached(ruleGroups) == false) {
+        if (!this.isSecurityRuleGroupsAlreadyCached(ruleGroups)) {
             return false;
         }
         return this.securityRuleGroupsStore.get(ruleGroups.getUuid()).hasServiceBeenRendered();
     }
 
+    /**
+     * Check if an Edge has been rendered.
+     * @param edge - the edge  to be checked.
+     * @return true if rendered. false otherwise.
+     */
+
     public boolean isEdgeRendered(Edge edge) {
-        if (this.isEdgeAlreadyCached(edge) == false) {
+        if (!this.isEdgeAlreadyCached(edge)) {
             return false;
         }
         return this.edgeStore.get(edge.getUuid()).hasServiceBeenRendered();
     }
 
+    /**
+     * Check if an EP has been rendered.
+     * @param epLocation - the end point to be checked.
+     * @return true if rendered. false otherwise.
+     */
     public boolean isEpLocationRendered(EndpointLocation epLocation) {
-        if (this.isEpLocationAlreadyCached(epLocation) == false) {
+        if (!this.isEpLocationAlreadyCached(epLocation)) {
             return false;
         }
         return this.epLocationStore.get(epLocation.getUuid()).hasServiceBeenRendered();
     }
 
-    /*
+    /**
      * Find edge that connects the given EP with its belonging subnet
+     * @param epLocation - the end point location which attaches the subnet to be found.
+     * @return the edge object to be cached.
      */
     public EdgeMappingInfo findEpLocationSubnetEdge(EndpointLocation epLocation) {
-        EdgeMappingInfo edge = null;
 
         Uuid epPortId = epLocation.getPort();
         PortMappingInfo epPort = this.portStore.get(epPortId);
@@ -317,22 +394,23 @@ public class UserLogicalNetworkCache {
         }
 
         Uuid edgeId = epPort.getPort().getEdgeId();
-        edge = this.edgeStore.get(edgeId);
-
-        return edge;
+        return this.edgeStore.get(edgeId);
     }
 
-    /*
+    /**
      * Given an edge and one port, find the other port.
+     * @param epEdge - the edge.
+     * @param epPortId - one known port.
+     * @return the other port.
      */
     public PortMappingInfo findOtherPortInEdge(EdgeMappingInfo epEdge, Uuid epPortId) {
         Uuid leftPortId = epEdge.getEdge().getLeftPortId();
         Uuid rightPortId = epEdge.getEdge().getRightPortId();
 
         Uuid otherPortId;
-        if (leftPortId.equals(epPortId) == true) {
+        if (leftPortId.equals(epPortId)) {
             otherPortId = rightPortId;
-        } else if (rightPortId.equals(epPortId) == true) {
+        } else if (rightPortId.equals(epPortId)) {
             otherPortId = leftPortId;
         } else {
             LOG.error("FABMGR: ERROR: findOtherPortInEdge: port id is wrong: ep={}, left={}, right={}",
@@ -340,23 +418,35 @@ public class UserLogicalNetworkCache {
             return null;
         }
 
-        PortMappingInfo otherPort = this.portStore.get(otherPortId);
-
-        return otherPort;
+        return this.portStore.get(otherPortId);
     }
 
+    /**
+     * Find the left port.
+     * @param edge - the edge to be searched.
+     * @return the left port.
+     */
     public PortMappingInfo findLeftPortOnEdge(Edge edge) {
         Uuid leftPortId = edge.getLeftPortId();
         return this.portStore.get(leftPortId);
     }
+
+    /**
+     * Find the right port.
+     * @param edge - the edge to be searched.
+     * @return the right port.
+     */
 
     public PortMappingInfo findRightPortOnEdge(Edge edge) {
         Uuid rightPortId = edge.getRightPortId();
         return this.portStore.get(rightPortId);
     }
 
-    /*
+    /**
      * Given a port, find the subnet to which this port belongs.
+     *
+     * @param subnetPort the given port
+     * @return associated subnet object.
      */
     public SubnetMappingInfo findSubnetFromItsPort(PortMappingInfo subnetPort) {
         LocationType portLocationType = subnetPort.getPort().getLocationType();
@@ -367,15 +457,16 @@ public class UserLogicalNetworkCache {
         }
 
         Uuid subnetId = subnetPort.getPort().getLocationId();
-        SubnetMappingInfo subnet = this.subnetStore.get(subnetId);
-
-        return subnet;
+        return this.subnetStore.get(subnetId);
     }
 
-    /*
+    /**
      * Given a LSW, find its associated subnet. The ULN model allows a LSW
      * to have more than one subnet. However, this function only returns the
      * first one that it finds.
+     *
+     * @param lsw - the logical switch information.
+     * @return - the associated subnet information.
      */
     public SubnetMappingInfo findSubnetFromLsw(LogicalSwitchMappingInfo lsw) {
 
@@ -392,27 +483,28 @@ public class UserLogicalNetworkCache {
         return this.findSubnetFromItsPort(subnetPort);
     }
 
-    /*
+    /**
      * Given a subnet, find the edge that connects this subnet with
      * a logical switch. The ULN model allows multiple logical switches
      * to be connected to one subnet. To accommodate this bug (Bug 5144),
      * this function returns all the lswToSubnet edges.
+     *
+     * @param subnet - the subnet information.
+     * @return - list of associated edges.
      */
+    @Nonnull
     public List<EdgeMappingInfo> findAllSubnetLswEdgesFromSubnet(SubnetMappingInfo subnet) {
-        List<EdgeMappingInfo> subnetLswEdgeList = null;
+        List<EdgeMappingInfo> subnetLswEdgeList = new ArrayList<>();
         Uuid subnetId = subnet.getSubnet().getUuid();
         for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
             EdgeMappingInfo edge = entry.getValue();
-            if (this.findEdgeType(edge) == EdgeType.LswToSubnet) {
+            if (this.findEdgeType(edge) == LogicalEdgeType.LSW_SUBNET) {
                 PortMappingInfo subnetPort = this.findSubnetPortInEdge(edge, subnetId);
                 if (subnetPort != null) {
                     PortMappingInfo otherPort = this.findOtherPortInEdge(edge, subnetPort.getPort().getUuid());
                     if (otherPort != null) {
                         LocationType portType = otherPort.getPort().getLocationType();
                         if (portType == LocationType.SwitchType) {
-                            if (subnetLswEdgeList == null) {
-                                subnetLswEdgeList = new ArrayList<EdgeMappingInfo>();
-                            }
                             subnetLswEdgeList.add(edge);
                         } else {
                             LOG.error("FABMGR: ERROR: findSubnetLswEdge: port should be lsw type: port={}, edge={}",
@@ -426,16 +518,18 @@ public class UserLogicalNetworkCache {
         return subnetLswEdgeList;
     }
 
-    /*
+    /**
      * subnetLswEdgeList may contain multiple edges, because the
      * ULN model allows a subnet to connect to multiple LSWs (Bug 5144).
      * To handle this bug, we allow only one subnet-lsw edge to be
      * rendered. And we do this by always picking up the same edge in the list.
+     * @param subnet to be searched.
+     * @return Edge information associated with the subnet.
      */
     public EdgeMappingInfo findSingleSubnetLswEdgeFromSubnet(SubnetMappingInfo subnet) {
         List<EdgeMappingInfo> subnetLswEdgeList = this.findAllSubnetLswEdgesFromSubnet(subnet);
-        if (subnetLswEdgeList == null || subnetLswEdgeList.isEmpty()) {
-            LOG.debug("FABMGR: findSingleSubnetLswEdgeFromSubnet: cannot find subnetLswEdge in cache");
+        if (subnetLswEdgeList.isEmpty()) {
+            LOG.debug("FABMGR: findSingleSubnetLswEdge: cannot find subnetLswEdge in cache");
             return null;
         }
 
@@ -443,7 +537,7 @@ public class UserLogicalNetworkCache {
          * No LSW has been rendered for this subnet yet, so just pick
          * up the first edge in the list.
          */
-        if (subnet.hasServiceBeenRendered() == false) {
+        if (!subnet.hasServiceBeenRendered()) {
             return subnetLswEdgeList.get(0);
         }
 
@@ -458,13 +552,11 @@ public class UserLogicalNetworkCache {
         int renderedLswCounter = 0;
         for (EdgeMappingInfo edge : subnetLswEdgeList) {
             LogicalSwitchMappingInfo lsw = this.findLswFromSubnetLswEdge(edge);
-            if (lsw != null && lsw.hasServiceBeenRendered() == true) {
+            if (lsw != null && lsw.hasServiceBeenRendered()) {
                 subnetLswEdge = edge;
                 renderedLswCounter++;
             }
         }
-
-        // Just checking
         if (subnetLswEdge != null && renderedLswCounter != 1) {
             LOG.error("FABMGR: ERROR: findSingleSubnetLswEdgeFromSubnet: renderedLswCounter={}", renderedLswCounter);
         }
@@ -478,7 +570,7 @@ public class UserLogicalNetworkCache {
         Uuid lswId = lsw.getLsw().getUuid();
         for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
             EdgeMappingInfo edge = entry.getValue();
-            if (this.findEdgeType(edge) == EdgeType.LswToSubnet) {
+            if (this.findEdgeType(edge) == LogicalEdgeType.LSW_SUBNET) {
                 PortMappingInfo lswPort = this.findLswPortOnEdge(edge);
                 if (lswPort != null && lswPort.getPort().getLocationId().equals(lswId)) {
                     PortMappingInfo otherPort = this.findOtherPortInEdge(edge, lswPort.getPort().getUuid());
@@ -495,20 +587,57 @@ public class UserLogicalNetworkCache {
         return subnetLswEdge;
     }
 
-    public EdgeMappingInfo findLrLswEdge(LogicalRouterMappingInfo lr) {
-        EdgeMappingInfo lrLswEdge = null;
+    private boolean isEdgeConnectingTheLRToALSW(LogicalRouterMappingInfo lr, EdgeMappingInfo edge)
+    {
+        if (this.findEdgeType(edge) == LogicalEdgeType.LR_LSW) {
+            PortMappingInfo lrPort = this.findLrPortOnEdge(edge);
+            Uuid lrId = lr.getLr().getUuid();
+            if (lrPort != null && lrPort.getPort().getLocationId().equals(lrId)) {
+                PortMappingInfo otherPort = this.findOtherPortInEdge(edge, lrPort.getPort().getUuid());
+                if (otherPort != null && otherPort.getPort().getLocationType() == LocationType.SwitchType) {
+                    return true;
+                } else {
+                    LOG.error("FABMGR: ERROR: findLrLswEdge: otherPort is not LSW type: {}",
+                        otherPort.getPort().getLocationType().toString());
+                }
+            }
+        }
+        return false;
+    }
 
-        Uuid lrId = lr.getLr().getUuid();
+    /**
+     * Find all edges connect to the given logical router.
+     * @param lr - the logical router to be search against.
+     * @return list of edges connect to the given logical router.
+     */
+    @Nonnull
+    public List<EdgeMappingInfo> findLrLswEdge(LogicalRouterMappingInfo lr) {
+        List<EdgeMappingInfo> lrLswEdges = new ArrayList<>();
+
         for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
             EdgeMappingInfo edge = entry.getValue();
-            if (this.findEdgeType(edge) == EdgeType.LrToLsw) {
-                PortMappingInfo lrPort = this.findLrPortOnEdge(edge);
-                if (lrPort != null && lrPort.getPort().getLocationId().equals(lrId)) {
-                    PortMappingInfo otherPort = this.findOtherPortInEdge(edge, lrPort.getPort().getUuid());
-                    if (otherPort != null && otherPort.getPort().getLocationType() == LocationType.SwitchType) {
-                        lrLswEdge = edge;
+            if (isEdgeConnectingTheLRToALSW(lr, edge)) {
+                lrLswEdges.add(edge);
+            }
+        }
+        return lrLswEdges;
+    }
+
+
+    public EdgeMappingInfo findLswLrEdge(LogicalSwitchMappingInfo lsw) {
+        EdgeMappingInfo lswLrEdge = null;
+
+        Uuid lswId = lsw.getLsw().getUuid();
+        for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
+            EdgeMappingInfo edge = entry.getValue();
+            if (this.findEdgeType(edge) == LogicalEdgeType.LR_LSW) {
+                PortMappingInfo lswPort = this.findLswPortOnEdge(edge);
+                if (lswPort != null && lswPort.getPort().getLocationId().equals(lswId)) {
+                    PortMappingInfo otherPort = this.findOtherPortInEdge(edge, lswPort.getPort().getUuid());
+                    if (otherPort != null && otherPort.getPort().getLocationType() == LocationType.RouterType) {
+                        lswLrEdge = edge;
                     } else {
-                        LOG.error("FABMGR: ERROR: findLrLswEdge: otherPort is not LSW type: {}",
+                        LOG.error("FABMGR: ERROR: findLswLrEdge: otherPort is not LR type: {}",
                                 otherPort.getPort().getLocationType().toString());
                     }
                     break;
@@ -516,8 +645,25 @@ public class UserLogicalNetworkCache {
             }
         }
 
-        return lrLswEdge;
+        return lswLrEdge;
     }
+
+    /**
+     * Find the edge connects the given port.
+     * @param port - the target port.
+     * @return
+     */
+    @Nonnull
+    public EdgeMappingInfo findTheEdge(PortMappingInfo port) {
+        for (Entry<Uuid, EdgeMappingInfo> entry : this.edgeStore.entrySet()) {
+            EdgeMappingInfo edge = entry.getValue();
+            if (edge.getEdge().getUuid().equals(port.getPort().getEdgeId())) {
+                return edge;
+            }
+        }
+        return null;
+    }
+
 
     public PortMappingInfo findPortFromPortId(Uuid portId) {
         return this.portStore.get(portId);
@@ -584,12 +730,12 @@ public class UserLogicalNetworkCache {
      */
     public PortMappingInfo findLswPortOnEdge(EdgeMappingInfo edge) {
         Uuid leftPortId = edge.getEdge().getLeftPortId();
-        if (this.isPortLswType(leftPortId) == true) {
+        if (this.isPortLswType(leftPortId)) {
             return this.portStore.get(leftPortId);
         }
 
         Uuid rightPortId = edge.getEdge().getRightPortId();
-        if (this.isPortLswType(rightPortId) == true) {
+        if (this.isPortLswType(rightPortId)) {
             return this.portStore.get(rightPortId);
         }
 
@@ -598,36 +744,36 @@ public class UserLogicalNetworkCache {
 
     public PortMappingInfo findLrPortOnEdge(EdgeMappingInfo edge) {
         Uuid leftPortId = edge.getEdge().getLeftPortId();
-        if (this.isPortLrType(leftPortId) == true) {
+        if (this.isPortLrType(leftPortId)) {
             return this.portStore.get(leftPortId);
         }
 
         Uuid rightPortId = edge.getEdge().getRightPortId();
-        if (this.isPortLrType(rightPortId) == true) {
+        if (this.isPortLrType(rightPortId)) {
             return this.portStore.get(rightPortId);
         }
 
         return null;
     }
 
-    public EdgeType findEdgeType(EdgeMappingInfo edge) {
-        EdgeType edgeType = EdgeType.unknownType;
+    public LogicalEdgeType findEdgeType(EdgeMappingInfo edge) {
+        LogicalEdgeType edgeType = LogicalEdgeType.UNKNOWNTYPE;
 
         Uuid leftPortId = edge.getEdge().getLeftPortId();
         Uuid rightPortId = edge.getEdge().getRightPortId();
         if (this.isPortLrType(leftPortId) && this.isPortLrType(rightPortId)) {
-            edgeType = EdgeType.LrToLr;
+            edgeType = LogicalEdgeType.LR_LR;
         } else if (this.isPortLswType(leftPortId) && this.isPortLswType(rightPortId)) {
-            edgeType = EdgeType.LswToLsw;
+            edgeType = LogicalEdgeType.LSW_LSW;
         } else if ((this.isPortLswType(leftPortId) && this.isPortLrType(rightPortId))
                 || (this.isPortLrType(leftPortId) && this.isPortLswType(rightPortId))) {
-            edgeType = EdgeType.LrToLsw;
+            edgeType = LogicalEdgeType.LR_LSW;
         } else if ((this.isPortLswType(leftPortId) && this.isPortSubnetType(rightPortId))
                 || (this.isPortSubnetType(leftPortId) && this.isPortLswType(rightPortId))) {
-            edgeType = EdgeType.LswToSubnet;
+            edgeType = LogicalEdgeType.LSW_SUBNET;
         } else if ((this.isPortSubnetType(leftPortId) && this.isPortEpLocationType(rightPortId))
                 || (this.isPortEpLocationType(leftPortId) && this.isPortSubnetType(rightPortId))) {
-            edgeType = EdgeType.SubnetToEpLocation;
+            edgeType = LogicalEdgeType.SUBNET_EPLOCATION;
         } else {
             LOG.trace("FABMGR: findEdgeType: unknown type: leftPortId={}, rightPortId={}", leftPortId.getValue(),
                     rightPortId.getValue());
@@ -636,28 +782,42 @@ public class UserLogicalNetworkCache {
         return edgeType;
     }
 
-    public NodeId findLswRenderedDeviceIdFromLr(LogicalRouterMappingInfo lr) {
-        EdgeMappingInfo lrLswEdge = this.findLrLswEdge(lr);
-        if (lrLswEdge == null) {
-            return null;
-        }
+    /**
+     * Find all rendered switches on a given fabric belongs to the logical router domain.
+     * @param lr - the logical router to be searched against.
+     * @param fabricId - the fabric identifier.
+     * @return list of th rendered switches ids.
+     */
+    @Nonnull
+    public List<NodeId> findLswRenderedDeviceIdFromLr(LogicalRouterMappingInfo lr, NodeId fabricId) {
+        List<EdgeMappingInfo> lrLswEdges = this.findLrLswEdge(lr);
+        List<NodeId> lsws = new ArrayList<>();
 
-        LogicalSwitchMappingInfo lsw = this.findLswFromLrLswEdge(lrLswEdge);
-        if (lsw == null) {
-            return null;
+        for (EdgeMappingInfo lrLswEdge:lrLswEdges)
+        {
+            LogicalSwitchMappingInfo lsw = this.findLswFromLrLswEdge(lrLswEdge);
+            if (lsw != null && lsw.getRenderedSwitches().containsKey(fabricId)) {
+                lsws.add(lsw.getRenderedDeviceIdOnFabric(fabricId));
+            }
         }
-
-        /*
-         * Solution to Bug 5144.
-         * We do not check if LSW has been rendered or not. Due to
-         * Bug 5144, we cannot map a ULN lsw directly to Fabric. We can
-         * only render one LSW per subnet. If a subnet has more than one LSW
-         * connecting to it, we set the rendered deviceID of the rendered LSW
-         * to all other unrendered LSWs. i.e., To the caller of this function,
-         * unrendered LSWs behaves as if they were rendered.
-         */
-        return lsw.getRenderedDeviceId();
+        return lsws;
     }
+
+    @Nonnull
+    public List<NodeId> findRenderedLswsFabricsFromLr(LogicalRouterMappingInfo lr) {
+        List<EdgeMappingInfo> lrLswEdges = this.findLrLswEdge(lr);
+        List<NodeId> lsws = new ArrayList<>();
+
+        for (EdgeMappingInfo lrLswEdge:lrLswEdges)
+        {
+            LogicalSwitchMappingInfo lsw = this.findLswFromLrLswEdge(lrLswEdge);
+            if (lsw != null && !lsw.getRenderedSwitches().isEmpty()) {
+                lsws.addAll(lsw.getRenderedSwitches().keySet());
+            }
+        }
+        return lsws;
+    }
+
 
     private LogicalSwitchMappingInfo findLswFromLrLswEdge(EdgeMappingInfo lrLswEdge) {
         PortMappingInfo lswPort = this.findLswPortOnEdge(lrLswEdge);
@@ -680,7 +840,7 @@ public class UserLogicalNetworkCache {
      */
     public LogicalSwitchMappingInfo findLswFromItsPort(Port port) {
         Uuid portId = port.getUuid();
-        if (this.isPortLswType(portId) == false) {
+        if (!this.isPortLswType(portId)) {
             return null;
         }
 
@@ -703,7 +863,7 @@ public class UserLogicalNetworkCache {
      */
     public LogicalRouterMappingInfo findLrFromItsPort(Port port) {
         Uuid portId = port.getUuid();
-        if (this.isPortLrType(portId) == false) {
+        if (!this.isPortLrType(portId)) {
             return null;
         }
 
@@ -729,11 +889,11 @@ public class UserLogicalNetworkCache {
     public boolean isPortInSubnet(Uuid portId, Uuid subnetId) {
         PortMappingInfo port = this.portStore.get(portId);
 
-        if (this.isPortSubnetType(portId) == false) {
+        if (!this.isPortSubnetType(portId)) {
             return false;
         }
 
-        if (port.getPort().getLocationId().equals(subnetId) == false) {
+        if (!port.getPort().getLocationId().equals(subnetId)) {
             return false;
         }
 
@@ -748,7 +908,7 @@ public class UserLogicalNetworkCache {
             return false;
         }
 
-        if (this.findEdgeType(edgeInfo) == EdgeType.LrToLr) {
+        if (this.findEdgeType(edgeInfo) == LogicalEdgeType.LR_LR) {
             return true;
         }
 
@@ -763,7 +923,7 @@ public class UserLogicalNetworkCache {
             return false;
         }
 
-        if (this.findEdgeType(edgeInfo) == EdgeType.LswToLsw) {
+        if (this.findEdgeType(edgeInfo) == LogicalEdgeType.LSW_LSW) {
             return true;
         }
 
@@ -778,7 +938,7 @@ public class UserLogicalNetworkCache {
             return false;
         }
 
-        if (this.findEdgeType(edgeInfo) == EdgeType.LrToLsw) {
+        if (this.findEdgeType(edgeInfo) == LogicalEdgeType.LR_LSW) {
             return true;
         }
 
@@ -793,7 +953,7 @@ public class UserLogicalNetworkCache {
             return false;
         }
 
-        if (this.findEdgeType(edgeInfo) == EdgeType.LswToSubnet) {
+        if (this.findEdgeType(edgeInfo) == LogicalEdgeType.LSW_SUBNET) {
             return true;
         }
 
@@ -808,7 +968,7 @@ public class UserLogicalNetworkCache {
             return false;
         }
 
-        if (this.findEdgeType(edgeInfo) == EdgeType.SubnetToEpLocation) {
+        if (this.findEdgeType(edgeInfo) == LogicalEdgeType.SUBNET_EPLOCATION) {
             return true;
         }
 
@@ -917,8 +1077,11 @@ public class UserLogicalNetworkCache {
         for (Entry<Uuid, LogicalSwitchMappingInfo> entry : this.lswStore.entrySet()) {
             LogicalSwitchMappingInfo info = entry.getValue();
             sb.append("lswId=" + entry.getKey().getValue());
-            sb.append(", renderedDevId="
-                    + ((info.getRenderedDeviceId() == null) ? "null" : info.getRenderedDeviceId().getValue()));
+            for (NodeId fabricId : info.getRenderedSwitches().keySet())
+            {
+                sb.append(", renderedDevId="
+                    + ((info.getRenderedDeviceIdOnFabric(fabricId) == null) ? "null" : info.getRenderedDeviceIdOnFabric(fabricId).getValue()));
+            }
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }
 
@@ -926,16 +1089,12 @@ public class UserLogicalNetworkCache {
         for (Entry<Uuid, LogicalRouterMappingInfo> entry : this.lrStore.entrySet()) {
             LogicalRouterMappingInfo info = entry.getValue();
             sb.append("lrId=" + entry.getKey().getValue());
-            sb.append(", renderedDevId="
-                    + ((info.getRenderedDeviceId() == null) ? "null" : info.getRenderedDeviceId().getValue()));
+            for (NodeId fabricId : info.getRenderedRouters().keySet())
+            {
+                sb.append(", renderedDevId="
+                    + ((info.getRenderedDeviceIdOnFabric(fabricId) == null) ? "null" : info.getRenderedDeviceIdOnFabric(fabricId).getValue()));
+            }
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
-        }
-        if (this.renderedlrOnFabric != null) {
-            sb.append("*LrId=" + this.renderedlrOnFabric.getLr().getUuid().getValue());
-            sb.append(", renderedDevId="
-                    + ((this.renderedlrOnFabric.getRenderedDeviceId() == null) ? "null" : this.renderedlrOnFabric
-                        .getRenderedDeviceId().getValue()));
-            sb.append(", isRendered=" + this.renderedlrOnFabric.hasServiceBeenRendered() + "\n");
         }
 
         sb.append("*********** SecurityRuleGroups table *****************\n");
@@ -1241,53 +1400,29 @@ public class UserLogicalNetworkCache {
         info.setLswPortId(lswPortId);
     }
 
-    public boolean hasLrBeenRenderedOnFabric() {
-        if (this.renderedlrOnFabric == null) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    public LogicalRouterMappingInfo getRenderedlrOnFabric() {
-        return renderedlrOnFabric;
-    }
-
-    synchronized public void setRenderedlrOnFabric(LogicalRouterMappingInfo renderedlrOnFabric) {
-        this.renderedlrOnFabric = renderedlrOnFabric;
-    }
-
-    public NodeId getRenderedLrDeviceId() {
-        if (this.renderedlrOnFabric == null) {
-            return null;
-        } else {
-            return this.renderedlrOnFabric.getRenderedDeviceId();
-        }
-    }
-
     public void updateLSWsConnectedToSubnet(Subnet subnet) {
         SubnetMappingInfo subnetInfo = this.findSubnetFromSubnetId(subnet.getUuid());
-        if (subnetInfo == null || subnetInfo.hasServiceBeenRendered() == false) {
-            // If subnet has not been rendered, then that means no LSW that connects
-            // to this subnet has been redndered.
+        if (subnetInfo == null || !subnetInfo.hasServiceBeenRendered()) {
+            // If the subnet has not been rendered, then that means no LSW that connects
+            // to this subnet has been rendered.
             return;
         }
 
         List<EdgeMappingInfo> subnetLswEdgeList = this.findAllSubnetLswEdgesFromSubnet(subnetInfo);
-        if (subnetLswEdgeList == null || subnetLswEdgeList.isEmpty()) {
+        if (subnetLswEdgeList.isEmpty()) {
             return;
         }
 
-        NodeId renderedLswDevId = null;
+        Map<NodeId, RenderedSwitch> renderedLsws = null;
         for (EdgeMappingInfo edge : subnetLswEdgeList) {
             LogicalSwitchMappingInfo lswInfo = this.findLswFromSubnetLswEdge(edge);
-            if (lswInfo != null && lswInfo.hasServiceBeenRendered() == true) {
-                renderedLswDevId = lswInfo.getRenderedDeviceId();
+            if (lswInfo != null && lswInfo.hasServiceBeenRendered()) {
+                renderedLsws = lswInfo.getRenderedSwitches();
                 break;
             }
         }
 
-        if (renderedLswDevId == null) {
+        if (renderedLsws == null) {
             LOG.error(
                     "FABMGR: ERROR: updateLSWsConnectedToSubnet: subnet is marked as rendered, but cannot find rendered LSW");
             return;
@@ -1295,8 +1430,11 @@ public class UserLogicalNetworkCache {
 
         for (EdgeMappingInfo edge : subnetLswEdgeList) {
             LogicalSwitchMappingInfo lswInfo = this.findLswFromSubnetLswEdge(edge);
-            if (lswInfo != null && lswInfo.hasServiceBeenRendered() == false) {
-                lswInfo.setRenderedDeviceId(renderedLswDevId);
+            if (lswInfo != null && !lswInfo.hasServiceBeenRendered()) {
+                for (Map.Entry<NodeId, RenderedSwitch> entry : renderedLsws.entrySet())
+                {
+                    lswInfo.addRenderedSwitch(entry.getValue());
+                }
             }
         }
     }
