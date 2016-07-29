@@ -35,7 +35,7 @@ public class FabricMgrModule extends AbstractFabricMgrModule {
         NotificationService notificationService = getNotificationAdapterDependency();
         RpcProviderRegistry rpcRegistry = getRpcRegistryDependency();
 
-        return FabricMgrProvider.getInstance(databroker, rpcRegistry, notificationService);
+        return FabricMgrProvider.createInstance(databroker, rpcRegistry, notificationService);
     }
 
 }
