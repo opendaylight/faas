@@ -10,6 +10,13 @@ from mininet.topo import Topo
 from mininet.link import Intf
 from mininet.node import RemoteController, OVSKernelSwitch,Controller
 
+# learning mac from arp request for spine device
+SPINE_ARP_LEARNING = "ovs-ofctl add-flow -OOpenFlow13 %s 'table=10, priority=1024, reg0=0x3, arp, arp_op=1 actions=learn(table=110,priority=1024,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_VLAN_TCI[]->NXM_OF_VLAN_TCI[],output:NXM_OF_IN_PORT[]),goto_table:20'"
+# learning mac from normal packets for spine device
+SPINE_NORMAL_LEARNING = "ovs-ofctl add-flow -OOpenFlow13 %s 'table=10, priority=1023, reg0=0x3, actions=learn(table=110,priority=1024,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_VLAN_TCI[]->NXM_OF_VLAN_TCI[],output:NXM_OF_IN_PORT[]),load:0->NXM_OF_VLAN_TCI[],goto_table:20'"
+# learning mac for leaf device
+LEAF_LEARNING = "ovs-ofctl add-flow -OOpenFlow13 %s 'table=10, priority=1024, reg0=0x2, actions=learn(table=110,priority=1024,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[],output:NXM_OF_IN_PORT[]),goto_table:20'"
+
 class FabricTopo( Topo ):
     "Simple Fabric Topology example."
 
@@ -48,7 +55,7 @@ class FabricTopo( Topo ):
         switch3 = self.addSwitch('s3')
         self.addLink(switch2, switch3)
 
-        hostx = self.addHost('hostx', mac='62:02:1a:00:00:01', ip='192.168.2.1/24') 
+        hostx = self.addHost('hostx', mac='62:02:1a:00:00:02', ip='192.168.2.2/24', defaultRoute='via 192.168.2.1') 
         self.addLink(hostx, switch3)
 
 topos = { 'fabric' : FabricTopo}
@@ -83,11 +90,20 @@ if __name__ == '__main__':
     os.system("ifconfig s3 192.168.20.103")
     os.system("ovs-vsctl br-set-external-id s3 vtep-ip 192.168.20.103")
 
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s1 'table=10, priority=1024, arp, arp_op=1 actions=learn(table=110,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_VLAN_TCI[]->NXM_OF_VLAN_TCI[],output:NXM_OF_IN_PORT[]),goto_table:20'")
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s2 'table=10, priority=1024, arp, arp_op=1 actions=learn(table=110,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_VLAN_TCI[]->NXM_OF_VLAN_TCI[],output:NXM_OF_IN_PORT[]),goto_table:20'")
+    #----------------------------------- Learning flow, because ODL openflowplugin did not support "learn Action -------------------------------------
+    os.system(SPINE_ARP_LEARNING % 's1')
+    os.system(SPINE_NORMAL_LEARNING % 's1')
+    os.system(SPINE_ARP_LEARNING % 's2')
+    os.system(SPINE_NORMAL_LEARNING % 's2')
 
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s1 'table=10, priority=1023, actions=learn(table=110,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_VLAN_TCI[]->NXM_OF_VLAN_TCI[],output:NXM_OF_IN_PORT[]),load:0->NXM_OF_VLAN_TCI[],goto_table:20'")
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s2 'table=10, priority=1023, actions=learn(table=110,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_VLAN_TCI[]->NXM_OF_VLAN_TCI[],output:NXM_OF_IN_PORT[]),load:0->NXM_OF_VLAN_TCI[],goto_table:20'")
+    os.system(LEAF_LEARNING % 's11')
+    os.system(LEAF_LEARNING % 's12')
+    os.system(LEAF_LEARNING % 's21')
+
+    #----------------------------------- OVS s3 flow, used for test NAT function -------------------------------------
+    os.system("ovs-ofctl add-flow -OOpenFlow13 s3 'table=0,priority=1000,in_port=1,ip, nw_src=192.168.1.2, nw_dst=192.168.2.2 actions=set_field:62:02:1a:00:00:02->eth_dst, set_field:62:02:1a:00:00:01->eth_src, output:2'")
+    os.system("ovs-ofctl add-flow -OOpenFlow13 s3 'table=0,priority=1000,in_port=2,ip, nw_src=192.168.2.2, nw_dst=192.168.1.2 actions=set_field:80:38:bc:a1:33:c7->eth_dst, set_field:80:38:bC:A1:33:c8->eth_src, output:1'")
+    os.system("ovs-ofctl add-flow -OOpenFlow13 s3 'table=0, priority=1000,arp,arp_tpa=192.168.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],set_field:62:02:1a:00:00:01->eth_src,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0x62021a000001->NXM_NX_ARP_SHA[],load:0xc0a80201->NXM_OF_ARP_SPA[],IN_PORT'")
 
     info( "*** Starting CLI (type 'exit' to exit)\n" )
     CLI( network )
