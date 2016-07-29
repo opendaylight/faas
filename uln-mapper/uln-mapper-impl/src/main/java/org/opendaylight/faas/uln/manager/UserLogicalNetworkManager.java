@@ -40,7 +40,7 @@ public final class UserLogicalNetworkManager implements AutoCloseable {
     private final SubnetListener subnetListener;
     private final SwitchListener switchListener;
 
-    private static final UlnMappingEngine ulnMapper = new UlnMappingEngine();
+    private final UlnMappingEngine ulnMapper;
     private static UserLogicalNetworkManager instance = null;
 
     private UserLogicalNetworkManager() {
@@ -55,6 +55,7 @@ public final class UserLogicalNetworkManager implements AutoCloseable {
 
         LOG.info("Start logical element listerners on logical network ...");
 
+        ulnMapper = new UlnMappingEngine();
         routerListener = new RouterListener(executor);
         edgeListener = new EdgeListener(executor);
         endpointLocationListener = new EndpointLocationListener(executor);
@@ -64,7 +65,6 @@ public final class UserLogicalNetworkManager implements AutoCloseable {
         switchListener = new SwitchListener(executor);
 
         ulnMapper.initialize();
-
         LOG.info("Logical Network Manager: Uln-mapper has Started. threadpool size={}", numCPU * 2);
     }
 
@@ -81,7 +81,7 @@ public final class UserLogicalNetworkManager implements AutoCloseable {
     }
 
     public static UlnMappingEngine getUlnMapper() {
-        return ulnMapper;
+        return instance.ulnMapper;
     }
 
     @Override

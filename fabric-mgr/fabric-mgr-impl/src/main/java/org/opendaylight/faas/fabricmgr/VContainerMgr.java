@@ -15,7 +15,6 @@ import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.faas.fabricmgr.api.VContainerServiceProvider;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VfabricId;
@@ -85,7 +84,7 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
         outputBuilder.setVcTopologyId(vcTopologyId);
 
         // TODO: This should be implemented as datastore listener event.
-        VContainerServiceProvider.getFabricMgrProvider().OnVcCreated(new Uuid(tenantId.getValue()));
+        FabricMgrProvider.getInstance().OnVcCreated(new Uuid(tenantId.getValue()));
 
         List<Vfabric> vfabricList = vcConfig.getVfabric();
         List<NodeId> vfabricIdList = new ArrayList<>();
@@ -97,7 +96,7 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
         }
 
         VContainerConfigMgr vc =
-                VContainerServiceProvider.getFabricMgrProvider().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+                FabricMgrProvider.getInstance().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vc == null) {
             LOG.error("FABMGR: ERROR: createVcontainer: vc is null");
         } else {
