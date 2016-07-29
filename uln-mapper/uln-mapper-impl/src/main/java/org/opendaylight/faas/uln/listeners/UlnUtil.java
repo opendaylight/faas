@@ -24,59 +24,51 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3InputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-//import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 
-public class UlnUtil {
+public final class UlnUtil {
+
+    private UlnUtil(){
+    }
 
     public static CreateLneLayer2Input createLneLayer2Input(Uuid tenantId, NodeId fabricid, LogicalSwitch lsw) {
         CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder();
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid lswId =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
-                        lsw.getUuid().getValue());
         builder.setTenantId(new TenantId(tenantId.getValue()));
-        builder.setLswUuid(lswId);
-        builder.setName(lswId.getValue());
+        builder.setLswUuid(UlnUtil.convertToYangUuid(lsw.getUuid()));
+        builder.setName(UlnUtil.convertToYangUuid(lsw.getUuid()).getValue());
         builder.setVfabricId(fabricid);
         return builder.build();
     }
 
     public static CreateLneLayer3Input createLneLayer3Input(Uuid tenantId, NodeId fabricId, LogicalRouter lr) {
         CreateLneLayer3InputBuilder builder = new CreateLneLayer3InputBuilder();
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid lrId =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
-                        lr.getUuid().getValue());
         builder.setTenantId(new TenantId(tenantId.getValue()));
-        builder.setLrUuid(lrId);
-        builder.setName(lrId.getValue());
+        builder.setLrUuid(UlnUtil.convertToYangUuid(lr.getUuid()));
+        builder.setName(UlnUtil.convertToYangUuid(lr.getUuid()).getValue());
         builder.setVfabricId(fabricId);
         return builder.build();
     }
 
     public static org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid convertToYangUuid(
             Uuid faasUuid) {
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid yangUuid =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
+        return new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid(
                         faasUuid.getValue());
-        return yangUuid;
     }
 
     public static org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress convertToYang130715MacAddress(
             MacAddress ulnMac) {
-        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress mac =
-                new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress(
+        return new org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress(
                         ulnMac.getValue());
-        return mac;
     }
 
     public static EndpointAttachInfo createEpAttachmentInput(EndpointLocation epLocation, Subnet subnet, Port epPort) {
-        EndpointAttachInfo info = null;
+        EndpointAttachInfo info;
 
         Uuid epFaasUuid = epLocation.getUuid();
 
         org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId nodeId = epLocation.getNodeId();
         NodeConnectorId nodeConnectorId = epLocation.getNodeConnectorId();
 
-        // IpAddress gatewayIpAddr = subnet.getExternalGateways().get(0).getExternalGateway();
+        //TODO IpAddress gatewayIpAddr = subnet.getExternalGateways().get(0).getExternalGateway();
         IpAddress gatewayIpAddr = subnet.getVirtualRouterIp();
         MacAddress macAddress = epPort.getMacAddress();
         IpAddress ipAddress = epPort.getPrivateIps().get(0).getIpAddress();
