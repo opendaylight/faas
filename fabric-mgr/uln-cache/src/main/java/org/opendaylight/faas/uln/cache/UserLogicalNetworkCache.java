@@ -44,6 +44,12 @@ public final class UserLogicalNetworkCache {
 
     private final Uuid tenantId;
 
+    //From 3555 to 3999 are reserved glogl tag. assuming it is VLAN based for now
+    public static final int GLOBAL_END_TAG = 3999;
+    public static final int GLOBAL_START_TAG = 3555;
+
+    private short global_tag = GLOBAL_START_TAG;
+
     private Map<Uuid, LogicalSwitchMappingInfo> lswStore;
     private Map<Uuid, LogicalRouterMappingInfo> lrStore;
 
@@ -75,6 +81,11 @@ public final class UserLogicalNetworkCache {
 
     public Uuid getTenantId() {
         return tenantId;
+    }
+
+
+    public synchronized int getGlobalTag() {
+        return this.global_tag ++;
     }
 
     /**
