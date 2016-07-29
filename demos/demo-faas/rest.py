@@ -309,6 +309,7 @@ if __name__ == "__main__":
     put(controller, DEFAULT_PORT, get_service_function_chains_uri(), get_service_function_chains_data(), True)
     print "sending service function paths"
     put(controller, DEFAULT_PORT, get_service_function_paths_uri(), get_service_function_paths_data(), True)
-    #print "create service path"
-    #post(controller, DEFAULT_PORT, get_create_service_path_uri(), get_create_service_path_data(), True)
+
+    print "create service path"
+    post(controller, DEFAULT_PORT, get_create_service_path_uri(), get_create_service_path_data(), True)
 
