@@ -303,6 +303,20 @@ def rpc_reg_inter_conn_endpoint_data(fabricId, epId, ipaddr):
        }
     }
 
+def rpc_reg_inter_conn_endpoint_data_withmac(fabricId, epId, macaddr, ipaddr):
+    return {
+        "input" : {
+           "fabric-id": fabricId,
+           "endpoint-uuid":epId,
+           "mac-address":macaddr,
+           "ip-address":ipaddr,
+            "logical-location": {
+                "node-id":"lsw-inter-con",
+                "tp-id":"inter-con-p-1"
+            }
+       }
+    }
+
 def rpc_reg_external_gw_ep_data(fabricid, epId, ipaddr, pDevice, pPort):
     return {
         "input" : {
@@ -346,6 +360,20 @@ def rpc_locate_endpoint_data(fabricId, epId, pDevice, pPort):
                 "node-ref": OVS_BR_P % (NODE_ID_OVSDB + "/bridge/" + pDevice),
                 "tp-ref": OVS_TP_P % (NODE_ID_OVSDB + "/bridge/" + pDevice, pPort),
                 "access-type":"exclusive"
+            }
+       }
+    }
+
+def rpc_locate_endpoint_data_vlan(fabricId, epId, pDevice, pPort, vlan):
+    return {
+      "input" : {
+           "fabric-id": fabricId,
+           "endpoint-id":epId,
+            "location": {
+                "node-ref": OVS_BR_P % (NODE_ID_OVSDB + "/bridge/" + pDevice),
+                "tp-ref": OVS_TP_P % (NODE_ID_OVSDB + "/bridge/" + pDevice, pPort),
+                "access-type":"vlan",
+                "access-segment":vlan
             }
        }
     }
@@ -550,21 +578,25 @@ if __name__ == "__main__":
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("fabric:1", "10.0.0.1", "10.0.0.0/24", "lsw-inter-con"), True)
     post(controller, DEFAULT_PORT, rpc_create_gateway_uri(), rpc_create_gateway_data("fabric:2", "10.0.0.2", "10.0.0.0/24", "lsw-inter-con"), True)
 
+    print "create layer3 inter-connect endpoint..."
+    pause()
+    #post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data("fabric:1", UUID_EPX_1, "10.0.0.2"), True)
+    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data_withmac("fabric:1", UUID_EPX_1, "80:38:bC:A1:10:02", "10.0.0.2"), True)
+    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data_vlan("fabric:1", UUID_EPX_1,  "s1", "s1-eth1", 300), True)
+    #post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data("fabric:2", UUID_EPX_2, "10.0.0.1"), True)
+    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data_withmac("fabric:2", UUID_EPX_2, "80:38:bC:A1:10:01", "10.0.0.1"), True)
+    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data_vlan("fabric:2", UUID_EPX_2,  "s2", "s2-eth1", 300), True)
+
     print "create layer3 static route..."
     pause()
     post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:1", "172.16.1.14/32", "10.0.0.2", "10.0.0.1"), True)
+    print "Has create layer3 static route...17.16.1.14"
+    pause()
     post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:1", "172.16.2.23/32", "10.0.0.2", "10.0.0.1"), True)
     post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:2", "172.16.1.11/32", "10.0.0.1", "10.0.0.2"), True)
     post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:2", "172.16.1.12/32", "10.0.0.1", "10.0.0.2"), True)
-    post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:2", "172.16.2.13/32", "10.0.0.1", "10.0.0.2"), True)
+    post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:2", "172.16.1.13/32", "10.0.0.1", "10.0.0.2"), True)
     post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:2", "172.16.2.22/32", "10.0.0.1", "10.0.0.2"), True)
-
-    print "create layer3 inter-connect endpoint..."
-    pause()
-    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data("fabric:1", UUID_EPX_1, "10.0.0.2"), True)
-    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:1", UUID_EPX_1,  "s1", "s1-eth1"), True)
-    post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(), rpc_reg_inter_conn_endpoint_data("fabric:2", UUID_EPX_2, "10.0.0.1"), True)
-    post(controller, DEFAULT_PORT, rpc_locate_endpoint_uri(), rpc_locate_endpoint_data("fabric:2", UUID_EPX_2,  "s2", "s2-eth1"), True)
 
     #----------------------------------- NAT -------------------------------------
     print "enable NAT Function..."
@@ -580,4 +612,5 @@ if __name__ == "__main__":
     # add default routing
     post(controller, DEFAULT_PORT, rpc_add_route_uri(), rpc_add_route("fabric:2", "192.168.2.0/24", "192.168.1.1", "192.168.1.0"), True)
     # add NAT function
-    post(controller, DEFAULT_PORT, rpc_add_function_uri(), rpc_add_function_data("fabric:2", "172.16.1.14", "192.168.1.2"), True)
+    post(controller, DEFAULT_PORT, rpc_add_function_uri(), rpc_add_function_data("fabric:2", "192.168.1.2", "172.16.1.14"), True)
+
