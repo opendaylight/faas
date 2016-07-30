@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>uln-mapper-aggregator</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.3-Beryllium-SR3</version>
     <relativePath>../</relativePath>
   </parent>
 

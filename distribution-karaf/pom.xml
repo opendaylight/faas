@@ -11,13 +11,13 @@
   <parent>
     <groupId>org.opendaylight.controller</groupId>
     <artifactId>karaf-parent</artifactId>
-    <version>1.6.3-SNAPSHOT</version>
+    <version>1.6.3-Beryllium-SR3</version>
     <relativePath />
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
   <artifactId>faas-karaf</artifactId>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.0.3-Beryllium-SR3</version>
   <packaging>pom</packaging>
 
   <prerequisites>
@@ -25,10 +25,10 @@
   </prerequisites>
 
   <properties>
-    <odl.version>1.6.3-SNAPSHOT</odl.version>
-    <branding.version>1.2.3-SNAPSHOT</branding.version>
-    <mdsal.version>1.2.3-SNAPSHOT</mdsal.version>
-    <features.faas.version>1.0.3-SNAPSHOT</features.faas.version>
+    <odl.version>1.6.3-Beryllium-SR3</odl.version>
+    <branding.version>1.2.3-Beryllium-SR3</branding.version>
+    <mdsal.version>1.2.3-Beryllium-SR3</mdsal.version>
+    <features.faas.version>1.0.3-Beryllium-SR3</features.faas.version>
   </properties>
   
   <dependencyManagement>
