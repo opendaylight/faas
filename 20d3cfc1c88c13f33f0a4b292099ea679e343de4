@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7a6b29fe_39b66bdd",
+        "filename": "uln-mapper/uln-mapper-impl/src/main/java/org/opendaylight/faas/uln/manager/UlnMappingEngine.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 3234
+      },
+      "writtenOn": "2016-08-01T09:26:03Z",
+      "side": 1,
+      "message": "this nodeId is a device node. \nthere are some sample datas in /demos/integrations/uln_3EPG.py",
+      "range": {
+        "startLine": 364,
+        "startChar": 37,
+        "endLine": 364,
+        "endChar": 59
+      },
+      "revId": "20d3cfc1c88c13f33f0a4b292099ea679e343de4",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
