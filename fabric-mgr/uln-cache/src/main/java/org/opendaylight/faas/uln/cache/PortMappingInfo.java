@@ -18,7 +18,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 public class PortMappingInfo {
 
     private Port port;
-    private TpId renderedDeviceId;
+    private TpId renderedLogicalPortId;
     private boolean serviceHasBeenRendered;
     private boolean isToBeDeleted;
     private Set<Uuid> lrLswEdgeList;
@@ -32,17 +32,17 @@ public class PortMappingInfo {
     }
 
     public void markAsRendered(TpId renderedPortId) {
-        this.renderedDeviceId = renderedPortId;
+        this.renderedLogicalPortId = renderedPortId;
         this.serviceHasBeenRendered = true;
 
     }
 
-    public TpId getRenderedDeviceId() {
-        return renderedDeviceId;
+    public TpId getRenderedLogicalPortId() {
+        return renderedLogicalPortId;
     }
 
     public void setRenderedDeviceId(TpId renderedTpId) {
-        this.renderedDeviceId = renderedTpId;
+        this.renderedLogicalPortId = renderedTpId;
     }
 
     public boolean hasServiceBeenRendered() {

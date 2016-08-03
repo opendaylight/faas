@@ -8,6 +8,9 @@
 
 package org.opendaylight.faas.uln.cache;
 
+import java.util.HashMap;
+import java.util.Map;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 /**
@@ -19,6 +22,7 @@ public final class RenderedRouter {
     private final NodeId parentId;
     private final NodeId fabricId;
     private final NodeId routerID;
+    private Map<NodeId, Uuid> gateways;
 
 
     /**
@@ -32,6 +36,7 @@ public final class RenderedRouter {
         this.parentId = parentId;
         this.fabricId = fabricId;
         this.routerID = routerID;
+        this.gateways = new HashMap<>();
     }
 
     public NodeId getFabricId() {
@@ -46,6 +51,16 @@ public final class RenderedRouter {
         return routerID;
     }
 
+    public Map<NodeId, Uuid> getGateways() {
+        return gateways;
+    }
 
+    public void addGateway(NodeId lsw, Uuid gatewayPort) {
+        gateways.put(lsw, gatewayPort);
+    }
+
+    public void removeGateway(NodeId lsw) {
+        gateways.remove(lsw);
+    }
 
 }

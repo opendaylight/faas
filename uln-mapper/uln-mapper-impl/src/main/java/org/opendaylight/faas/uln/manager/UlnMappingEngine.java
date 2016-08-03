@@ -93,10 +93,10 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleClassifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleClassifier.Direction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,6 +114,7 @@ import org.slf4j.LoggerFactory;
 public class UlnMappingEngine {
 
     private static final Logger LOG = LoggerFactory.getLogger(UlnMappingEngine.class);
+
     private static final String PV_SFC_TYPE_NAME = "sfc-chain-name";
     private static final String PV_PERMIT_TYPE_NAME = "action-definition-id";
     private static final String PV_ACTION_VALUE_ALLOW = "Action-Allow";
@@ -130,12 +131,20 @@ public class UlnMappingEngine {
     private FabricMgrProvider fmgr;
 
     /**
+     * constructor - initialize the data members.
      * Initialize the worker thread and the cache object.
      */
     public UlnMappingEngine() {
 
         fmgr = FabricMgrProvider.getInstance();
-        this.ulnStore = fmgr.getCacheStore();
+        if (fmgr != null) {
+            this.ulnStore = fmgr.getCacheStore();
+        }
+
+        if (ulnStore == null) {
+            LOG.error("Failed to get fabricmgrprovider or uln store!");
+        }
+
         this.lswLswPairStore = new HashMap<>();
         this.exec = Executors.newSingleThreadExecutor();
         /*
@@ -145,6 +154,10 @@ public class UlnMappingEngine {
         this.workerThreadLock = new Semaphore(-1);
     }
 
+    /**
+     * LogicalSwitch creation handler.
+     * @param lsw - logical switch object.
+     */
     public synchronized void handleLswCreateEvent(LogicalSwitch lsw) {
         Uuid tenantId = lsw.getTenantId();
 
@@ -155,7 +168,7 @@ public class UlnMappingEngine {
             LOG.error("FABMGR: ERROR: handleLswCreateEvent: uln is null");
             return;
         }
-        if (uln.isLswAlreadyCached(lsw) == true) {
+        if (uln.isLswAlreadyCached(lsw)) {
             LOG.error("FABMGR: ERROR: handleLswCreateEvent: lsw already exist");
             return;
         }
@@ -181,6 +194,10 @@ public class UlnMappingEngine {
                 " uln : " + uln.toString() + "lsw:" +  lsw.toString());
     }
 
+    /**
+     * Logical Router creation handler.
+     * @param lr - the Logical Router object.
+     */
     public synchronized void handleLrCreateEvent(LogicalRouter lr) {
         Uuid tenantId = lr.getTenantId();
 
@@ -201,6 +218,10 @@ public class UlnMappingEngine {
         this.workerThreadLock.release();
     }
 
+    /**
+     * Subnet object creation handler.
+     * @param subnet - the subnet object.
+     */
     public synchronized void handleSubnetCreateEvent(Subnet subnet) {
         Uuid tenantId = subnet.getTenantId();
 
@@ -230,6 +251,10 @@ public class UlnMappingEngine {
         uln.updateLSWsConnectedToSubnet(subnet);
     }
 
+    /**
+     * Logical Port Creation handler.
+     * @param port - logical Port object to be created.
+     */
     public synchronized void handlePortCreateEvent(Port port) {
         Uuid tenantId = port.getTenantId();
 
@@ -284,6 +309,10 @@ public class UlnMappingEngine {
         this.renderPortOnLsw(tenantId, fabricId, uln, lsw, lswPortInfo);
     }
 
+    /**
+     * End point binding creation handler.
+     * @param epLocation - the binding between logical port and physical location.
+     */
     public synchronized void handleEndpointLocationCreateEvent(EndpointLocation epLocation) {
         Uuid tenantId = epLocation.getTenantId();
 
@@ -314,7 +343,7 @@ public class UlnMappingEngine {
 
         PortMappingInfo epPort = uln.findEpPortFromEpLocation(epLocation);
         if (epPort == null) {
-            LOG.debug("FABMGR: renderEpRegistration: epPort not in cache");
+            LOG.debug("FABMGR: renderEpRegistration: epPort not in cache, the logical port in the location is not valid!");
             return;
         }
 
@@ -364,7 +393,9 @@ public class UlnMappingEngine {
         //Find the fabric location of the end point belongs.
         NodeId fabricId = null;
         Optional<TerminationPoint> opt = FabMgrDatastoreUtil.readData(
-                    LogicalDatastoreType.OPERATIONAL, FabMgrYangDataUtil.createFabricTpPath(epLocation.getNodeId().getValue(), epLocation.getNodeConnectorId().getValue()));
+                    LogicalDatastoreType.OPERATIONAL,
+                    FabMgrYangDataUtil.createFabricTpPath(epLocation.getNodeId().getValue(),
+                    epLocation.getNodeConnectorId().getValue()));
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
             FabricPortAug aug = tp.getAugmentation(FabricPortAug.class);
@@ -375,7 +406,8 @@ public class UlnMappingEngine {
         }
 
         if (fabricId == null) {
-            LOG.error("Failed to locate a vaid fabric for eplocation {} {}" , epLocation.getNodeId(), epLocation.getNodeConnectorId());
+            LOG.error("Failed to locate a vaid fabric for eplocation {} {}" ,
+                    epLocation.getNodeId(), epLocation.getNodeConnectorId());
             return ;
         }
 
@@ -407,7 +439,7 @@ public class UlnMappingEngine {
         //Register end point
         EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
 
-        this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(), lswPort.getRenderedDeviceId(),
+        this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(), lswPort.getRenderedLogicalPortId(),
                 endpoint);
         uln.setLswIdOnEpLocation(epLocation, lsw.getLsw().getUuid());
         uln.setLswPortIdOnEpLocation(epLocation, lswPort.getPort().getUuid());
@@ -418,28 +450,35 @@ public class UlnMappingEngine {
         uln.markSubnetAsRendered(subnet.getSubnet()); // subnet being rendered meaning its LSW has
                                                       // been chosen and rendered.
 
-        //L3 Rendering
+        // L3 Rendering
         EdgeMappingInfo lrLswEdge = uln.findLswLrEdge(lsw);
-        if (lrLswEdge == null) {
-            LOG.debug("FABMGR: renderEpRegistration: lswLr Edge not in cache");
-            return;
-        }
+        if (lrLswEdge != null) {
+            PortMappingInfo lrPort = uln.findLrPortOnEdge(lrLswEdge);
+            if (lrPort == null) {
+                LOG.debug("FABMGR: renderEpRegistration: lr Port for the Edge not in cache");
+                return;
+            }
 
-        PortMappingInfo lrPort = uln.findLrPortOnEdge(lrLswEdge);
-        if (lrPort == null) {
-            LOG.debug("FABMGR: renderEpRegistration: lr Port for the Edge not in cache");
-            return;
-        }
+            LogicalRouterMappingInfo lr = uln.findLrFromItsPort(lrPort.getPort());
+            if (lr == null) {
+                LOG.debug("FABMGR: renderEpRegistration: lr not in cache");
+                return;
+            }
 
-        LogicalRouterMappingInfo lr = uln.findLrFromItsPort(lrPort.getPort());
-        if (lr == null) {
-            LOG.debug("FABMGR: renderEpRegistration: lr not in cache");
-            return;
-        }
+            if (lr.hasServiceBeenRenderedOnFabric(fabricId)) {
+                this.renderLogicalRouter(tenantId, fabricId, uln, lr.getLr());
+            } else if (lr.getRenderedRouterOnFabric(fabricId).getGateways().get(lsw) == null){
 
-        if (lr.hasServiceBeenRenderedOnFabric(fabricId))
-        {
-            this.renderLogicalRouter(tenantId, fabricId, uln, lr.getLr());
+               lr.getRenderedRouterOnFabric(fabricId).addGateway(lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(),
+                       this.fmgr.createLrLswGateway(
+                       UlnUtil.convertToYangUuid(tenantId),
+                       fabricId,
+                       lr.getRenderedDeviceIdOnFabric(fabricId),
+                       lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(),
+                       subnet.getSubnet().getVirtualRouterIp(),
+                       subnet.getSubnet().getIpPrefix()));
+            }
+
         }
 
     }
@@ -473,10 +512,57 @@ public class UlnMappingEngine {
          * information in UlserLogicalNetworkCache. Instead we cache it in this
          * class. Also note that one EPG may contain multiple LSWs, so really we
          * should find a set of LSws to a set of LSW mapping. But since the real
-         * fix for Bug 5191 is to change the ULN model, we only put a simple fix here.
+         * fix for Bug 5191 is to change the ULN model, we only put a simple fix
+         * here.
          */
-        //TODO - we need to handle this fabric by fabric.
-         this.doFindLswToLswPair(tenantId, uln, edge);
+        // TODO - we need to handle this fabric by fabric.
+        this.doFindLswToLswPair(tenantId, uln, edge);
+
+        List<Subnet> subnets = new ArrayList<>();
+        List<LogicalSwitchMappingInfo> llsws = new ArrayList<>();
+        List<LogicalSwitchMappingInfo> rlsws = new ArrayList<>();
+
+        PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
+        PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
+
+        LogicalRouterMappingInfo leftLr = uln.findLrFromItsPort(leftPort.getPort());
+        LogicalRouterMappingInfo rightLr = uln.findLrFromItsPort(rightPort.getPort());
+
+        List<EdgeMappingInfo> edges = uln.findLrLswEdge(leftLr);
+        for (EdgeMappingInfo edge2 : edges) {
+            PortMappingInfo port = uln.findLswPortOnEdge(edge2);
+            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
+            llsws.add(lsw);
+            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
+            subnets.add(subnet.getSubnet());
+        }
+
+        List<EdgeMappingInfo> edges2 = uln.findLrLswEdge(rightLr);
+        for (EdgeMappingInfo edge2 : edges2) {
+            PortMappingInfo port = uln.findLswPortOnEdge(edge2);
+            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
+            rlsws.add(lsw);
+            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
+            subnets.add(subnet.getSubnet());
+        }
+
+        String aclName = this.createAclForGroupComm(subnets);
+
+        List<NodeId> fabrics = uln.findRenderedLswsFabricsFromLr(leftLr);
+        for (NodeId fabricId : fabrics) {
+            for (LogicalSwitchMappingInfo lsw : llsws) {
+                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
+                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
+            }
+        }
+
+        List<NodeId> fabrics2 = uln.findRenderedLswsFabricsFromLr(rightLr);
+        for (NodeId fabricId : fabrics2) {
+            for (LogicalSwitchMappingInfo lsw : rlsws) {
+                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
+                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
+            }
+        }
     }
 
     final class RenderableInfo {
@@ -631,8 +717,8 @@ public class UlnMappingEngine {
                         edge.getUuid().getValue(), entry.getValue().getRouterID(),
                         info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID().getValue(),
                         gatewayIp.getIpv4Address().getValue(), ipPrefix.getIpv4Prefix().getValue());
-                this.renderLrLswEdge(tenantId, entry.getKey(), uln, entry.getValue().getRouterID(),
-                        info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID(), gatewayIp, ipPrefix, edge);
+                info.getLr().getRenderedRouterOnFabric(entry.getKey()).addGateway(info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID(),    this.renderLrLswEdge(tenantId, entry.getKey(), uln, entry.getValue().getRouterID(),
+                        info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID(), gatewayIp, ipPrefix, edge));
             }
 
             /*
@@ -699,7 +785,7 @@ public class UlnMappingEngine {
 
         Uuid portId = portList.get(0);
         LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
-        new HashMap<>();
+        Map <NodeId, List<NodeId>> flsws = new HashMap<>();
         if (lsw != null) { // port on a logical switch.
             if (!lsw.hasServiceBeenRendered()) {
                 LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lsw not rendered: {}",
@@ -726,37 +812,45 @@ public class UlnMappingEngine {
                 }
 
                 if (uln.findEdgeType(theEdge) == LogicalEdgeType.LR_LR) {
-                    LOG.error("The policy should be applied to the switch side, not the router side.");
-                    return;
-                }
-
-                LOG.error("The policy should be applied to the switch side, not the router side.");
-                return;
-
-                /*
-                 * Due to Bug 5146, we cannot apply ACL on LR. We need to find
-                 * the LSW which connects to this LR and apply ACL rules there.
-                 *
-                 * Due to Bug 5191, we have to apply ACL to both EPGs. So, we
-                 * cannot render ACL until both LSWs are rendered.
-                 */
-                //TODO under
-                /*
-                if (this.applyAclToBothEpgs) {
-                    this.doAclCreateOnLswPair(tenantId, uln, lr, ruleGroups);
-                    return;
-                    //TODO above
-                } else {
+                    LOG.info("The policy is between two routers.");
+                    /*
+                     * Due to Bug 5146, we cannot apply ACL on LR. We need to
+                     * find the LSW which connects to this LR and apply ACL
+                     * rules there.
+                     *
+                     * Due to Bug 5191, we have to apply ACL to both EPGs. So,
+                     * we cannot render ACL until both LSWs are rendered.
+                     */
+                    // TODO under
                     for (Map.Entry<NodeId, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
                         flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(lr, entry.getKey()));
                     }
                     uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
                     for (Map.Entry<NodeId, List<NodeId>> entry : flsws.entrySet()) {
                         for (NodeId swid : entry.getValue()) {
-                            this.renderSecurityRuleGroups(tenantId, entry.getKey(),uln,swid, ruleGroups);
+                            this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, swid, ruleGroups);
                         }
                     }
-                } */
+
+                    if (this.applyAclToBothEpgs) {
+                        flsws.clear();
+                        PortMappingInfo left = uln.findLeftPortOnEdge(theEdge.getEdge());
+                        uln.findRightPortOnEdge(theEdge.getEdge());
+                        LogicalRouterMappingInfo theOtherLr = uln.findLrFromPortId(left.getPort().getUuid());
+                        for (Map.Entry<NodeId, RenderedRouter> entry : theOtherLr.getRenderedRouters().entrySet()) {
+                            flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(theOtherLr, entry.getKey()));
+                        }
+                        //uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
+                        for (Map.Entry<NodeId, List<NodeId>> entry : flsws.entrySet()) {
+                            for (NodeId swid : entry.getValue()) {
+                                this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, swid, ruleGroups);
+                            }
+                        }
+                        //this.doAclCreateOnLswPair(tenantId, uln, lr, ruleGroups);
+                        //return;
+                        // TODO above
+                    }
+                }
             }
         }
 
@@ -818,16 +912,41 @@ public class UlnMappingEngine {
     }
 
     private NodeId renderLogicalRouter(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, LogicalRouter lr) {
-        NodeId renderedLrId = fmgr.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), fabricId, uln, UlnUtil.convertToYangUuid(lr.getUuid()));
-
-        if (lr.isPublic())
-        {
-            //TODO
+        if (lr.isPublic()) {
+            //TODO - the prefix should come from admin, so does the tag. we hard code it for now.
             char[] prefix = {255,255,255,0};
-            this.fmgr.setupExternalGW(UlnUtil.convertToYangUuid(tenantId), uln, UlnUtil.convertToYangUuid(lr.getUuid()), getPublicIP(lr, uln), new IpPrefix(prefix), 1);
+            this.fmgr.setupExternalGW(
+                    UlnUtil.convertToYangUuid(tenantId),
+                    uln,
+                    UlnUtil.convertToYangUuid(lr.getUuid()),
+                    getPublicIP(lr, uln),
+                    new IpPrefix(prefix),
+                    1);
         }
 
-        return renderedLrId;
+        NodeId rr =  fmgr.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), fabricId, uln, UlnUtil.convertToYangUuid(lr.getUuid()));
+
+        List<Subnet> subnets = new ArrayList<>();
+        List<LogicalSwitchMappingInfo> lsws = new ArrayList<>();
+        List<EdgeMappingInfo> edges = uln.findLrLswEdge(uln.getLrStore().get(lr.getUuid()));
+        for (EdgeMappingInfo edge: edges) {
+            PortMappingInfo port = uln.findLswPortOnEdge(edge);
+            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
+            lsws.add(lsw);
+            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
+            subnets.add(subnet.getSubnet());
+        }
+        String aclName = this.createAclForGroupComm(subnets);
+
+        List<NodeId> fabrics = uln.findRenderedLswsFabricsFromLr(uln.getLrStore().get(lr.getUuid()));
+        for (NodeId fId : fabrics) {
+            for (LogicalSwitchMappingInfo lsw :lsws) {
+                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fId);
+                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fId, rsw.getSwitchID(), aclName);
+            }
+        }
+
+        return rr;
     }
 
     private void renderEpRegistration(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation,
@@ -856,11 +975,14 @@ public class UlnMappingEngine {
         lswPortInfo.markAsRendered(renderedPortId);
     }
 
-    private void renderLrLswEdge(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId lrId, NodeId lswId,
+    private org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderLrLswEdge(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId lrId, NodeId lswId,
             IpAddress gatewayIpAddr, IpPrefix ipPrefix, Edge edge) {
-        fmgr.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), fabricId, lrId, lswId, gatewayIpAddr,
+        org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid id = fmgr.createLrLswGateway(UlnUtil.convertToYangUuid(tenantId), fabricId, lrId, lswId, gatewayIpAddr,
                 ipPrefix);
+
         uln.markEdgeAsRendered(edge);
+
+        return id;
     }
 
     private void renderSecurityRuleGroups(Uuid tenantId, NodeId fabricId,UserLogicalNetworkCache uln, NodeId nodeId,
@@ -1601,12 +1723,12 @@ public class UlnMappingEngine {
         return accessListEntriesBuilder.build();
     }
 
-    private String createAclForGroupComm(Map<Ipv4Prefix, Ipv4Prefix> pairs) {
-        String aclName = "GroupComm" + pairs.hashCode(); //TODO, this is not right :(
+    private String createAclForGroupComm(List<Subnet> subnets) {
+        String aclName = "GroupComm" + subnets.hashCode(); //TODO, this is not right :(
         /*
          * create Access List with entries and IID, then write transaction to data store
          */
-        AccessListEntries aceList = this.createAceListFromIPv4PrefixPairs(pairs);
+        AccessListEntries aceList = this.createAceListFromIPv4PrefixPairs(subnets);
         AclBuilder aclBuilder = new AclBuilder();
         aclBuilder.setAclName(aclName).setKey(new AclKey(aclName, Ipv4Acl.class)).setAccessListEntries(aceList);
 
@@ -1623,11 +1745,13 @@ public class UlnMappingEngine {
     }
 
 
-    private AccessListEntries createAceListFromIPv4PrefixPairs(Map<Ipv4Prefix, Ipv4Prefix> pairs) {
+    private AccessListEntries createAceListFromIPv4PrefixPairs(List<Subnet> subnets) {
         List<Ace> aceList = new ArrayList<>();
-        for (Map.Entry<Ipv4Prefix, Ipv4Prefix> entry: pairs.entrySet()) {
-            Ace ace = this.createAceForGroupComm(entry.getKey(), entry.getValue());
+        for (Subnet entrys: subnets) {
+            for (Subnet entryd: subnets) {
+            Ace ace = this.createAceForGroupComm(entrys.getIpPrefix().getIpv4Prefix(), entryd.getIpPrefix().getIpv4Prefix());
             aceList.add(ace);
+        }
         }
 
         AccessListEntriesBuilder accessListEntriesBuilder = new AccessListEntriesBuilder();

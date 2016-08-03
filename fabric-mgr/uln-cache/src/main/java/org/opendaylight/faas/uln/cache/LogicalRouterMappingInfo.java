@@ -50,6 +50,11 @@ public final class LogicalRouterMappingInfo {
         return lr;
     }
 
+    public RenderedRouter getRenderedRouterOnFabric(NodeId fabricId) {
+        return renderedRouters.get(fabricId);
+    }
+
+
     public NodeId getRenderedDeviceIdOnFabric(NodeId fabricId) {
         return renderedRouters.get(fabricId).getRouterID();
     }

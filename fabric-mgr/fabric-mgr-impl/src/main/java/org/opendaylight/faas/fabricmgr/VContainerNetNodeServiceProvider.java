@@ -629,7 +629,6 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         inputb.setLogicalDevice(ld);
         inputb.setLogicalPort(tpid);
 
-
         PortFunctionBuilder pfb = new PortFunctionBuilder();
         IpMappingBuilder ipmb = new IpMappingBuilder();
         ipmb.setIpMappingEntry(

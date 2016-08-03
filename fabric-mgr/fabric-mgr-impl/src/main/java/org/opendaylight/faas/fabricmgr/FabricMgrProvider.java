@@ -485,6 +485,8 @@ public class FabricMgrProvider implements AutoCloseable {
         return new IpPrefix(cprefix);
     }
 
+
+
     //TODO
     private IpAddress getGatewayIP(TenantId tid,NodeId lswId)
     {
@@ -958,7 +960,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return null; // ---->
         }
 
-        return this.netNodeServiceProvider.createLrLswGateway(vfabricId, lrId, lswId, gatewayIpAddr, ipPrefix);
+        return  this.netNodeServiceProvider.createLrLswGateway(vfabricId, lrId, lswId, gatewayIpAddr, ipPrefix);
     }
 
     public void removeLrLswGateway(Uuid tenantId, NodeId fabricId,  NodeId lrId, IpAddress gatewayIpAddr) {
