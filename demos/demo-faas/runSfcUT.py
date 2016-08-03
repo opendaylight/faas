@@ -68,13 +68,13 @@ def post(host, port, uri, data, debug=False):
 def get_acl_uri():
     return "/restconf/config/ietf-access-control-list:access-lists/"
 
-def get_acl_data():
+def get_acl_data(nsi, nsp):
     return {
     "ietf-access-control-list:access-lists": {
         "acl": [
             {
             "acl-name":"acl-sfc-redirect-1",
-            "acl-type":"",
+            "acl-type":"ipv4-acl",
             "access-list-entries":{
                 "ace" :[
                     { 
@@ -93,8 +93,8 @@ def get_acl_data():
                      "actions": {
                                         "dest-ip":"192.168.50.71",
                                         "dest-port":6633,
-                                        "nsi":255,
-                                        "nsp":33
+                                        "nsi":nsi,
+                                        "nsp":nsp
                      }
                     }
                 ]}
@@ -128,11 +128,15 @@ if __name__ == "__main__":
     if controller == None:
         sys.exit("No controller set.")
 
-    print "put SFC redirect ACL"
-    put(controller, DEFAULT_PORT, get_acl_uri(), get_acl_data(), True)
+    print "put SFC redirect ACL, param 1 is nsi value, param 2 is nsp value"
+    if (len(sys.argv) == 3):
+        put(controller, DEFAULT_PORT, get_acl_uri(), get_acl_data(sys.argv[1], sys.argv[2]), True)
+    else:
+        print "Need nsi and nsp values!!"
+        sys.exit(0)
 
     pause()
-    print "put acl-tcp-deny ACL to Logic Switch"
+    print "put acl-sfc-redirect-1 ACL to Logic Switch"
     post(controller, DEFAULT_PORT, rpc_add_acl_uri(), rpc_add_switch_acl_data("vswitch-1", "acl-sfc-redirect-1"), True)
 
 
