@@ -65,7 +65,7 @@ def rpc_compose_fabric_data(behavior):
     devNodes = list()
     
     for switch in switches:
-        if switch["type"] == "gbp":
+        if (switch["type"] == "gbp") and (switch.has_key("nodeid")):
             devNodes.append({"device-ref" : DEVICE_REF_PATTERN % switch['nodeid'], "vtep-ip":switch['vtep']})
 
     return {

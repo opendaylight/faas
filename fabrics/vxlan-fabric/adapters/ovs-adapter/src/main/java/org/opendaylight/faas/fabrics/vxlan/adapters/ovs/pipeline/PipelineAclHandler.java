@@ -57,6 +57,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.ni
 import com.google.common.collect.Lists;
 
 public class PipelineAclHandler extends AbstractServiceInstance {
+
     private static final Integer ACL_MATCH_PRIORITY = 60000;
     private static final Integer GPE_TUNNEL_IN_PRIORITY = 61001;
     private static final Integer TRAFFIC_BEHAVIOR_RULE_PRIORITY = 1;
