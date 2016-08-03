@@ -808,7 +808,7 @@ public final class UserLogicalNetworkCache {
         {
             LogicalSwitchMappingInfo lsw = this.findLswFromLrLswEdge(lrLswEdge);
             if (lsw != null && lsw.getRenderedSwitches().containsKey(fabricId)) {
-                lsws.add(lsw.getRenderedDeviceIdOnFabric(fabricId));
+                lsws.add(lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID());
             }
         }
         return lsws;
@@ -1091,7 +1091,7 @@ public final class UserLogicalNetworkCache {
             for (NodeId fabricId : info.getRenderedSwitches().keySet())
             {
                 sb.append(", renderedDevId="
-                    + ((info.getRenderedDeviceIdOnFabric(fabricId) == null) ? "null" : info.getRenderedDeviceIdOnFabric(fabricId).getValue()));
+                    + ((info.getRenderedSwitchOnFabric(fabricId) == null) ? "null" : info.getRenderedSwitchOnFabric(fabricId).getSwitchID().getValue()));
             }
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }

@@ -17,6 +17,7 @@ import java.util.concurrent.Future;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService;
@@ -28,6 +29,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetAllFabricsOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddAclInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddPortFunctionInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.AddStaticRouteInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.ClearStaticRouteInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.CreateGatewayInputBuilder;
@@ -48,6 +50,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayerBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer2InfoBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunctionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
@@ -241,15 +245,6 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 CreateLogicalRouterOutput createLrOutput = output.getResult();
                 NodeId nodeId = createLrOutput.getNodeId();
                 builder.setLneId(new VcLneId(nodeId));
-
-                //binding router to each of logical switch.
-                //TODO TODO TODO
-                for (Port lswId : input.getPort())
-                {
-                   createLrLswGateway(new Uuid (input.getTenantId().getValue()),
-                            new NodeId(fabricId), nodeId, new NodeId(lswId.getPortId()), null, null);
-                }
-                //
 
                 return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
             }
@@ -528,7 +523,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public Uuid createLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+    public Uuid createLrLswGateway(NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
             IpPrefix ipPrefix) {
         CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
@@ -621,6 +616,25 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: removeAcl: delAcl RPC failed.", e);
         }
+    }
+
+    //TODO
+    public void addPortFunction(FabricId fabricId, NodeId ld, TpId tpid, Ipv4Address ext, Ipv4Address internal)
+    {
+        AddPortFunctionInputBuilder inputb = new AddPortFunctionInputBuilder();
+        inputb.setFabricId(fabricId);
+        inputb.setLogicalDevice(ld);
+        inputb.setLogicalPort(tpid);
+
+
+        PortFunctionBuilder pfb = new PortFunctionBuilder();
+        IpMappingBuilder ipmb = new IpMappingBuilder();
+        ipmb.setExternalIp(ext);
+        ipmb.setInternalIp(internal);
+
+        inputb.setPortFunction(pfb.build());
+
+        this.fabServiceService.addPortFunction(inputb.build());
     }
 
     @Override

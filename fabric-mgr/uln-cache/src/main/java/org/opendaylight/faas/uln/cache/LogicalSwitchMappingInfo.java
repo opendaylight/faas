@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
+ * Copyright (c) 2015, 2016 Huawei Technologies and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -21,6 +21,7 @@ public final class LogicalSwitchMappingInfo {
 
     private final LogicalSwitch lsw;
     private final Map<NodeId, RenderedSwitch> renderedSwitches;
+    private final Map<RenderedLinkKey<RenderedSwitch>, RenderedLayer2Link> renderedL2Links;
     private boolean isToBeDeleted;
     private final Set<Uuid> securityRuleGroupsList;
     private final Set<Uuid> portList;
@@ -34,12 +35,21 @@ public final class LogicalSwitchMappingInfo {
         this.portList = new HashSet<>();
         this.lrLswEdgeList = new HashSet<>();
         this.renderedSwitches = new HashMap<>();
+        this.renderedL2Links = new HashMap<>();
     }
 
     public void addRenderedSwitch(RenderedSwitch renderedSW) {
         this.renderedSwitches.put(renderedSW.getFabricId(),renderedSW);
     }
 
+    public void addRenderedLink(RenderedLinkKey key, RenderedLayer2Link renderedLink) {
+        this.renderedL2Links.put(key,renderedLink);
+    }
+
+
+    public Map<RenderedLinkKey<RenderedSwitch>, RenderedLayer2Link> getRenderedL2Links() {
+        return renderedL2Links;
+    }
 
     public Map<NodeId, RenderedSwitch> getRenderedSwitches() {
         return this.renderedSwitches;
@@ -50,8 +60,8 @@ public final class LogicalSwitchMappingInfo {
         return lsw;
     }
 
-    public NodeId getRenderedDeviceIdOnFabric(NodeId fabricID) {
-        return renderedSwitches.get(fabricID).getSwitchID();
+    public RenderedSwitch getRenderedSwitchOnFabric(NodeId fabricID) {
+        return renderedSwitches.get(fabricID);
     }
 
     public boolean hasServiceBeenRendered() {
