@@ -57,6 +57,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.ni
 import com.google.common.collect.Lists;
 
 public class PipelineAclHandler extends AbstractServiceInstance {
+
     private static final Integer ACL_MATCH_PRIORITY = 60000;
     private static final Integer GPE_TUNNEL_IN_PRIORITY = 61001;
     private static final Integer TRAFFIC_BEHAVIOR_RULE_PRIORITY = 1;
@@ -197,8 +198,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             Matches aclMatches = ace.getMatches();
 
             MatchBuilder matchBuilder = new MatchBuilder();
-            // matchBuilder = MatchUtils.createTunnelIDMatch(matchBuilder,
-            // BigInteger.valueOf(segmentationId.longValue()));
+
             OfMatchUtils.addNxRegMatch(matchBuilder,
                     new OfMatchUtils.RegMatch(PipelineTrafficClassifier.REG_SRC_TUN_ID, segmentationId));
 
