@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
+ * Copyright (c) 2015, 2016 Huawei Technologies and others. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -20,6 +20,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.faas.fabricmgr.FabMgrDatastoreUtil;
+import org.opendaylight.faas.fabricmgr.FabMgrYangDataUtil;
 import org.opendaylight.faas.fabricmgr.FabricMgrProvider;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.uln.cache.EdgeMappingInfo;
@@ -72,6 +74,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.PortNumber;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev160218.acl.transport.header.fields.DestinationPortRangeBuilder;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev160218.acl.transport.header.fields.SourcePortRangeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.RedirectBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.redirect.redirect.type.TunnelBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.redirect.redirect.type.tunnel.tunnel.type.NshBuilder;
@@ -89,8 +92,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleClassifier;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.security.rule.group.security.rule.RuleClassifier.Direction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -361,7 +367,20 @@ public class UlnMappingEngine {
         LogicalRouterMappingInfo lr = uln.findLrFromItsPort(lrPort.getPort());
 
         // Find the fabric location of the end point belongs.
-        NodeId fabricId = new NodeId(epLocation.getNodeId().getValue());
+        NodeId fabricId = null;
+        Optional<TerminationPoint> opt = FabMgrDatastoreUtil.readData(
+                    LogicalDatastoreType.OPERATIONAL, FabMgrYangDataUtil.createFabricTpPath(epLocation.getNodeId().getValue(), epLocation.getNodeConnectorId().getValue()));
+        if (opt.isPresent()) {
+            TerminationPoint tp = opt.get();
+            Class<FabricCapableDevice> a ;
+            //NodeId fabricId = tp.getAugmentation(a);  TODO
+        } else {
+            LOG.error("Failed to locate a vaid fabric for eplocation {} {}" , epLocation.getNodeId(), epLocation.getNodeConnectorId());
+            return ;
+        }
+
+
+
 
         /*
          * If we get here, then we have received all the
@@ -399,7 +418,7 @@ public class UlnMappingEngine {
 
         EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
 
-        this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedDeviceIdOnFabric(fabricId), lswPort.getRenderedDeviceId(),
+        this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(), lswPort.getRenderedDeviceId(),
                 endpoint);
         uln.setLswIdOnEpLocation(epLocation, lsw.getLsw().getUuid());
         uln.setLswPortIdOnEpLocation(epLocation, lswPort.getPort().getUuid());
@@ -594,10 +613,10 @@ public class UlnMappingEngine {
             for (Map.Entry<NodeId, RenderedRouter> entry : renderedRouters.entrySet()) {
                 LOG.debug("FABMGR: doEdgeCreate: edgeId={}, lrDevId={}, lswDevId={}, gateway={}, ipPrefix={}",
                         edge.getUuid().getValue(), entry.getValue().getRouterID(),
-                        info.getLsw().getRenderedDeviceIdOnFabric(entry.getKey()).getValue(),
+                        info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID().getValue(),
                         gatewayIp.getIpv4Address().getValue(), ipPrefix.getIpv4Prefix().getValue());
                 this.renderLrLswEdge(tenantId, entry.getKey(), uln, entry.getValue().getRouterID(),
-                        info.getLsw().getRenderedDeviceIdOnFabric(entry.getKey()), gatewayIp, ipPrefix, edge);
+                        info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID(), gatewayIp, ipPrefix, edge);
             }
 
             /*
@@ -741,13 +760,7 @@ public class UlnMappingEngine {
     }
 
     private NodeId renderLogicalSwitch(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
-        NodeId renderedLswId = fmgr.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, UlnUtil.convertToYangUuid(lsw.getUuid()), uln);
-        if (renderedLswId != null) {
-            RenderedSwitch renderedSW = new RenderedSwitch(fabricId, renderedLswId,
-                    new NodeId(lsw.getUuid().getValue()));
-            uln.getLswStore().get(lsw.getUuid()).addRenderedSwitch(renderedSW);
-        }
-        return renderedLswId;
+        return fmgr.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, UlnUtil.convertToYangUuid(lsw.getUuid()), uln);
     }
 
     private NodeId renderLogicalRouter(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, LogicalRouter lr) {
@@ -779,7 +792,7 @@ public class UlnMappingEngine {
             return;
         }
 
-        NodeId renderedLswId = lswInfo.getRenderedDeviceIdOnFabric(fabricId);
+        NodeId renderedLswId = lswInfo.getRenderedSwitchOnFabric(fabricId).getSwitchID();
         TpId renderedPortId = fmgr
             .createLogicalPortOnLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, renderedLswId);
         lswPortInfo.markAsRendered(renderedPortId);
@@ -1391,7 +1404,7 @@ public class UlnMappingEngine {
          */
         uln.removePortFromLsw(lsw.getLsw(), lswPort.getPort());
 
-        this.removeEpRegistrationFromFabric(tenantId, new NodeId(epInfo.getEpLocation().getNodeId().getValue()), uln, lsw.getRenderedDeviceIdOnFabric(new NodeId(epInfo.getEpLocation().getNodeId().getValue())), epInfo.getRenderedDeviceId());
+        this.removeEpRegistrationFromFabric(tenantId, new NodeId(epInfo.getEpLocation().getNodeId().getValue()), uln, lsw.getRenderedSwitchOnFabric(new NodeId(epInfo.getEpLocation().getNodeId().getValue())).getSwitchID(), epInfo.getRenderedDeviceId());
 
         uln.removeEpLocationFromCache(epLocation);
     }
