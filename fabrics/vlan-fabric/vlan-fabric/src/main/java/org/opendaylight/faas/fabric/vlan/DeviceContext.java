@@ -11,6 +11,7 @@ package org.opendaylight.faas.fabric.vlan;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -36,6 +37,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.network.topology.topology.node.Config;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vlan.rev160615.VlanVrfRoute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAclKey;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -148,16 +152,44 @@ public class DeviceContext {
         MdSalUtils.wrapperSubmit(trans, executor);
     }
 
-   public InstanceIdentifier<VlanVrfRoute> createVrfRouteIId(int vrf) {
-       return deviceIId
+    public void syncAcl(List<LogicSwitchContext> lswCtxs) {
+        WriteTransaction trans = databroker.newWriteOnlyTransaction();
+        boolean updated = false;
+        for (LogicSwitchContext lswCtx : lswCtxs) {
+            int vlan = lswCtx.getVlan();
+            if (!bdifs.containsKey(vlan)) {
+                continue;
+            } else {
+                String bdifid = createBdIfId(vlan);
+
+                for (String aclName : lswCtx.gtAcls()) {
+                    InstanceIdentifier<FabricAcl> aclIid = deviceIId.augmentation(FabricCapableDevice.class)
+                            .child(Config.class).child(Bdif.class, new BdifKey(bdifid))
+                            .child(FabricAcl.class, new FabricAclKey(aclName));
+
+                    FabricAclBuilder builder = new FabricAclBuilder();
+                    builder.setFabricAclName(aclName);
+                    trans.merge(LogicalDatastoreType.OPERATIONAL, aclIid, builder.build(), true);
+                    updated = true;
+                }
+            }
+        }
+        if (updated) {
+            MdSalUtils.wrapperSubmit(trans);
+        } else {
+            trans.cancel();
+        }
+    }
+
+    public InstanceIdentifier<VlanVrfRoute> createVrfRouteIId(int vrf) {
+        return deviceIId
                .augmentation(FabricCapableDevice.class)
                .child(Config.class)
                .child(Vrf.class, new VrfKey(createVrfId(vrf)))
                .augmentation(VlanVrfRoute.class);
+    }
 
-   }
-
-   private void syncToDom(int vlan, boolean delete) {
+    private void syncToDom(int vlan, boolean delete) {
         String bdid = createBdId(vlan);
         InstanceIdentifier<BridgeDomain> bdIId = deviceIId.augmentation(FabricCapableDevice.class)
                 .child(Config.class).child(BridgeDomain.class, new BridgeDomainKey(bdid));
