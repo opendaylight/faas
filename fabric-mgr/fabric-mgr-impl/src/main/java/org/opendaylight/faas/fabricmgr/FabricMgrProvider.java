@@ -191,7 +191,7 @@ public class FabricMgrProvider implements AutoCloseable {
         builder.setTenantId(new TenantId(tenantId));
         builder.setLswUuid(lsw);
         builder.setName(lsw.getValue());
-        // builder.setSegmentId(); //TODO leave it to FaaS to determine for now.
+        //builder.setSegmentId(); //leave it to FaaS to determine for now.
 
         NodeId renderedLSWId = null;
         Future<RpcResult<CreateLneLayer2Output>> result = this.vcNetNodeService.createLneLayer2(builder.build());

@@ -26,6 +26,7 @@ import org.opendaylight.faas.fabricmgr.FabricMgrProvider;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.uln.cache.EdgeMappingInfo;
 import org.opendaylight.faas.uln.cache.EndpointLocationMappingInfo;
+import org.opendaylight.faas.uln.cache.LogicalEdgeType;
 import org.opendaylight.faas.uln.cache.LogicalRouterMappingInfo;
 import org.opendaylight.faas.uln.cache.LogicalSwitchMappingInfo;
 import org.opendaylight.faas.uln.cache.PortMappingInfo;
@@ -305,10 +306,10 @@ public class UlnMappingEngine {
 
     private void doEndpointLocationCreate(Uuid tenantId, UserLogicalNetworkCache uln, EndpointLocation epLocation) {
         /*
-         * When an endpoint is online, we call Fabric's registerEndpoint(). However, before
-         * we do that, we need to make sure that LogicalSwitch and Logical Port are created
-         * (rendered) on Fabric. Not only that, we must also have to have the Subnet information
-         * ready, because Fabric's registerEndpoint() need the information in Subnet.
+         * When an end point is online, we call Fabric's registerEndpoint(). However, before
+         * we do that, we need to make sure that LogicalSwitch, Logical Port and Logical router are created
+         * and rendered on Fabric. Not only that, we must also have to have the Subnet information
+         * ready.
          */
 
         PortMappingInfo epPort = uln.findEpPortFromEpLocation(epLocation);
@@ -360,26 +361,23 @@ public class UlnMappingEngine {
             return;
         }
 
-        //Find the logical router
-        EdgeMappingInfo lrLswEdge = uln.findLswLrEdge(lsw);
-        PortMappingInfo lrPort = uln.findLrPortOnEdge(lrLswEdge);
-        LogicalRouterMappingInfo lr = uln.findLrFromItsPort(lrPort.getPort());
-
-        // Find the fabric location of the end point belongs.
+        //Find the fabric location of the end point belongs.
         NodeId fabricId = null;
         Optional<TerminationPoint> opt = FabMgrDatastoreUtil.readData(
                     LogicalDatastoreType.OPERATIONAL, FabMgrYangDataUtil.createFabricTpPath(epLocation.getNodeId().getValue(), epLocation.getNodeConnectorId().getValue()));
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
-            FabricPortAug a = tp.getAugmentation(FabricPortAug.class);
-            fabricId = a.getPortRef().getValue().firstKeyOf(Node.class).getNodeId();
-        } else {
+            FabricPortAug aug = tp.getAugmentation(FabricPortAug.class);
+            if (aug != null && aug.getPortRef() != null && aug.getPortRef().getValue().firstKeyOf(Node.class) != null) {
+                LOG.error("Invalid FabricPortAugumentation!");
+                fabricId = aug.getPortRef().getValue().firstKeyOf(Node.class).getNodeId();
+            }
+        }
+
+        if (fabricId == null) {
             LOG.error("Failed to locate a vaid fabric for eplocation {} {}" , epLocation.getNodeId(), epLocation.getNodeConnectorId());
             return ;
         }
-
-
-
 
         /*
          * If we get here, then we have received all the
@@ -392,6 +390,7 @@ public class UlnMappingEngine {
          *
          */
 
+        //L2 rendering
         if (!lsw.hasServiceBeenRenderedOnFabric(fabricId)) {
             NodeId renderedSwitchId = this.renderLogicalSwitch(tenantId, fabricId, uln, lsw.getLsw());
             if (renderedSwitchId == null) {
@@ -405,16 +404,7 @@ public class UlnMappingEngine {
             uln.addPortToLsw(lsw.getLsw(), lswPort.getPort());
         }
 
-        //then ask fabmgr to render l3
-        //check if the vrf rendered with the new switch
-        //connect them all
-        //update routing table ..a
-        //check if the vrf rendered with the new switch
-        if (lr.hasServiceBeenRenderedOnFabric(fabricId))
-        {
-            this.renderLogicalRouter(tenantId, fabricId, uln, lr.getLr());
-        }
-
+        //Register end point
         EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
 
         this.renderEpRegistration(tenantId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(), lswPort.getRenderedDeviceId(),
@@ -427,6 +417,31 @@ public class UlnMappingEngine {
         uln.markEdgeAsRendered(subnetLswEdge.getEdge());
         uln.markSubnetAsRendered(subnet.getSubnet()); // subnet being rendered meaning its LSW has
                                                       // been chosen and rendered.
+
+        //L3 Rendering
+        EdgeMappingInfo lrLswEdge = uln.findLswLrEdge(lsw);
+        if (lrLswEdge == null) {
+            LOG.debug("FABMGR: renderEpRegistration: lswLr Edge not in cache");
+            return;
+        }
+
+        PortMappingInfo lrPort = uln.findLrPortOnEdge(lrLswEdge);
+        if (lrPort == null) {
+            LOG.debug("FABMGR: renderEpRegistration: lr Port for the Edge not in cache");
+            return;
+        }
+
+        LogicalRouterMappingInfo lr = uln.findLrFromItsPort(lrPort.getPort());
+        if (lr == null) {
+            LOG.debug("FABMGR: renderEpRegistration: lr not in cache");
+            return;
+        }
+
+        if (lr.hasServiceBeenRenderedOnFabric(fabricId))
+        {
+            this.renderLogicalRouter(tenantId, fabricId, uln, lr.getLr());
+        }
+
     }
 
 
@@ -469,6 +484,16 @@ public class UlnMappingEngine {
         private final LogicalSwitchMappingInfo lsw ;
         private final LogicalRouterMappingInfo lr;
         private final SubnetMappingInfo subnet ;
+
+        public RenderableInfo(boolean canRenderEdge, LogicalSwitchMappingInfo lsw, LogicalRouterMappingInfo lr,
+                SubnetMappingInfo subnet) {
+            super();
+            this.canRenderEdge = canRenderEdge;
+            this.lsw = lsw;
+            this.lr = lr;
+            this.subnet = subnet;
+        }
+
         public boolean isCanRenderEdge() {
             return canRenderEdge;
         }
@@ -480,14 +505,6 @@ public class UlnMappingEngine {
         }
         public SubnetMappingInfo getSubnet() {
             return subnet;
-        }
-        public RenderableInfo(boolean canRenderEdge, LogicalSwitchMappingInfo lsw, LogicalRouterMappingInfo lr,
-                SubnetMappingInfo subnet) {
-            super();
-            this.canRenderEdge = canRenderEdge;
-            this.lsw = lsw;
-            this.lr = lr;
-            this.subnet = subnet;
         }
     }
 
@@ -682,21 +699,40 @@ public class UlnMappingEngine {
 
         Uuid portId = portList.get(0);
         LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
-        Map<NodeId, List<NodeId>> flsws = new HashMap<>();
-        if (lsw != null) {
+        new HashMap<>();
+        if (lsw != null) { // port on a logical switch.
             if (!lsw.hasServiceBeenRendered()) {
                 LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lsw not rendered: {}",
                         lsw.getLsw().getUuid().getValue());
             } else {
                 Map<NodeId, RenderedSwitch> renderedSwitches = lsw.getRenderedSwitches();
                 for (Map.Entry<NodeId, RenderedSwitch> entry : renderedSwitches.entrySet()) {
-                this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, entry.getValue().getSwitchID(), ruleGroups);
+                    this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, entry.getValue().getSwitchID(), ruleGroups);
                 }
             }
             uln.addSecurityRuleGroupsToLsw(lsw.getLsw(), ruleGroups);
-        } else {
+        } else { // port on a logical router
+            //
+            //Currently we don't support apply acl rules on logical router
+            // we will see if we should remove this limitation in future releases.
+            //
             LogicalRouterMappingInfo lr = uln.findLrFromPortId(portId);
             if (lr != null) {
+
+                EdgeMappingInfo theEdge = uln.findTheEdge(uln.getPortStore().get(portId));
+                if (uln.findEdgeType(theEdge) == LogicalEdgeType.LR_LSW) {
+                    LOG.error("The policy should be applied to the switch side, not the router side.");
+                    return;
+                }
+
+                if (uln.findEdgeType(theEdge) == LogicalEdgeType.LR_LR) {
+                    LOG.error("The policy should be applied to the switch side, not the router side.");
+                    return;
+                }
+
+                LOG.error("The policy should be applied to the switch side, not the router side.");
+                return;
+
                 /*
                  * Due to Bug 5146, we cannot apply ACL on LR. We need to find
                  * the LSW which connects to this LR and apply ACL rules there.
@@ -705,6 +741,7 @@ public class UlnMappingEngine {
                  * cannot render ACL until both LSWs are rendered.
                  */
                 //TODO under
+                /*
                 if (this.applyAclToBothEpgs) {
                     this.doAclCreateOnLswPair(tenantId, uln, lr, ruleGroups);
                     return;
@@ -719,7 +756,7 @@ public class UlnMappingEngine {
                             this.renderSecurityRuleGroups(tenantId, entry.getKey(),uln,swid, ruleGroups);
                         }
                     }
-                }
+                } */
             }
         }
 
@@ -749,10 +786,15 @@ public class UlnMappingEngine {
                 Uuid lswId2 = this.lswLswPairStore.get(lswId);
                 LogicalSwitchMappingInfo lsw2 = uln.findLswFromLswId(lswId2);
 
-                lsw2.getRenderedSwitches();
-                for (Map.Entry<NodeId, RenderedSwitch> entry2 : rlsws.entrySet()) {
-                    this.renderSecurityRuleGroupsOnPair(tenantId, entry2.getKey(),uln, entry.getValue().getSwitchID(),
-                            entry2.getValue().getSwitchID(), ruleGroups);
+                Map<NodeId, RenderedSwitch> llsws = lsw2.getRenderedSwitches();
+                for (Map.Entry<NodeId, RenderedSwitch> entry2 : llsws.entrySet()) {
+                    this.renderSecurityRuleGroupsOnPair(
+                            tenantId,uln,
+                            entry.getKey(),
+                            entry.getValue().getSwitchID(),
+                            entry2.getKey(),
+                            entry2.getValue().getSwitchID(),
+                            ruleGroups);
                 }
             }
         }
@@ -846,8 +888,8 @@ public class UlnMappingEngine {
         uln.markSecurityRuleGroupsAsRendered(ruleGroups);
     }
 
-    private void renderSecurityRuleGroupsOnPair(Uuid tenantId, NodeId fabricId,UserLogicalNetworkCache uln, NodeId nodeId,
-            NodeId nodeId2, SecurityRuleGroups ruleGroups) {
+    private void renderSecurityRuleGroupsOnPair(Uuid tenantId, UserLogicalNetworkCache uln, NodeId fabricId, NodeId nodeId,
+            NodeId fabricId2, NodeId nodeId2, SecurityRuleGroups ruleGroups) {
         /*
          * One SecurityRuleGroups contains a list SecurityRuleGroup.
          * One SecurityRuleGroup contains a list of SecurityRule.
@@ -865,7 +907,7 @@ public class UlnMappingEngine {
             for (SecurityRule rule : ruleList) {
                 String aclName = this.createAclFromSecurityRule(rule);
                 this.renderSecurityRule(tenantId, fabricId, uln, nodeId, ruleGroupsMappingInfo, aclName);
-                this.renderSecurityRule(tenantId, fabricId, uln, nodeId2, ruleGroupsMappingInfo, aclName);
+                this.renderSecurityRule(tenantId, fabricId2, uln, nodeId2, ruleGroupsMappingInfo, aclName);
             }
         }
 
@@ -1064,7 +1106,7 @@ public class UlnMappingEngine {
                 if (info.hasServiceBeenRendered() == true) {
                     LOG.debug("FABMGR: processPendingUlnRequests: doLogicalSwitchRemove: {}",
                             info.getLsw().getUuid().getValue());
-                    this.doLogicalSwtichRemove(tenantId, uln, info.getLsw());
+                    this.doLogicalSwitchRemove(tenantId, uln, info.getLsw());
                 } else {
                     LOG.debug("FABMGR: processPendingUlnRequests: removeLswFromCache: {}",
                             info.getLsw().getUuid().getValue());
@@ -1430,7 +1472,7 @@ public class UlnMappingEngine {
         fmgr.unregisterEpFromLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, lswDevId, epUuid);
     }
 
-    private void doLogicalSwtichRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
+    private void doLogicalSwitchRemove(Uuid tenantId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
         LogicalSwitchMappingInfo lswInfo = uln.findLswFromLswId(lsw.getUuid());
         if (lswInfo == null) {
             LOG.error("FABMGR: ERROR: doLogicalSwtichRemove: lsw not in cache: {}", lsw.getUuid().getValue());
@@ -1559,6 +1601,79 @@ public class UlnMappingEngine {
         return accessListEntriesBuilder.build();
     }
 
+    private String createAclForGroupComm(Map<Ipv4Prefix, Ipv4Prefix> pairs) {
+        String aclName = "GroupComm" + pairs.hashCode(); //TODO, this is not right :(
+        /*
+         * create Access List with entries and IID, then write transaction to data store
+         */
+        AccessListEntries aceList = this.createAceListFromIPv4PrefixPairs(pairs);
+        AclBuilder aclBuilder = new AclBuilder();
+        aclBuilder.setAclName(aclName).setKey(new AclKey(aclName, Ipv4Acl.class)).setAccessListEntries(aceList);
+
+        InstanceIdentifier<Acl> aclPath =
+                InstanceIdentifier.builder(AccessLists.class).child(Acl.class, new AclKey(aclName, Ipv4Acl.class)).build();
+
+        boolean transactionSuccessful =
+                SfcDataStoreAPI.writePutTransactionAPI(aclPath, aclBuilder.build(), LogicalDatastoreType.CONFIGURATION);
+        if (!transactionSuccessful) {
+            LOG.error("FABMGR: ERROR: createAclFromSecurityRule:writePutTransactionAPI failed");
+        }
+
+        return aclName;
+    }
+
+
+    private AccessListEntries createAceListFromIPv4PrefixPairs(Map<Ipv4Prefix, Ipv4Prefix> pairs) {
+        List<Ace> aceList = new ArrayList<>();
+        for (Map.Entry<Ipv4Prefix, Ipv4Prefix> entry: pairs.entrySet()) {
+            Ace ace = this.createAceForGroupComm(entry.getKey(), entry.getValue());
+            aceList.add(ace);
+        }
+
+        AccessListEntriesBuilder accessListEntriesBuilder = new AccessListEntriesBuilder();
+        accessListEntriesBuilder.setAce(aceList);
+
+        return accessListEntriesBuilder.build();
+    }
+
+
+    //Only IPv4 supported
+    private Ace createAceForGroupComm(Ipv4Prefix source, Ipv4Prefix dest)
+    {
+        AceIpBuilder aceIpBuilder = new AceIpBuilder();
+        aceIpBuilder.setDscp(new Dscp((short) 1)); // TODO: Do we have to setup DSCP?
+
+        AceIpv4Builder aceIpv4Builder = new AceIpv4Builder();
+        aceIpv4Builder.setSourceIpv4Network(source);
+        aceIpv4Builder.setDestinationIpv4Network(dest);
+        aceIpBuilder.setAceIpVersion(aceIpv4Builder.build()).setProtocol((short) 4);
+
+        MatchesBuilder matchesBuilder = new MatchesBuilder();
+        matchesBuilder.setInputInterface("interface-" + 1); // TODO: do we need to set this?
+        matchesBuilder.setAceType(aceIpBuilder.build());
+
+        /*
+         * Create acl Action based on RuleAction. Although RuleAction
+         * is a list, we only take the first element for our conversion,
+         * because the ietf model only has one action per ace. By contrast,
+         * in the ULN model one security_rule can have multiple rule_classifier and rule_action
+         * instance.
+         */
+        ActionsBuilder actionsBuilder = new ActionsBuilder();
+        PermitBuilder permitBuilder = new PermitBuilder();
+        permitBuilder.setPermit(true);
+        actionsBuilder.setPacketHandling(permitBuilder.build());
+
+        // set matches and actions
+        String aceRuleName = "GroupAllow";
+        AceBuilder aceBuilder = new AceBuilder();
+        aceBuilder.setRuleName(aceRuleName);
+        aceBuilder.setMatches(matchesBuilder.build());
+        aceBuilder.setActions(actionsBuilder.build());
+
+        return aceBuilder.build();
+    }
+
     private Ace createAceFromSecurityRuleEntry(RuleClassifier classifier, List<RuleAction> ruleActionList) {
 
         /*
@@ -1641,7 +1756,7 @@ public class UlnMappingEngine {
             return null;
         }
         List<ParameterValue> actions = ruleAction.getParameterValue();
-        if (actions == null || actions.isEmpty() == true) {
+        if (actions == null || actions.isEmpty()) {
             /*
              * The policy rules inherited from GBP may allow null P-V list
              * in actions. Although from real use case perspective, null P-V list
@@ -1658,11 +1773,11 @@ public class UlnMappingEngine {
             String pvName = pv.getName().getValue();
             if (pvName.equals(PV_PERMIT_TYPE_NAME)) {
                 String actionValue = pv.getStringValue();
-                if (actionValue.equals(PV_ACTION_VALUE_ALLOW) == true) {
+                if (actionValue.equals(PV_ACTION_VALUE_ALLOW)) {
                     PermitBuilder permitBuilder = new PermitBuilder();
                     permitBuilder.setPermit(true);
                     actionsBuilder.setPacketHandling(permitBuilder.build());
-                } else if (actionValue.equals(PV_ACTION_VALUE_DENY) == true) {
+                } else if (actionValue.equals(PV_ACTION_VALUE_DENY)) {
                     DenyBuilder denyBuilder = new DenyBuilder();
                     denyBuilder.setDeny(true);
                     actionsBuilder.setPacketHandling(denyBuilder.build());
@@ -1709,7 +1824,7 @@ public class UlnMappingEngine {
 
     public synchronized void handleSubnetUpdateEvent(Subnet subnet) {
         Uuid tenantId = subnet.getTenantId();
-        if (this.isUlnAlreadyInCache(tenantId) == false) {
+        if (!this.isUlnAlreadyInCache(tenantId)) {
             LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: this is update; ULN is supposed to be in cache: {}",
                     tenantId.getValue());
             return;
@@ -1721,11 +1836,11 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isSubnetAlreadyCached(subnet) == false) {
+        if (!uln.isSubnetAlreadyCached(subnet)) {
             LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: subnet should have been cached");
             // fall through. Treat this case as create event
         } else {
-            if (uln.isSubnetRendered(subnet) == true) {
+            if (uln.isSubnetRendered(subnet)) {
                 LOG.error("FABMGR: ERROR: handleSubnetUpdateEvent: subnet has already been rendered: {}",
                         subnet.getUuid().getValue());
                 return;
@@ -1754,11 +1869,11 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isEdgeAlreadyCached(edge) == false) {
+        if (!uln.isEdgeAlreadyCached(edge)) {
             LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: edge should have been cached");
             // fall through. Treat this case as create event
         } else {
-            if (uln.isEdgeRendered(edge) == true) {
+            if (uln.isEdgeRendered(edge)) {
                 LOG.error("FABMGR: ERROR: handleEdgeUpdateEvent: edge has already been rendered: {}",
                         edge.getUuid().getValue());
                 return;
@@ -1775,7 +1890,7 @@ public class UlnMappingEngine {
 
     public synchronized void handleEndpointLocationUpdateEvent(EndpointLocation epLocation) {
         Uuid tenantId = epLocation.getTenantId();
-        if (this.isUlnAlreadyInCache(tenantId) == false) {
+        if (!this.isUlnAlreadyInCache(tenantId)) {
             LOG.error(
                     "FABMGR: ERROR: handleEndpointLocationUpdateEvent: this is update; ULN is supposed to be in cache: {}",
                     tenantId.getValue());
@@ -1788,11 +1903,11 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isEpLocationAlreadyCached(epLocation) == false) {
+        if (!uln.isEpLocationAlreadyCached(epLocation)) {
             LOG.error("FABMGR: ERROR: handleEndpointLocationUpdateEvent: epLocation should have been cached");
             // fall through. Treat this case as create event
         } else {
-            if (uln.isEpLocationRendered(epLocation) == true) {
+            if (uln.isEpLocationRendered(epLocation)) {
                 LOG.error("FABMGR: ERROR: handleEndpointLocationUpdateEvent: epLocation has already been rendered: {}",
                         epLocation.getUuid().getValue());
                 return;
@@ -1821,11 +1936,11 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isPortAlreadyCached(port) == false) {
+        if (!uln.isPortAlreadyCached(port)) {
             LOG.error("FABMGR: ERROR: handlePortUpdateEvent: port should have been cached");
             // fall through. Treat this case as create event
         } else {
-            if (uln.isPortRendered(port) == true) {
+            if (uln.isPortRendered(port)) {
                 LOG.error("FABMGR: ERROR: handlePortUpdateEvent: port has already been rendered: {}",
                         port.getUuid().getValue());
                 return;
@@ -1854,7 +1969,7 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isLrAlreadyCached(lr) == false) {
+        if (!uln.isLrAlreadyCached(lr)) {
             LOG.error("FABMGR: ERROR: handleLrUpdateEvent: lr should have been cached");
             // fall through. Treat this case as create event
         } else {
@@ -1888,11 +2003,11 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isSecurityRuleGroupsAlreadyCached(ruleGroups) == false) {
+        if (!uln.isSecurityRuleGroupsAlreadyCached(ruleGroups)) {
             LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsUpdateEvent: ruleGroups should have been cached");
             // fall through. Treat this case as create event
         } else {
-            if (uln.isSecurityRuleGroupsRendered(ruleGroups) == true) {
+            if (uln.isSecurityRuleGroupsRendered(ruleGroups)) {
                 LOG.error(
                         "FABMGR: ERROR: handleSecurityRuleGroupsUpdateEvent: ruleGroups has already been rendered: {}",
                         ruleGroups.getUuid().getValue());
@@ -1960,7 +2075,7 @@ public class UlnMappingEngine {
 
     @SuppressWarnings("unused")
     private synchronized void createUlnCache(Uuid tenantId) {
-        if (this.isUlnAlreadyInCache(tenantId) == true) {
+        if (this.isUlnAlreadyInCache(tenantId)) {
             LOG.warn("FABMGR: ERROR: createUlnCache: ULN already cached: {}", tenantId.getValue());
             this.ulnStore.remove(tenantId);
         }
@@ -2132,7 +2247,7 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isSecurityRuleGroupsAlreadyCached(ruleGroups) == false) {
+        if (!uln.isSecurityRuleGroupsAlreadyCached(ruleGroups)) {
             LOG.error("FABMGR: ERROR: handleSecurityRuleGroupsRemoveEvent: ruleGroups not in cache");
             return;
         }
@@ -2153,7 +2268,7 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (uln.isSubnetAlreadyCached(subnet) == false) {
+        if (!uln.isSubnetAlreadyCached(subnet)) {
             LOG.error("FABMGR: ERROR: handleSubnetRemoveEvent: subnet not in cache");
             return;
         }
