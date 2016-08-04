@@ -288,7 +288,7 @@ module fabric-types {
         container port-function {
             choice function-type {
                 case ip-mapping {
-                    list ip-mapping {
+                    list ip-mapping-entry {
                         key "external-ip";
                         leaf external-ip {
                             type inet:ipv4-address;

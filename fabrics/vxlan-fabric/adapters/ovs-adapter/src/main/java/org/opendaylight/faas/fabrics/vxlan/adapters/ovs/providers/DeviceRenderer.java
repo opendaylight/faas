@@ -48,7 +48,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.netwo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMapping;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.IpMapping;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingEntry;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.next.hop.options.SimpleNextHop;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
@@ -149,8 +150,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         ribRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, routeIID, this,
                 DataChangeScope.BASE);
 
-        InstanceIdentifier<IpMapping> ipMappingIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
-                .child(Bdif.class).child(PortFunction.class).child(IpMapping.class);
+        InstanceIdentifier<IpMappingEntry> ipMappingIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
+                .child(Bdif.class).child(PortFunction.class).child(IpMappingEntry.class);
         ipMappingListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, ipMappingIID, this,
                 DataChangeScope.BASE);
 
@@ -319,10 +320,10 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                     return null;
                 }
             });
-        } else if (entry.getValue() instanceof IpMapping) {
+        } else if (entry.getValue() instanceof IpMappingEntry) {
             @SuppressWarnings("unchecked")
-            final InstanceIdentifier<IpMapping> ipMappingIid = (InstanceIdentifier<IpMapping>) entry.getKey();
-            final IpMapping newRec = (IpMapping) entry.getValue();
+            final InstanceIdentifier<IpMappingEntry> ipMappingIid = (InstanceIdentifier<IpMappingEntry>) entry.getKey();
+            final IpMappingEntry newRec = (IpMappingEntry) entry.getValue();
             executor.submit(new Callable<Void>() {
 
                 @Override
@@ -427,8 +428,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         } else if (entry instanceof IpMapping) {
 
             @SuppressWarnings("unchecked")
-            final InstanceIdentifier<IpMapping> ipMappingIid = (InstanceIdentifier<IpMapping>) iid;
-            final IpMapping newRec = (IpMapping) entry;
+            final InstanceIdentifier<IpMappingEntry> ipMappingIid = (InstanceIdentifier<IpMappingEntry>) iid;
+            final IpMappingEntry newRec = (IpMappingEntry) entry;
             executor.submit(new Callable<Void>() {
 
                 @Override
@@ -799,7 +800,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
     }
 
-    private void onIpMappingCreate(InstanceIdentifier<IpMapping> iid, IpMapping newRec) {
+    private void onIpMappingCreate(InstanceIdentifier<IpMappingEntry> iid, IpMappingEntry newRec) {
         Long dpid = ctx.getDpid();
         Long segmentationId = null;
 
@@ -817,7 +818,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         }
     }
 
-    private void onIpMappingDelete(InstanceIdentifier<IpMapping> iid, IpMapping newRec) {
+    private void onIpMappingDelete(InstanceIdentifier<IpMappingEntry> iid, IpMappingEntry newRec) {
         Long dpid = ctx.getDpid();
         Long segmentationId = null;
 

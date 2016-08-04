@@ -32,7 +32,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricOptions.TrafficBehavior;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMapping;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingEntry;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.HostRoute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.fabric.rib.VxlanRouteAug;
@@ -240,7 +240,7 @@ public class Openflow13Provider {
         l2Forwarding.programNexthopTunnelOut(dpid, tunnelOfPort, dstTunIpAddress, writeFlow);
     }
 
-    public void updateIpMappingInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress, IpMapping ipMapping,
+    public void updateIpMappingInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress, IpMappingEntry ipMapping,
             boolean writeFlow) {
         String floatingIp = ipMapping.getExternalIp().getValue();
         String fixedIp = ipMapping.getInternalIp().getValue();

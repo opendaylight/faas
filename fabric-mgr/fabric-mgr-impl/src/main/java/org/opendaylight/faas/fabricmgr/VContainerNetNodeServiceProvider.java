@@ -8,12 +8,15 @@
 
 package org.opendaylight.faas.fabricmgr;
 
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
@@ -51,7 +54,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayerBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer2InfoBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunctionBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.IpMappingBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingEntryBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
@@ -83,6 +87,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.UpdateNetNodeLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.ports.Port;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
@@ -90,8 +95,6 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable;
 
 /**
  * VContainerNetNodeServiceProvider implements RPC stub for FaaS Services.
@@ -619,7 +622,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     }
 
     //TODO
-    public int addPortFunction(FabricId fabricId, NodeId ld, TpId tpid, Ipv4Address ext, Ipv4Address internal)
+    public void addIPMapping(FabricId fabricId, NodeId ld, TpId tpid, Ipv4Address ext, Ipv4Address internal)
     {
         AddPortFunctionInputBuilder inputb = new AddPortFunctionInputBuilder();
         inputb.setFabricId(fabricId);
@@ -629,14 +632,17 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
         PortFunctionBuilder pfb = new PortFunctionBuilder();
         IpMappingBuilder ipmb = new IpMappingBuilder();
-        ipmb.setExternalIp(ext);
-        ipmb.setInternalIp(internal);
-      
+        ipmb.setIpMappingEntry(
+                Lists.newArrayList(new IpMappingEntryBuilder()
+                        .setExternalIp(ext)
+                        .setInternalIp(internal)
+                        .build()));
+
+        pfb.setFunctionType(ipmb.build());
+
         inputb.setPortFunction(pfb.build());
 
         this.fabServiceService.addPortFunction(inputb.build());
-      
-        return 0;
     }
 
     @Override

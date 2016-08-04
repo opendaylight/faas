@@ -456,7 +456,7 @@ def rpc_add_function_data(fabricId, extIp, interIp):
            "logical-device" : "vrouter-1",
            "logical-port" : "192.168.1.0",
            "port-function" : {
-               "ip-mapping" :[
+               "ip-mapping-entry" :[
                      { "external-ip" : extIp,
                        "internal-ip" : interIp
                      }
