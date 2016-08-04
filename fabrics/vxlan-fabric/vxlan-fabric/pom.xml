@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>vxlan-fabric-aggregator</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.4-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
