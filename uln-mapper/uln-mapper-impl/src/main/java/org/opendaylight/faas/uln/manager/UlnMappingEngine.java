@@ -74,7 +74,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.PortNumber;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev160218.acl.transport.header.fields.DestinationPortRangeBuilder;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.packet.fields.rev160218.acl.transport.header.fields.SourcePortRangeBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricPortAug;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.RedirectBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.redirect.redirect.type.TunnelBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.access.lists.acl.access.list.entries.ace.actions.packet.handling.redirect.redirect.type.tunnel.tunnel.type.NshBuilder;
@@ -96,7 +96,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -372,6 +371,8 @@ public class UlnMappingEngine {
                     LogicalDatastoreType.OPERATIONAL, FabMgrYangDataUtil.createFabricTpPath(epLocation.getNodeId().getValue(), epLocation.getNodeConnectorId().getValue()));
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
+            FabricPortAug a = tp.getAugmentation(FabricPortAug.class);
+            fabricId = new NodeId(a.getPortRef().getValue().firstIdentifierOf(Node.class).toString());
         } else {
             LOG.error("Failed to locate a vaid fabric for eplocation {} {}" , epLocation.getNodeId(), epLocation.getNodeConnectorId());
             return ;
@@ -761,12 +762,29 @@ public class UlnMappingEngine {
         return fmgr.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, UlnUtil.convertToYangUuid(lsw.getUuid()), uln);
     }
 
+    private IpAddress getPublicIP(LogicalRouter lr, UserLogicalNetworkCache uln)
+    {
+        List<IpAddress> ips = new ArrayList<>();
+        for (Uuid p : lr.getPort())
+        {
+            PortMappingInfo pi = uln.getPortStore().get(p);
+            ips.addAll(pi.getPort().getPublicIps());
+        }
+
+        //TODO
+        return ips.get(0);
+    }
+
     private NodeId renderLogicalRouter(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, LogicalRouter lr) {
         NodeId renderedLrId = fmgr.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), fabricId, uln, UlnUtil.convertToYangUuid(lr.getUuid()));
-        if (renderedLrId != null) {
-            RenderedRouter renderedLr = new RenderedRouter(fabricId, renderedLrId, new NodeId(lr.getUuid().getValue()));
-            uln.getLrStore().get(lr.getUuid()).addRenderedRouter(renderedLr);
+
+        if (lr.isPublic())
+        {
+            //TODO
+            char[] prefix = {255,255,255,0};
+            this.fmgr.setupExternalGW(UlnUtil.convertToYangUuid(tenantId), uln, UlnUtil.convertToYangUuid(lr.getUuid()), getPublicIP(lr, uln), new IpPrefix(prefix), 1);
         }
+
         return renderedLrId;
     }
 

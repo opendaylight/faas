@@ -84,7 +84,7 @@ public final class FabMgrYangDataUtil {
     /**
      * VContainer Topology path for certain tenant.
      * @param tenantId - tenant identifier.
-     * @return
+     * @return - instanceIdentifier of a topology defined by the path.
      */
     public static InstanceIdentifier<Topology> buildVCTopologyPath(String tenantId) {
         return InstanceIdentifier.builder(NetworkTopology.class)
@@ -107,11 +107,6 @@ public final class FabMgrYangDataUtil {
         return augTopoType.child(VcontainerTopology.class);
     }
 
-    /**
-     * build topology path for certain topology id.
-     * @param topoID - topology id
-     * @return
-     */
     public static InstanceIdentifier<Topology> buildTopologyPath(String topoID) {
         return InstanceIdentifier.create(NetworkTopology.class).child(Topology.class, new TopologyKey(new TopologyId(topoID)));
     }

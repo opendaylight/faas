@@ -51,6 +51,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayerBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer2InfoBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunctionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.FunctionType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
@@ -619,7 +620,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     }
 
     //TODO
-    public int addPortFunction(FabricId fabricId, NodeId ld, TpId tpid, Ipv4Address ext, Ipv4Address internal)
+    public void addIPMapping(FabricId fabricId, NodeId ld, TpId tpid, Ipv4Address ext, Ipv4Address internal)
     {
         AddPortFunctionInputBuilder inputb = new AddPortFunctionInputBuilder();
         inputb.setFabricId(fabricId);
@@ -631,12 +632,12 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         IpMappingBuilder ipmb = new IpMappingBuilder();
         ipmb.setExternalIp(ext);
         ipmb.setInternalIp(internal);
-      
+        //TODO
+        pfb.setFunctionType((FunctionType)ipmb.build());
+
         inputb.setPortFunction(pfb.build());
 
         this.fabServiceService.addPortFunction(inputb.build());
-      
-        return 0;
     }
 
     @Override
