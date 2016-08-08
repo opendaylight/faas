@@ -60,33 +60,16 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddApplianceToNetNodeInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddPortsToLneLayer2Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddPortsToLneLayer3Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.AddVfabricToNetNodeInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateChildNetNodeInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateChildNetNodeOutput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer1Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer1Output;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Output;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2OutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3Output;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer3OutputBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RemoveChildNetNodeInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmApplianceFromNetNodeInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmLneLayer1Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmLneLayer2Input;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmLneLayer3Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmNetNodeLogicalPortInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmPortsFromLneLayer2Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmPortsFromLneLayer3Input;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.RmVfabricFromNetNodeInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.UpdateLneLayer3RoutingtableInput;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.UpdateNetNodeLogicalPortInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.ports.Port;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
@@ -138,27 +121,38 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
 
     @Override
-    public Future<RpcResult<CreateLneLayer2Output>> createLneLayer2(CreateLneLayer2Input input) {
-        CreateLogicalSwitchInputBuilder lswInputBuilder = new CreateLogicalSwitchInputBuilder();
-        TenantId tenantId = input.getTenantId();
-        String lswName = input.getName();
+    public Future<RpcResult<CreateLneLayer2Output>> createLneLayer2(
+            CreateLneLayer2Input input) {
+        FabricMgrProvider fmgr = FabricMgrProvider.getInstance();
+        if (fmgr == null) {
+            LOG.error("FABMGR: null FabricMgrProvider");
+            return Futures.immediateFailedFuture(new IllegalArgumentException("fmgr is null!"));
+        }
 
-        FabricId fabricId = new FabricId(input.getVfabricId());
-        lswInputBuilder.setFabricId(fabricId);
-        lswInputBuilder.setName(lswName);
-        VContainerConfigMgr vcMgr =
-                FabricMgrProvider.getInstance().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+        TenantId tenantId = input.getTenantId();
+        VContainerConfigMgr vcMgr = fmgr.getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: {}", tenantId.getValue());
             return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
         }
 
+        FabricId fabricId = new FabricId(input.getVfabricId());
         int l2Resource = vcMgr.getLdNodeConfigDataMgr().getAvailableL2Resource(fabricId);
-        Integer vni = new Integer(l2Resource);
-        lswInputBuilder.setVni(vni);
+        if(l2Resource == 0) {
+            LOG.error("No L2 VNI resoruce avaialble!");
+            return Futures.immediateFailedFuture(new IllegalArgumentException("No L2 VNI resource avaialbe!"));
+        }
+
+        CreateLogicalSwitchInputBuilder lswInputBuilder = new CreateLogicalSwitchInputBuilder();
+        String lswName = input.getName();
+        lswInputBuilder.setFabricId(fabricId);
+        lswInputBuilder.setName(lswName);
+
+        lswInputBuilder.setVni(new Integer(l2Resource));
+        lswInputBuilder.setExternal(false);
 
         LOG.debug("FABMGR: createLneLayer2: lswName={}, fabricId={}, vni={}", lswName, fabricId.getValue(),
-                vni.intValue());
+                l2Resource);
 
         final RpcResultBuilder<CreateLneLayer2Output> resultBuilder = RpcResultBuilder.<CreateLneLayer2Output>success();
         Future<RpcResult<CreateLogicalSwitchOutput>> result =
@@ -173,23 +167,6 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 NodeId nodeId = createLswOutput.getNodeId();
                 builder.setLneId(new VcLneId(nodeId));
 
-                //
-                // create logical ports on the logical switch and binding physical ports to them
-                //
-                for (Port fp : input.getPort()) {
-                    TpId tp = createLogicalPortOnLsw(
-                            new Uuid(input.getTenantId().getValue()),
-                            new NodeId(fabricId),
-                            nodeId,
-                            AccessType.Exclusive,
-                            0);
-                    PortBindingLogicalToFabricInputBuilder inputBuilder = new PortBindingLogicalToFabricInputBuilder();
-                    inputBuilder.setFabricPort(fp.getPortId());
-                    inputBuilder.setFabricId(new FabricId(fabricId));
-                    inputBuilder.setLogicalPort(tp);
-                    this.fabServiceService.portBindingLogicalToFabric(inputBuilder.build());
-                }
-                //Binding over
                 return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
             }
         } catch (Exception e) {
@@ -198,30 +175,6 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
         return Futures.immediateFailedFuture(new IllegalArgumentException("createLogicSwitch RPC failed"));
 
-    }
-
-
-    @Override
-    public Future<RpcResult<Void>> addPortsToLneLayer2(AddPortsToLneLayer2Input input) {
-        for (Port fp : input.getPort())
-        {
-            //TODO
-            TpId tp = this.createLogicalPortOnLsw(
-                    new Uuid(input.getTenantId().getValue()),
-                    input.getVfabricId(),
-                    input.getLneId(),
-                    AccessType.Exclusive,
-                    0);
-
-            PortBindingLogicalToFabricInputBuilder inputBuilder = new PortBindingLogicalToFabricInputBuilder();
-            inputBuilder.setFabricPort(fp.getPortId());
-            inputBuilder.setFabricId(new FabricId(input.getVfabricId()));
-            inputBuilder.setLogicalPort(tp);
-
-            this.fabServiceService.portBindingLogicalToFabric(inputBuilder.build());
-        }
-
-        return null;
     }
 
     @Override
@@ -262,58 +215,17 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
      * Binding a logical port to a fabric port.
      * @param fabricId - fabric identifier.
      * @param tpidF - fabric port id.
+     * @param lsw -  logical device id.
      * @param tpidL - logical port id.
-     * @param lsw - logical device id.
      */
-    public void portBindingLogicalToFabric(FabricId fabricId, TpId tpidF, TpId tpidL, NodeId lsw) {
+    public void portBindingLogicalToFabric(FabricId fabricId, TpId tpidF,
+            NodeId lsw, TpId tpidL) {
         PortBindingLogicalToFabricInputBuilder builder = new PortBindingLogicalToFabricInputBuilder();
-
         builder.setFabricId(fabricId);
         builder.setFabricPort(tpidF);
         builder.setLogicalDevice(lsw);
         builder.setLogicalPort(tpidL);
-
         this.fabServiceService.portBindingLogicalToFabric(builder.build());
-    }
-
-    @Override
-    public Future<RpcResult<Void>> addPortsToLneLayer3(AddPortsToLneLayer3Input input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<CreateLneLayer1Output>> createLneLayer1(CreateLneLayer1Input input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<CreateChildNetNodeOutput>> createChildNetNode(CreateChildNetNodeInput input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> addVfabricToNetNode(AddVfabricToNetNodeInput input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> updateNetNodeLogicalPort(UpdateNetNodeLogicalPortInput input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> rmPortsFromLneLayer2(RmPortsFromLneLayer2Input input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> rmPortsFromLneLayer3(RmPortsFromLneLayer3Input input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> rmVfabricFromNetNode(RmVfabricFromNetNodeInput input) {
-        return null;
     }
 
     @Override
@@ -387,16 +299,6 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     }
 
     @Override
-    public Future<RpcResult<Void>> rmNetNodeLogicalPort(RmNetNodeLogicalPortInput input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> rmLneLayer1(RmLneLayer1Input input) {
-        return null;
-    }
-
-    @Override
     public Future<RpcResult<Void>> updateLneLayer3Routingtable(UpdateLneLayer3RoutingtableInput input) {
 
         //First to remove all the existing route entries.
@@ -422,16 +324,6 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         return this.fabServiceService.addStaticRoute(builder.build());
     }
 
-    @Override
-    public Future<RpcResult<Void>> addApplianceToNetNode(AddApplianceToNetNodeInput input) {
-        return null;
-    }
-
-    @Override
-    public Future<RpcResult<Void>> rmApplianceFromNetNode(RmApplianceFromNetNodeInput input) {
-        return null;
-    }
-
     public List<FabricId> getAllFabrics()
     {
         Future<RpcResult<GetAllFabricsOutput>> result = this.fabService.getAllFabrics();
@@ -452,11 +344,20 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         return Collections.EMPTY_LIST;
     }
 
-    public TpId createLogicalPortOnLsw(Uuid tenantId, NodeId vfabricId, NodeId lswId, AccessType at, long accessSegment) {
+    /**
+     * Create logical Ports on logical switch.
+     * @param fId - fabric identifier.
+     * @param lswId - logical switch identifier.
+     * @param at - access type.
+     * @param accessSegment - access tag.
+     * @return  TpId of the logical Port.
+     */
+    public TpId createLogicalPortOnLsw(NodeId fId, NodeId lswId,
+            AccessType at, long accessSegment) {
         TpId tpId = null;
         CreateLogicalPortInputBuilder inputBuilder = new CreateLogicalPortInputBuilder();
 
-        FabricId fabricId = new FabricId(vfabricId);
+        FabricId fabricId = new FabricId(fId);
         inputBuilder.setFabricId(fabricId);
         inputBuilder.setLogicalDevice(lswId);
         inputBuilder.setName("LswLogicalPort");
@@ -551,7 +452,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         return null;
     }
 
-    public void removeLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, IpAddress gatewayIpAddr) {
+    public void removeLrLswGateway(NodeId vfabricId, NodeId lrId, IpAddress gatewayIpAddr) {
         RmGatewayInputBuilder inputBuilder = new RmGatewayInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
@@ -569,7 +470,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public void createAcl(Uuid tenantId, NodeId vfabricId, NodeId nodeId, String aclName) {
+    public void createAcl(NodeId vfabricId, NodeId nodeId, String aclName) {
         AddAclInputBuilder inputBuilder = new AddAclInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
@@ -595,7 +496,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public void removeAcl(Uuid tenantId, NodeId vfabricId, NodeId nodeId, String aclName) {
+    public void removeAcl(NodeId vfabricId, NodeId nodeId, String aclName) {
         DelAclInputBuilder inputBuilder = new DelAclInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
@@ -621,7 +522,14 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    //TODO
+    /**
+     * Set up IP mapping between external IP and internal IP address.
+     * @param fabricId - fabric identifier.
+     * @param ld - logical switch Id
+     * @param tpid - logical port id
+     * @param ext - external IP address
+     * @param internal - private IP address.
+     */
     public void addIPMapping(FabricId fabricId, NodeId ld, TpId tpid, Ipv4Address ext, Ipv4Address internal)
     {
         AddPortFunctionInputBuilder inputb = new AddPortFunctionInputBuilder();
@@ -642,11 +550,5 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         inputb.setPortFunction(pfb.build());
 
         this.fabServiceService.addPortFunction(inputb.build());
-    }
-
-    @Override
-    public Future<RpcResult<Void>> removeChildNetNode(RemoveChildNetNodeInput input) {
-        // TODO Auto-generated method stub
-        return null;
     }
 }
