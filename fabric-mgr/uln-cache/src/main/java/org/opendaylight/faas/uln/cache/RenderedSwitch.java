@@ -19,15 +19,10 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
  *
  */
 public final class RenderedSwitch {
-    public Map<TpId, TpId> getPortMappings() {
-        return portMappings;
-    }
-
     private final NodeId parentId;
     private final NodeId fabricId;
     private final NodeId switchId;
     private Map<TpId, TpId> portMappings;
-
 
     /**
      * Constructor.
@@ -41,6 +36,10 @@ public final class RenderedSwitch {
         this.fabricId = fabricId;
         this.switchId = switchId;
         portMappings = new HashMap();
+    }
+
+    public Map<TpId, TpId> getPortMappings() {
+        return portMappings;
     }
 
     public NodeId getFabricId() {

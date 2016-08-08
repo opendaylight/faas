@@ -101,6 +101,14 @@ module vc-net-node {
 
     grouping ports {
         list port {
+            leaf access-type {
+                type enumeration {enum vlan; enum exclusive;}
+            }
+
+            leaf access-tag {
+                type int32;
+            }
+
             leaf port-id {
                 type vctype:vfabric-port-id;
             }
@@ -142,93 +150,6 @@ module vc-net-node {
     }
 
     /******************************* RPC ***********************************/
-
-    rpc create-child-net-node {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf parent-net-node-id {
-                type vctype:vc-net-node-id;
-            }
-            container child-vcontainer-config {
-                uses net-node-attributes;
-            }
-        }
-        output {
-            leaf child-net-node-id {
-                type vctype:vc-net-node-id;
-            }
-        }
-    }
-
-    rpc remove-child-net-node {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf child-net-node-id {
-                type vctype:vc-net-node-id;
-            }
-        }
-    }
-
-    rpc add-vfabric-to-net-node {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf net-node-id {
-                type vctype:vc-net-node-id;
-            }
-            leaf vfabric-id {
-                type vctype:vfabric-id;
-            }
-        }
-    }
-
-    rpc rm-vfabric-from-net-node {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf net-node-id {
-                type vctype:vc-net-node-id;
-            }
-            leaf vfabric-id {
-                type vctype:vfabric-id;
-            }
-        }
-    }
-
-    rpc add-appliance-to-net-node {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf net-node-id {
-                type vctype:vc-net-node-id;
-            }
-            leaf appliance-id {
-                type vctype:appliance-id;
-            }
-        }
-    }
-
-    rpc rm-appliance-from-net-node {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf net-node-id {
-                type vctype:vc-net-node-id;
-            }
-            leaf appliance-id {
-                type vctype:appliance-id;
-            }
-        }
-    }
-
     rpc create-lne-layer2 {
         input {
             leaf tenant-id {
@@ -238,42 +159,11 @@ module vc-net-node {
                 type nt:node-id;
             }
             uses vctype:vf-lsw-attributes;
-            uses ports;
         }
         output {
             leaf lne-id {
                 type vctype:vc-lne-id;
             }
-        }
-    }
-
-    rpc add-ports-to-lne-layer2 {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf lne-id {
-                type vctype:vc-lne-id;
-            }
-            uses ports;
-        }
-    }
-
-    rpc rm-ports-from-lne-layer2 {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf lne-id {
-                type vctype:vc-lne-id;
-            }
-            uses ports;
         }
     }
 
@@ -300,7 +190,6 @@ module vc-net-node {
                 type nt:node-id;
             }
             uses vctype:vf-lr-attributes;
-            uses ports;
         }
         output {
             leaf lne-id {
@@ -336,97 +225,6 @@ module vc-net-node {
             }
             list routingtable {
                 uses vctype:routing-table-entry;
-            }
-        }
-    }
-
-    rpc add-ports-to-lne-layer3 {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf lne-id {
-                type vctype:vc-lne-id;
-            }
-            uses ports;
-        }
-    }
-
-    rpc rm-ports-from-lne-layer3 {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf lne-id {
-                type vctype:vc-lne-id;
-            }
-            uses ports;
-        }
-    }
-
-    rpc update-net-node-logical-port {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf tp-id {
-                type nt:tp-id;
-            }
-            uses vctype:logical-port-attributes;
-        }
-    }
-
-    rpc rm-net-node-logical-port {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf tp-id {
-                type nt:tp-id;
-            }
-        }
-    }
-
-    rpc create-lne-layer1 {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            uses nt:link-attributes;
-            uses vctype:logical-connection-attributes;
-        }
-        output {
-            leaf connection-id {
-                type vctype:logical-connection-id;
-            }
-        }
-    }
-
-    rpc rm-lne-layer1 {
-        input {
-            leaf tenant-id {
-                type vctype:tenant-id;
-            }
-            leaf vfabric-id {
-                type nt:node-id;
-            }
-            leaf connection-id {
-                type vctype:logical-connection-id;
             }
         }
     }

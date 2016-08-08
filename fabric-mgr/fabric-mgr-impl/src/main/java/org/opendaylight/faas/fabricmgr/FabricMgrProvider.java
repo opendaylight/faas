@@ -292,7 +292,7 @@ public class FabricMgrProvider implements AutoCloseable {
             Link link, RenderedSwitch sseg, RenderedSwitch dseg)
     {
 
-        TpId sltp = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantId,
+        TpId sltp = this.netNodeServiceProvider.createLogicalPortOnLsw(
                 link.getSource().getSourceNode(),
                 sseg.getSwitchID(),
                 AccessType.Vlan,
@@ -302,11 +302,11 @@ public class FabricMgrProvider implements AutoCloseable {
         this.netNodeServiceProvider.portBindingLogicalToFabric(
                 new FabricId(link.getSource().getSourceNode()),
                 sftp,
-                sltp,
-                sseg.getSwitchID());
+                sseg.getSwitchID(),
+                sltp);
 
 
-        TpId dltp = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantId,
+        TpId dltp = this.netNodeServiceProvider.createLogicalPortOnLsw(
                 link.getDestination().getDestNode(),
                 dseg.getSwitchID(),
                 AccessType.Vlan,
@@ -315,8 +315,8 @@ public class FabricMgrProvider implements AutoCloseable {
         this.netNodeServiceProvider.portBindingLogicalToFabric(
                 new FabricId(link.getDestination().getDestNode()),
                 dftp,
-                dltp,
-                dseg.getSwitchID());
+                dseg.getSwitchID(),
+                dltp);
 
         return new RenderedLayer2Link(sseg, dseg, tag, sftp, sltp, dftp, dltp);
     }
@@ -573,9 +573,9 @@ public class FabricMgrProvider implements AutoCloseable {
                 new Uuid(UUID.randomUUID().toString()), //TODO - set up the UuID.
                 this.ulnStore.get(tenantId));
 
-        TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantId, entry.getKey(),slsw, AccessType.Vlan, tag);
+        TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(entry.getKey(),slsw, AccessType.Vlan, tag);
 
-        this.netNodeServiceProvider.portBindingLogicalToFabric(entry.getKey(), entry.getValue(), tpId, slsw);
+        this.netNodeServiceProvider.portBindingLogicalToFabric(entry.getKey(), entry.getValue(), slsw, tpId);
 
         //new RenderedSwitch(lrId, slsw, entry.getKey());
 
@@ -742,9 +742,9 @@ public class FabricMgrProvider implements AutoCloseable {
                     null, //TODO - set up the UuID.
                     this.ulnStore.get(tenantID));
 
-            TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantID, task.getL().getSource().getSourceNode(),slsw, AccessType.Vlan, task.getTag());
+            TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(task.getL().getSource().getSourceNode(),slsw, AccessType.Vlan, task.getTag());
             TpId tpIdf = task.getL().getSource().getSourceTp();
-            this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getSource().getSourceNode()), tpIdf, tpId, slsw);
+            this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getSource().getSourceNode()), tpIdf,  slsw, tpId);
 
 
             RenderedSwitch slswR = new RenderedSwitch(task.getRouterA().getRouterID(), slsw, task.getL().getSource().getSourceNode());
@@ -762,9 +762,9 @@ public class FabricMgrProvider implements AutoCloseable {
                     null,
                     this.ulnStore.get(tenantID));
 
-            TpId tpId2 = this.netNodeServiceProvider.createLogicalPortOnLsw(tenantID, task.getL().getDestination().getDestNode(),dlsw, AccessType.Vlan, task.getTag());
+            TpId tpId2 = this.netNodeServiceProvider.createLogicalPortOnLsw(task.getL().getDestination().getDestNode(),dlsw, AccessType.Vlan, task.getTag());
             TpId tpIdf2 = task.getL().getDestination().getDestTp();
-            this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getDestination().getDestNode()), tpIdf2, tpId2, dlsw);
+            this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getDestination().getDestNode()), tpIdf2, dlsw, tpId2);
 
             RenderedSwitch dlswR = new RenderedSwitch(task.getRouterB().getRouterID(), dlsw, task.getL().getDestination().getDestNode());
 
@@ -815,10 +815,8 @@ public class FabricMgrProvider implements AutoCloseable {
 
                     RenderedRouter nextHop = maps.get(ls.get(0).getDestination());
                     RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(lrs, nextHop);
-
                     IpAddress nextHopIp =  uln.getLrStore().get(lr).getRenderedrLinks().get(key).getSrcGWIP();
-                    rtbuilder
-                            .setNexthopIp(nextHopIp);
+                    rtbuilder.setNexthopIp(nextHopIp);
 
                     rtl.add(rtbuilder.build());
                 }
@@ -827,11 +825,6 @@ public class FabricMgrProvider implements AutoCloseable {
         }
     }
 
-    private IpAddress getNextHopIpAddress(RenderedRouter lrs, RenderedRouter nextHop, UserLogicalNetworkCache uln, Uuid lr)
-    {
-        RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(lrs, nextHop);
-        return uln.getLrStore().get(lr).getRenderedrLinks().get(key).getSrcGWIP();
-    }
     /**
      * To calculate the shortest path from lrs (source router) to lrd (destination)
      * @param lrs - source router identifier.
@@ -881,7 +874,8 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param endpoint - end point attributes
      * @return the endpoint uuid.
      */
-    public Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, TpId lswLogicalPortId, EndpointAttachInfo endpoint) {
+    public Uuid attachEpToLneLayer2(Uuid tenantId, NodeId lswId, TpId lswLogicalPortId,
+            EndpointAttachInfo endpoint) {
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: attachEpToLneLayer2: vcMgr is null: tenantId={}", tenantId.getValue());
@@ -911,9 +905,7 @@ public class FabricMgrProvider implements AutoCloseable {
 
         epInputBuilder.setLogicalLocation(llb.build());
 
-        Uuid epId = this.netNodeServiceProvider.registerEndpoint(tenantId, vfabricId, epInputBuilder.build());
-
-        return epId;
+        return this.netNodeServiceProvider.registerEndpoint(tenantId, vfabricId, epInputBuilder.build());
     }
 
     public void unregisterEpFromLneLayer2(Uuid tenantId, NodeId vfabricId, NodeId lswId, Uuid epUuid) {
@@ -944,7 +936,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return null;
         }
 
-        return this.netNodeServiceProvider.createLogicalPortOnLsw(tenantId, vfabricId, lswId, AccessType.Exclusive, 0);
+        return this.netNodeServiceProvider.createLogicalPortOnLsw(vfabricId, lswId, AccessType.Exclusive, 0);
     }
 
     public Uuid createLrLswGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
@@ -970,7 +962,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return; // ----->
         }
 
-        this.netNodeServiceProvider.removeLrLswGateway(tenantId, fabricId, lrId, gatewayIpAddr);
+        this.netNodeServiceProvider.removeLrLswGateway(fabricId, lrId, gatewayIpAddr);
     }
 
     public Map<Uuid, VContainerConfigMgr> getVcConfigDataMgrList() {
@@ -1003,7 +995,7 @@ public class FabricMgrProvider implements AutoCloseable {
             return; // ---->
         }
 
-        this.netNodeServiceProvider.createAcl(tenantId, fabricId, nodeId, aclName);
+        this.netNodeServiceProvider.createAcl(fabricId, nodeId, aclName);
     }
 
     public void removeAcl(Uuid tenantId, NodeId fabricId, NodeId nodeId, String aclName) {
@@ -1014,6 +1006,6 @@ public class FabricMgrProvider implements AutoCloseable {
         }
 
 
-        this.netNodeServiceProvider.removeAcl(tenantId, fabricId, nodeId, aclName);
+        this.netNodeServiceProvider.removeAcl(fabricId, nodeId, aclName);
     }
 }

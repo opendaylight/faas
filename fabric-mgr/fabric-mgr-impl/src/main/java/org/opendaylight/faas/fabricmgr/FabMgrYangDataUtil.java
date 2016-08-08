@@ -66,7 +66,8 @@ public final class FabMgrYangDataUtil {
     private static final String VC_LINK_NAME = "vc-link";
     private static final String VC_NODE_TP_WEST = "tp-west";
     private static final String VC_NODE_TP_EAST = "tp-east";
-    private static final String FAAS_TOPOLOGY_ID = "faas";
+    private static final String FAAS_TOPOLOGY_ID = "faas:fabrics";
+    private static final String PHYSICAL_TOPOLOGY_ID = "ovsdb:1";
 
     public static final InstanceIdentifier<Topology> DOM_VCS_PATH =
             InstanceIdentifier.create(NetworkTopology.class)
@@ -136,6 +137,12 @@ public final class FabMgrYangDataUtil {
     public static InstanceIdentifier<Node> createNodePath(String topoIdStr, String nodeIdStr) {
         return createNodePath(new TopologyId(topoIdStr), new NodeId(nodeIdStr));
     }
+
+    public static InstanceIdentifier<TerminationPoint> createTpPath(String nodeIdStr,
+            String tpIdStr) {
+        return createTpPath(new TopologyId(FabMgrYangDataUtil.PHYSICAL_TOPOLOGY_ID), new NodeId(nodeIdStr), new TpId(tpIdStr));
+    }
+
 
     public static InstanceIdentifier<TerminationPoint> createTpPath(String topoIdStr, String nodeIdStr,
             String tpIdStr) {
