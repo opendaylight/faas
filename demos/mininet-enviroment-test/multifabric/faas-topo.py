@@ -17,6 +17,20 @@ SPINE_NORMAL_LEARNING = "ovs-ofctl add-flow -OOpenFlow13 %s 'table=10, priority=
 # learning mac for leaf device
 LEAF_LEARNING = "ovs-ofctl add-flow -OOpenFlow13 %s 'table=10, priority=1024, reg0=0x2, actions=learn(table=110,priority=1024,NXM_NX_TUN_ID[],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[],output:NXM_OF_IN_PORT[]),goto_table:20'"
 
+HOSTX_MAC = '62:02:1a:00:00:02'
+HOSTX_IP = '192.168.2.2'
+FLOATING_IP_1 = '192.168.1.2'
+HOSTX_GW_MAC = '62:02:1a:00:00:01'
+HOSTX_GW_MAC_HEX = '0x62021a000001'
+HOSTX_GW = '192.168.2.1'
+HOSTX_GW_HEX = '0xc0a80201'
+FLOATING_IP_GW_MAC = '80:38:bc:a1:33:c8'
+FIXED_IP_GW_MAC = '80:38:bc:a1:33:c7'
+
+S3_INBOUND_FLOW = "ovs-ofctl add-flow -OOpenFlow13 s3 'table=0,in_port=1,ip, nw_src=%s, nw_dst=%s actions=set_field:%s->eth_dst, set_field:%s->eth_src, output:2'"
+S3_OUTBOUND_FLOW = "ovs-ofctl add-flow -OOpenFlow13 s3 'table=0,in_port=2,ip, nw_src=%s, nw_dst=%s actions=set_field:%s->eth_dst, set_field:%s->eth_src, output:1'"
+S3_ARP_RESPONDER = "ovs-ofctl add-flow -OOpenFlow13 s3 'table=0, arp,arp_tpa=%s,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],set_field:%s->eth_src,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:%s->NXM_NX_ARP_SHA[],load:%s->NXM_OF_ARP_SPA[],IN_PORT'"
+
 class FabricTopo( Topo ):
     "Simple Fabric Topology example."
 
@@ -55,7 +69,7 @@ class FabricTopo( Topo ):
         switch3 = self.addSwitch('s3')
         self.addLink(switch2, switch3)
 
-        hostx = self.addHost('hostx', mac='62:02:1a:00:00:02', ip='192.168.2.2/24', defaultRoute='via 192.168.2.1') 
+        hostx = self.addHost('hostx', mac=HOSTX_MAC, ip='192.168.2.2/24', defaultRoute='via 192.168.2.1') 
         self.addLink(hostx, switch3)
 
 topos = { 'fabric' : FabricTopo}
@@ -101,9 +115,9 @@ if __name__ == '__main__':
     os.system(LEAF_LEARNING % 's21')
 
     #----------------------------------- OVS s3 flow, used for test NAT function -------------------------------------
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s3 'table=0,priority=1000,in_port=1,ip, nw_src=192.168.1.2, nw_dst=192.168.2.2 actions=set_field:62:02:1a:00:00:02->eth_dst, set_field:62:02:1a:00:00:01->eth_src, output:2'")
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s3 'table=0,priority=1000,in_port=2,ip, nw_src=192.168.2.2, nw_dst=192.168.1.2 actions=set_field:80:38:bc:a1:33:c7->eth_dst, set_field:80:38:bC:A1:33:c8->eth_src, output:1'")
-    os.system("ovs-ofctl add-flow -OOpenFlow13 s3 'table=0, priority=1000,arp,arp_tpa=192.168.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],set_field:62:02:1a:00:00:01->eth_src,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0x62021a000001->NXM_NX_ARP_SHA[],load:0xc0a80201->NXM_OF_ARP_SPA[],IN_PORT'")
+    os.system(S3_INBOUND_FLOW % (FLOATING_IP_1, HOSTX_IP, HOSTX_MAC, HOSTX_GW_MAC))
+    os.system(S3_OUTBOUND_FLOW % (HOSTX_IP, FLOATING_IP_1, FIXED_IP_GW_MAC, FLOATING_IP_GW_MAC))
+    os.system(S3_ARP_RESPONDER % (HOSTX_GW, HOSTX_GW_MAC, HOSTX_GW_MAC_HEX, HOSTX_GW_HEX))
 
     info( "*** Starting CLI (type 'exit' to exit)\n" )
     CLI( network )
