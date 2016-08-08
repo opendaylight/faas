@@ -425,7 +425,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 }
             });
 
-        } else if (entry instanceof IpMapping) {
+        } else if (entry instanceof IpMappingEntry) {
 
             @SuppressWarnings("unchecked")
             final InstanceIdentifier<IpMappingEntry> ipMappingIid = (InstanceIdentifier<IpMappingEntry>) iid;
