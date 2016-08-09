@@ -22,7 +22,6 @@ public final class LogicalRouterMappingInfo {
 
     private final LogicalRouter lr;
     private final Map<NodeId, RenderedRouter> renderedRouters;
-    private final Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> renderedrLinks;
     private boolean isToBeDeleted;
     private final Set<Uuid> securityRuleGroupsList;
     private final Set<Uuid> portList;
@@ -37,7 +36,6 @@ public final class LogicalRouterMappingInfo {
         this.portList = new HashSet<>();
         this.lrLswEdgeList = new HashSet<>();
         this.renderedRouters = new HashMap<>();
-        this.renderedrLinks = new HashMap<>();
     }
 
     @Nonnull
@@ -58,20 +56,6 @@ public final class LogicalRouterMappingInfo {
     public NodeId getRenderedDeviceIdOnFabric(NodeId fabricId) {
         return renderedRouters.get(fabricId).getRouterID();
     }
-
-
-    public Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> getRenderedrLinks() {
-        return renderedrLinks;
-    }
-
-    public void  addRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
-        renderedrLinks.put(key,  link);
-    }
-
-    public void  rmRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
-        renderedrLinks.remove(key);
-    }
-
 
 
     public void addRenderedRouter(RenderedRouter renderedRouter) {
