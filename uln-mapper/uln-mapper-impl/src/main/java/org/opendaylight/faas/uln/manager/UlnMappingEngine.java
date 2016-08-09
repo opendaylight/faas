@@ -394,7 +394,7 @@ public class UlnMappingEngine {
         NodeId fabricId = null;
         Optional<TerminationPoint> opt = FabMgrDatastoreUtil.readData(
                     LogicalDatastoreType.OPERATIONAL,
-                    FabMgrYangDataUtil.createFabricTpPath(epLocation.getNodeId().getValue(),
+                    FabMgrYangDataUtil.createTpPath(epLocation.getNodeId().getValue(),
                     epLocation.getNodeConnectorId().getValue()));
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
@@ -409,6 +409,11 @@ public class UlnMappingEngine {
             LOG.error("Failed to locate a vaid fabric for eplocation {} {}" ,
                     epLocation.getNodeId(), epLocation.getNodeConnectorId());
             return ;
+        } else {
+            LOG.info("Finding EndPoint on logical Port UUID " +  epLocation.getPort() +
+                    " attaching nodeID " +     epLocation.getNodeId().getValue() +
+                    " connectionID " + epLocation.getNodeConnectorId().getValue() +
+                    " is registered against Fabric " +         fabricId);
         }
 
         /*

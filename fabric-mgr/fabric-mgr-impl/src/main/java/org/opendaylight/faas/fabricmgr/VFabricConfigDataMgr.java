@@ -25,8 +25,7 @@ public class VFabricConfigDataMgr {
     private int availableL2Resource;
     private int start = 0;
 
-    //TODO - move those constants to a class.
-
+    //TODO - hardcode for now move those constants to a class.
     public static final int L2_DEF_NUM = 100;
     public static final int L2_START_INDEX = 200;
 
