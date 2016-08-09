@@ -52,14 +52,17 @@ public final class UserLogicalNetworkCache {
 
     private Map<Uuid, LogicalSwitchMappingInfo> lswStore;
     private Map<Uuid, LogicalRouterMappingInfo> lrStore;
+    private final Map<NodeId, NodeId> renderedRouters;
+    private final Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> renderedrLinks;
+    //private Graph<NodeId, Link> topo;
 
     private Map<Uuid, SecurityRuleGroupsMappingInfo> securityRuleGroupsStore;
     private Map<Uuid, SubnetMappingInfo> subnetStore;
     private Map<Uuid, PortMappingInfo> portStore;
     private Map<Uuid, EdgeMappingInfo> edgeStore;
     private Map<Uuid, EndpointLocationMappingInfo> epLocationStore;
-    //private LogicalRouterMappingInfo renderedlrOnFabric; // workaround for Bug 5146: We cache
-                                                         // the LR once it is rendered.
+
+    private boolean hasExternalGateway = false;
 
 /**
  * Constructor. each Cache has exactly one tenant owner.
@@ -77,7 +80,26 @@ public final class UserLogicalNetworkCache {
         portStore = new ConcurrentHashMap<>();
         edgeStore = new ConcurrentHashMap<>();
         epLocationStore = new ConcurrentHashMap<>();
+
+        this.renderedRouters = new ConcurrentHashMap<>();
+        this.renderedrLinks = new ConcurrentHashMap<>();
     }
+
+
+    public Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> getRenderedrLinks() {
+        return renderedrLinks;
+    }
+
+    public void  addRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
+        renderedrLinks.put(key,  link);
+    }
+
+    public void  rmRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
+        renderedrLinks.remove(key);
+    }
+
+
+
 
     public Uuid getTenantId() {
         return tenantId;
@@ -91,7 +113,7 @@ public final class UserLogicalNetworkCache {
     /**
      * Check if a logical switch already has a cache entry.
      * @param lsw - the logical switch object.
-     * @return
+     * @return true if found.
      */
     public boolean isLswAlreadyCached(LogicalSwitch lsw) {
         return this.lswStore.get(lsw.getUuid()) != null;
@@ -100,30 +122,23 @@ public final class UserLogicalNetworkCache {
     /**
      * Check if a logical router already has a cache entry.
      * @param lr - the logical router object.
-     * @return
+     * @return true if found
      */
     public boolean isLrAlreadyCached(LogicalRouter lr) {
         return this.lrStore.get(lr.getUuid()) != null;
     }
 
     /**
-     * Cache a rendered logical switch.
-     * @param lsw - the logical switch
-     * @param renderedSW - the corresponding rendered logical switch on a fabric.
-     */
-    public void addRenderedLSW(LogicalSwitch lsw, RenderedSwitch renderedSW) {
-        Uuid lswId = lsw.getUuid();
-        this.lswStore.get(lswId).addRenderedSwitch(renderedSW);
-    }
-
-    /**
      * Cache a rendered logical router
-     * @param lr - the logical router to be rendered
+     * @param fabricId - fabric identifier
      * @param renderedLr - the corresponding rendered logical router on a fabric.
      */
-    public void addRenderedRouter(LogicalRouter lr, RenderedRouter renderedLr) {
-        Uuid lrId = lr.getUuid();
-        this.lrStore.get(lrId).addRenderedRouter(renderedLr);
+    public void addRenderedRouterOnFabric(NodeId fabricId, NodeId renderedLr) {
+        this.renderedRouters.put(fabricId,  renderedLr);
+    }
+
+    public NodeId getRenderedRouterOnFabirc(NodeId fabricId) {
+        return renderedRouters.get(fabricId);
     }
 
     /**
@@ -135,6 +150,18 @@ public final class UserLogicalNetworkCache {
         Uuid ruleGroupsId = ruleGroups.getUuid();
         return this.securityRuleGroupsStore.get(ruleGroupsId) != null;
     }
+
+
+
+    public boolean isHasExternalGateway() {
+        return hasExternalGateway;
+    }
+
+
+    public void setHasExternalGateway(boolean hasExternalGateway) {
+        this.hasExternalGateway = hasExternalGateway;
+    }
+
 
     /**
      * To mark a security group's render status.
@@ -776,14 +803,14 @@ public final class UserLogicalNetworkCache {
             edgeType = LogicalEdgeType.LR_LR;
         } else if (this.isPortLswType(leftPortId) && this.isPortLswType(rightPortId)) {
             edgeType = LogicalEdgeType.LSW_LSW;
-        } else if ((this.isPortLswType(leftPortId) && this.isPortLrType(rightPortId))
-                || (this.isPortLrType(leftPortId) && this.isPortLswType(rightPortId))) {
+        } else if (this.isPortLswType(leftPortId) && this.isPortLrType(rightPortId)
+                || this.isPortLrType(leftPortId) && this.isPortLswType(rightPortId)) {
             edgeType = LogicalEdgeType.LR_LSW;
-        } else if ((this.isPortLswType(leftPortId) && this.isPortSubnetType(rightPortId))
-                || (this.isPortSubnetType(leftPortId) && this.isPortLswType(rightPortId))) {
+        } else if (this.isPortLswType(leftPortId) && this.isPortSubnetType(rightPortId)
+                || this.isPortSubnetType(leftPortId) && this.isPortLswType(rightPortId)) {
             edgeType = LogicalEdgeType.LSW_SUBNET;
-        } else if ((this.isPortSubnetType(leftPortId) && this.isPortEpLocationType(rightPortId))
-                || (this.isPortEpLocationType(leftPortId) && this.isPortSubnetType(rightPortId))) {
+        } else if (this.isPortSubnetType(leftPortId) && this.isPortEpLocationType(rightPortId)
+                || this.isPortEpLocationType(leftPortId) && this.isPortSubnetType(rightPortId)) {
             edgeType = LogicalEdgeType.SUBNET_EPLOCATION;
         } else {
             LOG.trace("FABMGR: findEdgeType: unknown type: leftPortId={}, rightPortId={}", leftPortId.getValue(),
@@ -1091,7 +1118,7 @@ public final class UserLogicalNetworkCache {
             for (NodeId fabricId : info.getRenderedSwitches().keySet())
             {
                 sb.append(", renderedDevId="
-                    + ((info.getRenderedSwitchOnFabric(fabricId) == null) ? "null" : info.getRenderedSwitchOnFabric(fabricId).getSwitchID().getValue()));
+                    + (info.getRenderedSwitchOnFabric(fabricId) == null ? "null" : info.getRenderedSwitchOnFabric(fabricId).getSwitchID().getValue()));
             }
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }
@@ -1103,7 +1130,7 @@ public final class UserLogicalNetworkCache {
             for (NodeId fabricId : info.getRenderedRouters().keySet())
             {
                 sb.append(", renderedDevId="
-                    + ((info.getRenderedDeviceIdOnFabric(fabricId) == null) ? "null" : info.getRenderedDeviceIdOnFabric(fabricId).getValue()));
+                    + (info.getRenderedDeviceIdOnFabric(fabricId) == null ? "null" : info.getRenderedDeviceIdOnFabric(fabricId).getValue()));
             }
             sb.append(", isRendered=" + info.hasServiceBeenRendered() + "\n");
         }
@@ -1113,7 +1140,7 @@ public final class UserLogicalNetworkCache {
             SecurityRuleGroupsMappingInfo info = entry.getValue();
             sb.append("ruleId=" + entry.getKey().getValue());
             List<Uuid> ports = info.getSecurityRuleGroups().getPorts();
-            sb.append(", portId=" + ((ports == null || ports.isEmpty()) ? "null" : ports.get(0).getValue()));
+            sb.append(", portId=" + (ports == null || ports.isEmpty() ? "null" : ports.get(0).getValue()));
             List<String> aclNameList = info.getRenderedAclNameList();
             if (aclNameList != null && aclNameList.isEmpty() == false) {
                 for (String aclName : aclNameList) {
