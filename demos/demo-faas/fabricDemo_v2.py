@@ -83,7 +83,7 @@ PORTIDX_OF_LSW = {"vswitch-1": 1, "vswitch-2": 1, "vswitch-3": 1}
 
 
 def rpc_create_logic_switch_uri():
-    return "/restconf/operations/fabric-service:create-logic-switch"
+    return "/restconf/operations/fabric-service:create-logical-switch"
 
 
 def rpc_create_logic_switch_data(name):
@@ -96,7 +96,7 @@ def rpc_create_logic_switch_data(name):
 
 
 def rpc_create_logic_router_uri():
-    return "/restconf/operations/fabric-service:create-logic-router"
+    return "/restconf/operations/fabric-service:create-logical-router"
 
 
 def rpc_create_logic_router_data(name):
@@ -109,7 +109,7 @@ def rpc_create_logic_router_data(name):
 
 
 def rpc_create_logic_port_uri():
-    return "/restconf/operations/fabric-service:create-logic-port"
+    return "/restconf/operations/fabric-service:create-logical-port"
 
 
 def rpc_create_logic_port_data(deviceName, portName):
@@ -117,7 +117,7 @@ def rpc_create_logic_port_data(deviceName, portName):
         "input": {
             "fabric-id": "fabric:1",
             "name": portName,
-            "logic-device": deviceName
+            "logical-device": deviceName
         }
     }
 
@@ -160,7 +160,7 @@ def rpc_register_endpoint_data(host):
             "mac-address": mac,
             "ip-address": ip,
             "gateway": gw,
-            "logic-location": {
+            "logical-location": {
                 "node-id": lsw,
                 "tp-id": lport
             },
@@ -183,8 +183,8 @@ def rpc_create_gateway_data(ipaddr, network, switchName):
             "fabric-id": "fabric:1",
             "ip-address": ipaddr,
             "network": network,
-            "logic-router": "vrouter-1",
-            "logic-switch": switchName
+            "logical-router": "vrouter-1",
+            "logical-switch": switchName
         }
     }
 
