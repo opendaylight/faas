@@ -8,6 +8,7 @@
 package org.opendaylight.faas.fabric.vlan;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -186,14 +187,22 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
 
         NodeId nodeId = iid.firstKeyOf(Node.class).getNodeId();
         if (fabricCtx.isValidLogicSwitch(nodeId)) {
+            LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(nodeId);
             if (isDelete) {
-                fabricCtx.getLogicSwitchCtx(nodeId).removeAcl(aclName);
+                lswCtx.removeAcl(aclName);
             } else {
-                fabricCtx.getLogicSwitchCtx(nodeId).addAcl(aclName);
+                lswCtx.addAcl(aclName);
+            }
+
+            for (DeviceKey key : fabricCtx.getSpineDevices()) {
+                DeviceContext devCtx = fabricCtx.getDeviceCtx(key);
+
+                devCtx.syncAcl(Lists.newArrayList(lswCtx));
             }
         } else {
             LogicRouterContext lrCtx = fabricCtx.getLogicRouterCtx(nodeId);
             lrCtx.addAcl(aclName);
+            List<LogicSwitchContext> lswCtxs = Lists.newArrayList();
             for (int vlan : lrCtx.getVlans()) {
                 NodeId lsw = lrCtx.getGatewayPortByVlan(vlan).getLogicSwitch();
                 LogicSwitchContext lswCtx = fabricCtx.getLogicSwitchCtx(lsw);
@@ -203,7 +212,14 @@ public class VlanFabricListener implements AutoCloseable, FabricListener {
                     } else {
                         lswCtx.addVrfAcl(aclName);
                     }
+                    lswCtxs.add(lswCtx);
                 }
+            }
+
+            for (DeviceKey key : fabricCtx.getSpineDevices()) {
+                DeviceContext devCtx = fabricCtx.getDeviceCtx(key);
+
+                devCtx.syncAcl(lswCtxs);
             }
         }
     }
