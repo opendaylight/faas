@@ -251,6 +251,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         final RpcResultBuilder<CreateGatewayOutput> resultBuilder = RpcResultBuilder
                 .<CreateGatewayOutput>success();
         CreateGatewayOutputBuilder outputBuilder = new CreateGatewayOutputBuilder();
+
         final FabricId fabricId = input.getFabricId();
         final NodeId routerId = input.getLogicalRouter();
         final NodeId swId = input.getLogicalSwitch();
@@ -277,6 +278,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
             @Override
             public ListenableFuture<RpcResult<CreateGatewayOutput>> apply(Void submitResult) throws Exception {
+                resultBuilder.withResult(outputBuilder);
                 return Futures.immediateFuture(resultBuilder.build());
             }
         }, executor);
