@@ -303,6 +303,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
     @Override
     public Future<RpcResult<Void>> updateLneLayer3Routingtable(UpdateLneLayer3RoutingtableInput input) {
 
+        //Crazy stuff - to be optimized.
         //First to remove all the existing route entries.
         ClearStaticRouteInputBuilder cbuilder = new ClearStaticRouteInputBuilder();
         cbuilder.setNodeId(input.getLneId());
