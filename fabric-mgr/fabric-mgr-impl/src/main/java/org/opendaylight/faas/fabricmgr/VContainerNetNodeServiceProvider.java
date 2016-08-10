@@ -22,12 +22,13 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.UnregisterEndpointInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetAllFabricsOutput;
@@ -72,6 +73,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.VcNetNodeService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yangtools.yang.common.RpcError.ErrorType;
 import org.opendaylight.yangtools.yang.common.RpcResult;
@@ -167,7 +169,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 NodeId nodeId = createLswOutput.getNodeId();
                 builder.setLneId(new VcLneId(nodeId));
 
-                return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
+                return Futures.immediateFuture(resultBuilder.withResult(builder.build()).build());
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLneLayer2: createLogicSwitch RPC failed.", e);
@@ -202,7 +204,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
                 NodeId nodeId = createLrOutput.getNodeId();
                 builder.setLneId(new VcLneId(nodeId));
 
-                return Futures.immediateFuture(resultBuilder.withResult((builder.build())).build());
+                return Futures.immediateFuture(resultBuilder.withResult(builder.build()).build());
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLneLayer3: createLogicRouter RPC failed.", e);
@@ -387,10 +389,39 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         return tpId;
     }
 
-    public Uuid registerEndpoint(Uuid tenantId, NodeId vfabricId, RegisterEndpointInput epInput) {
+    public Uuid registerEndpoint(
+            Uuid tenantId,
+            NodeId fId,
+            Uuid epUuid,
+            IpAddress gwIP,
+            IpAddress epIP,
+            String nodeIDStr,
+            String connIDStr,
+            MacAddress mac,
+            NodeId lswId,
+            TpId lswLogicalPortId) {
+
         Uuid epId = null;
 
-        RegisterEndpointInputBuilder inputBuilder = new RegisterEndpointInputBuilder(epInput);
+        RegisterEndpointInputBuilder epInputBuilder = new RegisterEndpointInputBuilder();
+        epInputBuilder.setEndpointUuid(epUuid);
+        FabricId fabricId = new FabricId(fId);
+        epInputBuilder.setFabricId(fabricId);
+        epInputBuilder.setGateway(gwIP);
+        epInputBuilder.setIpAddress(epIP);
+        epInputBuilder.setLocation(FabMgrYangDataUtil.getPhyLocation(
+                new TopologyId("ovsdb:1"), //TODO . hardcode is really bad!
+                nodeIDStr, connIDStr));
+        epInputBuilder.setMacAddress(mac);
+        epInputBuilder.setOwnFabric(fabricId);
+
+        LogicalLocationBuilder llb = new LogicalLocationBuilder();
+        llb.setNodeId(lswId);
+        llb.setTpId(lswLogicalPortId);
+
+        epInputBuilder.setLogicalLocation(llb.build());
+
+        RegisterEndpointInputBuilder inputBuilder = new RegisterEndpointInputBuilder(epInputBuilder.build());
 
         Future<RpcResult<RegisterEndpointOutput>> result = this.epService.registerEndpoint(inputBuilder.build());
         try {
@@ -427,10 +458,19 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public Uuid createLrLswGateway(NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+    /**
+     * Create a gateway for a logical swtich on a given router.
+     * @param fId - fabric identifier.
+     * @param lrId - logical router identifier.
+     * @param lswId - logical switch identifier.
+     * @param gatewayIpAddr - the gateway Ip address
+     * @param ipPrefix - network prefix.
+     * @return
+     */
+    public Uuid createLrLswGateway(NodeId fId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
             IpPrefix ipPrefix) {
         CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
-        FabricId fabricId = new FabricId(vfabricId);
+        FabricId fabricId = new FabricId(fId);
         inputBuilder.setFabricId(fabricId);
         inputBuilder.setLogicalRouter(new NodeId(lrId));
         inputBuilder.setLogicalSwitch(new NodeId(lswId));
@@ -452,9 +492,15 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         return null;
     }
 
-    public void removeLrLswGateway(NodeId vfabricId, NodeId lrId, IpAddress gatewayIpAddr) {
+    /**
+     * Remove a gateway configuration from a logical router.
+     * @param fId - fabric identifier.
+     * @param lrId - logical router identifier.
+     * @param gatewayIpAddr - the IP address of the gateway.
+     */
+    public void removeLrLswGateway(NodeId fId, NodeId lrId, IpAddress gatewayIpAddr) {
         RmGatewayInputBuilder inputBuilder = new RmGatewayInputBuilder();
-        FabricId fabricId = new FabricId(vfabricId);
+        FabricId fabricId = new FabricId(fId);
         inputBuilder.setFabricId(fabricId);
         inputBuilder.setLogicalRouter(new NodeId(lrId));
         inputBuilder.setIpAddress(new IpAddress(gatewayIpAddr));

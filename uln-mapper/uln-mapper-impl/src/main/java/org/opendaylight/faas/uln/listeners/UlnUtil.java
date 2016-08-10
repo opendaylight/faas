@@ -68,7 +68,6 @@ public final class UlnUtil {
         org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId nodeId = epLocation.getNodeId();
         NodeConnectorId nodeConnectorId = epLocation.getNodeConnectorId();
 
-        //TODO IpAddress gatewayIpAddr = subnet.getExternalGateways().get(0).getExternalGateway();
         IpAddress gatewayIpAddr = subnet.getVirtualRouterIp();
         MacAddress macAddress = epPort.getMacAddress();
         IpAddress ipAddress = epPort.getPrivateIps().get(0).getIpAddress();

@@ -63,4 +63,10 @@ public final class RenderedRouter {
         gateways.remove(lsw);
     }
 
+    @Override
+    public String toString() {
+        return "RenderedRouter [parentId=" + parentId + ", fabricId=" + fabricId + ", routerID=" + routerID + "]";
+    }
+
+
 }
