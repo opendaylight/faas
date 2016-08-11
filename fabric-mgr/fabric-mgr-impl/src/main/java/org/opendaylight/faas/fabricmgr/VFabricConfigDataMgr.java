@@ -43,11 +43,11 @@ public class VFabricConfigDataMgr {
     /**
      * Constructor : initialize with default network resource.
      * @param start - start index of the allocated chunk resource.
-     * @param vfabricId
+     * @param fabricId -fabric identifier.
      */
-    public VFabricConfigDataMgr(NodeId vfabricId, int start) {
+    public VFabricConfigDataMgr(NodeId fabricId, int start) {
         super();
-        this.setVfabricId(vfabricId);
+        this.setVfabricId(fabricId);
         this.start = start;
         this.availableL2Resource = L2_DEF_NUM;
     }
