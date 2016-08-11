@@ -17,8 +17,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -87,7 +85,6 @@ public class LogicSwitchContext implements AutoCloseable {
         vrfCtx.addGatewayPort(ip, vlan, this.nodeid, mac);
 
         inhertAcls.addAll(vrfCtx.getAcls());
-        writeToDom(false, vrfCtx.getAcls());
     }
 
     public GatewayPort unAssociateToRouter(LogicRouterContext vrfCtx) {
@@ -97,9 +94,6 @@ public class LogicSwitchContext implements AutoCloseable {
         GatewayPort gwPort = oldVrfCtx.removeGatewayPort(vlan);
         List<String> oldAcls = Collections.unmodifiableList(inhertAcls);
         inhertAcls.clear();
-        if (!oldAcls.isEmpty()) {
-            writeToDom(true, oldAcls);
-        }
         return gwPort;
     }
 
@@ -117,44 +111,29 @@ public class LogicSwitchContext implements AutoCloseable {
 
     public void addAcl(String aclName) {
         acls.add(aclName);
-        writeToDom(false, aclName, null);
-    }
+   }
 
     public void removeAcl(String aclName) {
         acls.remove(aclName);
-        writeToDom(true, aclName, null);
     }
 
     public void removeVrfAcl(String aclName) {
         inhertAcls.remove(aclName);
-        writeToDom(true, aclName, null);
     }
 
     public void addVrfAcl(String aclName) {
         inhertAcls.add(aclName);
-        writeToDom(false, aclName, null);
+    }
+
+    public List<String> gtAcls() {
+        List<String> ret = Lists.newArrayList();
+        ret.addAll(acls);
+        ret.addAll(inhertAcls);
+        return ret;
     }
 
     public boolean isExternal() {
         return external;
-    }
-
-    private boolean writeToDom(boolean delete, String aclName, WriteTransaction wt) {
-        return true;
-    }
-
-    private void writeToDom(boolean delete, List<String> acls) {
-
-        boolean upt = false;
-        WriteTransaction trans = databroker.newWriteOnlyTransaction();
-
-        for (String acl : acls) {
-            upt |= writeToDom(delete, acl, trans);
-        }
-
-        if (upt) {
-            MdSalUtils.wrapperSubmit(trans);
-        }
     }
 
     private void writeToDom(DeviceKey key, String mgntIp) {
