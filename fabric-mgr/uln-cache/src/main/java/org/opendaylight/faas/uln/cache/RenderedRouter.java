@@ -19,32 +19,25 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
  *
  */
 public final class RenderedRouter {
-    private final NodeId parentId;
     private final NodeId fabricId;
     private final NodeId routerID;
-    private Map<NodeId, Uuid> gateways;
+    private final Map<NodeId, Uuid> gateways;
 
 
     /**
      * Constructor.
      * @param fabricId - the host fabric of the rendered switch.
-     * @param parentId - the logical switch of which the rendered switch is part.
      * @param routerID - the rendered router id.
      */
-    public RenderedRouter(NodeId fabricId, NodeId parentId, NodeId routerID) {
+    public RenderedRouter(NodeId fabricId, NodeId routerID) {
         super();
-        this.parentId = parentId;
         this.fabricId = fabricId;
         this.routerID = routerID;
-        this.gateways = new HashMap<>();
+        this.gateways = new HashMap<>(); //Differentiators
     }
 
     public NodeId getFabricId() {
         return fabricId;
-    }
-
-    public NodeId getParentId() {
-        return parentId;
     }
 
     public NodeId getRouterID() {
@@ -65,7 +58,7 @@ public final class RenderedRouter {
 
     @Override
     public String toString() {
-        return "RenderedRouter [parentId=" + parentId + ", fabricId=" + fabricId + ", routerID=" + routerID + "]";
+        return "RenderedRouter [fabricId=" + fabricId + ", routerID=" + routerID + "]";
     }
 
 
