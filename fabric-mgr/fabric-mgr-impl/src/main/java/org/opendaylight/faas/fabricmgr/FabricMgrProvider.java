@@ -10,11 +10,11 @@ package org.opendaylight.faas.fabricmgr;
 import com.google.common.base.Optional;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.algorithms.shortestpath.PrimMinimumSpanningTree;
-import edu.uci.ics.jung.graph.DelegateTree;
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.Tree;
+import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -92,12 +92,7 @@ public class FabricMgrProvider implements AutoCloseable {
     private Ipv4Address reservedGatewayAddress = new Ipv4Address("10.123.17.1");
     private final Ipv4Address defaultIP = new Ipv4Address("0.0.0.0");
     private final Ipv4Prefix defaultIpv4LinkPrefix = new Ipv4Prefix("255.255.255.254/2");
-
-
-
     private Map<org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid, UserLogicalNetworkCache> ulnStore;
-    private Map<Uuid, Graph<NodeId, Link>> renderedLRTopos ; //logical router - its rendered topology on fabrics look up.
-
 
     private FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
             final NotificationService notificationService) {
@@ -116,7 +111,6 @@ public class FabricMgrProvider implements AutoCloseable {
         this.vcNetNodeService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(VcNetNodeService.class);
         this.vcConfigDataMgrList = new ConcurrentHashMap<>();
         this.ulnStore = new ConcurrentHashMap<>();
-        this.renderedLRTopos = new ConcurrentHashMap<>(); //TODO, move this to cache later.
 
         LOG.info("FABMGR: FabricMgrProvider has Started with threadpool size {}", numCPU);
     }
@@ -208,8 +202,7 @@ public class FabricMgrProvider implements AutoCloseable {
 
                 LOG.debug("FABMGR: createLneLayer2: lswId={}", renderedLSWId.getValue());
 
-                RenderedSwitch renderedSW = new RenderedSwitch(fabricId, renderedLSWId,
-                        new NodeId(lsw.getValue()));
+                RenderedSwitch renderedSW = new RenderedSwitch(fabricId, lsw, renderedLSWId);
                 uln.getLswStore().get(lsw).addRenderedSwitch(renderedSW);
             }
         } catch (Exception e) {
@@ -245,46 +238,76 @@ public class FabricMgrProvider implements AutoCloseable {
             return null;
         }
 
-        Tree<NodeId, Link> tree = new DelegateTree<>();
+        UndirectedSparseGraph<NodeId, Link> graph = new UndirectedSparseGraph<>();
         for (Node node : topo.getNode()) {
-            tree.addVertex(node.getNodeId());
+            graph.addVertex(node.getNodeId());
         }
 
         for (Link link : topo.getLink())
         {
-            tree.addEdge(link, link.getSource().getSourceNode(), link.getDestination().getDestNode());
+            graph.addEdge(link, link.getSource().getSourceNode(), link.getDestination().getDestNode());
         }
 
         PrimMinimumSpanningTree<NodeId, Link> alg =
-                new PrimMinimumSpanningTree<>(DelegateTree.<NodeId, Link>getFactory());
+                new PrimMinimumSpanningTree<>(UndirectedSparseGraph.<NodeId, Link>getFactory());
 
-        Graph<NodeId, Link> miniTree = alg.transform(tree);
+        Graph<NodeId, Link> miniTree = alg.transform(graph);
 
         return pruneTree(miniTree, fabrics);
     }
 
+    /**
+     *
+     * @param tree - it has to be a tree. otherwise the alg will fail. we need
+     *               to enforce this in the code. to be done later.
+     * @param nodes - the nodes need to be contained.
+     * @return a pruned tree with minimal nodes to connect. notes that we can not remove
+     *         the vertex or edge within the loop, it will generate concurrent access violation.
+     */
     private Graph<NodeId, Link> pruneTree(Graph<NodeId, Link> tree, List<NodeId> nodes)
     {
-        //Prune the leaf nodes
-        for (NodeId nodeId : tree.getVertices()) {
-            if (!nodes.contains(nodeId) && tree.getNeighborCount(nodeId) == 1 )
-            {
-                tree.removeVertex(nodeId);
-            }
+        boolean found = false;
+        List<NodeId> nodesToBePruned = new ArrayList<>();
+        List<Link> edgesToBePruned = new ArrayList<>();
+
+        if( tree == null || nodes == null || nodes.containsAll(tree.getVertices())) {
+            return tree;
         }
 
-        //Prune the links
-        for (Link link : tree.getEdges())
-        {
-            if (!tree.containsVertex(link.getSource().getSourceNode())
-                    || !tree.containsVertex(link.getDestination().getDestNode()) ) {
+        //TODO - enforce the graph is  a tree.
+        do {
+            found = false;
+            // Prune the leaf nodes which is not part of nodes until
+            // the given nodes will be disconnected  f one more node is pruned.
+            for (NodeId nodeId : tree.getVertices()) {
+                if (!nodes.contains(nodeId) && tree.getNeighborCount(nodeId) == 1) {
+                    nodesToBePruned.add(nodeId);
+                    found = true;
+
+                }
+            }
+
+            for (NodeId id : nodesToBePruned) {
+                tree.removeVertex(id);
+            }
+
+            // Prune the links
+            for (Link link : tree.getEdges()) {
+                if (!tree.containsVertex(link.getSource().getSourceNode())
+                        || !tree.containsVertex(link.getDestination().getDestNode())) {
+                    edgesToBePruned.add(link);
+                }
+            }
+
+            for (Link link : edgesToBePruned) {
                 tree.removeEdge(link);
             }
-        }
+
+
+        } while (found);
+
         return tree;
     }
-
-
 
     /**
      * Bridge two adjacent layer 2 segments into one
@@ -364,7 +387,25 @@ public class FabricMgrProvider implements AutoCloseable {
         List<RenderReadySwitchLink> tasks = new ArrayList<>();
         for (Link l : topo.getLink()) {
             RenderedSwitch sswitch  = maps.get(new FabricId(l.getSource().getSourceNode()));
+            if (sswitch == null) {
+                NodeId slsw = this.createLneLayer2(
+                        tenantId,l.getSource().getSourceNode(),
+                        new Uuid(UUID.randomUUID().toString()),
+                        uln);
+
+                RenderedSwitch slswR = new RenderedSwitch(l.getSource().getSourceNode(), lsw, slsw);
+                uln.getLswStore().get(lsw).addRenderedSwitch(slswR);
+            }
             RenderedSwitch dswitch = maps.get(new FabricId(l.getDestination().getDestNode()));
+            if (dswitch == null) {
+                NodeId dlsw = this.createLneLayer2(
+                        tenantId,l.getDestination().getDestNode(),
+                        new Uuid(UUID.randomUUID().toString()),
+                        uln);
+                RenderedSwitch dlswR = new RenderedSwitch(l.getDestination().getDestNode(), lsw, dlsw);
+                uln.getLswStore().get(lsw).addRenderedSwitch(dlswR);
+            }
+
 
             RenderedLinkKey key = new RenderedLinkKey(sswitch, dswitch);
             if (!uln.getLswStore().get(lsw).getRenderedL2Links().containsKey(key)) {
@@ -410,15 +451,13 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param tenantId - tenant identifier.
      * @param fabricId - fabric identifier.
      * @param uln - the user logical network info
-     * @param lr - logical router to be rendered on this fabric. it might be distributed and
-     *             contain multiple logical routers on different fabric. but each fabric only has one.
      * @return the rendered logical router identifier on the given fabric.
      */
     public NodeId createLneLayer3(
             Uuid tenantId,
             NodeId fabricId,
-            UserLogicalNetworkCache uln,
-            LogicalRouterMappingInfo lr) {
+            UserLogicalNetworkCache uln
+            ) {
         CreateLneLayer3InputBuilder builder = new CreateLneLayer3InputBuilder();
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
@@ -432,9 +471,7 @@ public class FabricMgrProvider implements AutoCloseable {
         }
 
         builder.setVfabricId(fabricId);
-        builder.setTenantId(new TenantId(tenantId));
-        builder.setLrUuid(new Uuid(lr.getLr().getUuid().getValue()));
-        builder.setName(lr.getLr().getUuid().getValue());
+        builder.setName(tenantId.getValue());
 
         NodeId renderedLrId = null;
         Future<RpcResult<CreateLneLayer3Output>> result = this.vcNetNodeService.createLneLayer3(builder.build());
@@ -567,7 +604,7 @@ public class FabricMgrProvider implements AutoCloseable {
         Entry<FabricId, TpId> entry = getBorderInfo();
         NodeId lrId = null;
         if(uln.getLrStore().get(lr).getRenderedDeviceIdOnFabric(entry.getKey()) == null) {
-            lrId = this.createLneLayer3(tenantId, entry.getKey(), uln, lr);
+            lrId = this.createLneLayer3(tenantId, entry.getKey(), uln);
             if (lrId == null) {
                 LOG.error("Failed to create VRF on border Fabric {}" , entry.getKey());
                 return;
@@ -637,7 +674,7 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param lr
      * @return list of IPs reachable from this rendered router.
      */
-    private List<IpAddress> getAllHostIPs(TenantId tenantId, UserLogicalNetworkCache uln, RenderedRouter lr)
+    private List<IpAddress> getAllHostIPs(UserLogicalNetworkCache uln, RenderedRouter lr)
     {
         List<IpAddress> iplist = new ArrayList();
         for(Map.Entry<org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid, LogicalSwitchMappingInfo> entry : uln.getLswStore().entrySet())
@@ -649,7 +686,7 @@ public class FabricMgrProvider implements AutoCloseable {
 
             for (Map.Entry<TpId, TpId> entry2 :  rswitch.getPortMappings().entrySet())
             {
-                PortMappingInfo pmi = ulnStore.get(tenantId).getPortStore().get(entry2.getKey());
+                PortMappingInfo pmi = uln.getPortStore().get(entry2.getKey());
                 for (PrivateIps ip : pmi.getPort().getPrivateIps())
                 {
                     iplist.add(ip.getIpAddress());
@@ -721,25 +758,48 @@ public class FabricMgrProvider implements AutoCloseable {
      *
      * @param tenantID - tenant identifier.
      * @param uln - User logical network info.
-     * @param lr - logical router's IETF UuID.
+     * @param rmaps - RenderedRouter on Fabric mapping table
      */
 
-    public void connectAllDVRs(Uuid tenantID, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr)
+    public void connectAllDVRs(Uuid tenantID, UserLogicalNetworkCache uln, Map<NodeId, RenderedRouter> rmaps)
     {
-        Map<NodeId, RenderedRouter> maps = uln.getLrStore().get(lr).getRenderedRouters();
-
         List<RenderReadyL3Link> tasks = new ArrayList<>();
 
-        Graph<NodeId, Link> tree = calcMinimumSpanningTree(new ArrayList<>(maps.keySet()));
-        renderedLRTopos.put(tenantID, tree);
+        //For layer 3 , all we need are all shortest path links.
+        // it is not like layer 2 which has to be a tree. to say the least.
+        List<Link> alllinks = new ArrayList<>();
+        for (RenderedRouter rrsentry : rmaps.values()) {
+            for (RenderedRouter rrdentry : rmaps.values()) {
+                List<Link> links = this.calcShortestPathOnFabricTopo(rrsentry.getFabricId(), rrdentry.getRouterID());
+                alllinks.removeAll(links);
+                alllinks.addAll(links);
+            }
+        }
 
-        for (Link l : tree.getEdges())
+        for (Link l : alllinks)
         {
-            RenderedRouter sourceLr = maps.get(l.getSource().getSourceNode());
-            RenderedRouter destLr = maps.get(l.getDestination().getDestNode());
-            RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(sourceLr, destLr);
+            NodeId srcLr =  uln.getRenderedRouterOnFabirc(l.getSource().getSourceNode());
+            if (srcLr == null) {
+                srcLr = this.createLneLayer3(tenantID, l.getSource().getSourceNode(), uln);
+                uln.addRenderedRouterOnFabric(l.getSource().getSourceNode(), srcLr);
+
+            }
+            RenderedRouter srcrr = new RenderedRouter(
+                    l.getSource().getSourceNode(),
+                    srcLr);
+            NodeId destLr = uln.getRenderedRouterOnFabirc(l.getDestination().getDestNode());
+            if (destLr == null) {
+                destLr = this.createLneLayer3(tenantID, l.getDestination().getDestNode(), uln);
+                uln.addRenderedRouterOnFabric(l.getDestination().getDestNode(), destLr);
+            }
+
+            RenderedRouter destrr = new RenderedRouter(
+                    l.getSource().getSourceNode(),
+                    destLr);
+
+            RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(srcrr, destrr);
             if (uln.getRenderedrLinks().containsKey(key)) {
-                LOG.debug("From {" + sourceLr.toString() + " } to {" + destLr.toString() + " } already connected!!");
+                LOG.debug("From {" + srcrr.toString() + " } to {" + destrr.toString() + " } already connected!!");
                 continue;
             }
 
@@ -749,7 +809,7 @@ public class FabricMgrProvider implements AutoCloseable {
                 return;
             }
 
-            tasks.add(new RenderReadyL3Link(l, tag, sourceLr, destLr));
+            tasks.add(new RenderReadyL3Link(l, tag, srcrr, destrr));
         }
 
         for (RenderReadyL3Link task : tasks) {
@@ -768,7 +828,10 @@ public class FabricMgrProvider implements AutoCloseable {
             this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getSource().getSourceNode()), tpIdf,  slsw, tpId);
 
 
-            RenderedSwitch slswR = new RenderedSwitch(task.getRouterA().getRouterID(), slsw, task.getL().getSource().getSourceNode());
+            RenderedSwitch slswR = new RenderedSwitch(
+                    task.getL().getSource().getSourceNode(),
+                    tenantID,
+                    slsw);
 
             IpAddress[] gwpair = this.allocateReservedGatewayIP();
 
@@ -787,7 +850,7 @@ public class FabricMgrProvider implements AutoCloseable {
             TpId tpIdf2 = task.getL().getDestination().getDestTp();
             this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getDestination().getDestNode()), tpIdf2, dlsw, tpId2);
 
-            RenderedSwitch dlswR = new RenderedSwitch(task.getRouterB().getRouterID(), dlsw, task.getL().getDestination().getDestNode());
+            RenderedSwitch dlswR = new RenderedSwitch(task.getL().getDestination().getDestNode(), tenantID, dlsw);
 
             Uuid destGWPort = this.createLrLswGateway(tenantID,
                     task.getL().getDestination().getDestNode(),
@@ -804,8 +867,7 @@ public class FabricMgrProvider implements AutoCloseable {
 
     }
 
-    public void updateRoutes(Uuid tenantID, UserLogicalNetworkCache uln, Uuid lr) {
-        Map<NodeId, RenderedRouter> maps = uln.getLrStore().get(lr).getRenderedRouters();
+    public void updateRoutes(Uuid tenantID, UserLogicalNetworkCache uln, Map<NodeId, RenderedRouter> maps) {
         for (RenderedRouter lrs : maps.values()) {
             for (RenderedRouter lrd : maps.values()) {
 
@@ -813,8 +875,12 @@ public class FabricMgrProvider implements AutoCloseable {
                     continue;
                 }
 
-                //calculate the sp from lrs to lrd on the pruned tree topology.
-                List<Link> ls = this.calcShortestPath(lrs.getFabricId(), lrd.getFabricId(),renderedLRTopos.get(tenantID));
+                // Calculate the sp from lrs to lrd on the pruned tree topology.
+                // Ideally it should reused the results of the  connectAllDVR 's calculation to make sure
+                // The data path is always connected. for now since the FabricTopology ususally not changed
+                // after initialization. it is safe for now. Also the calculation should be very fast in
+                // exchange of caching the results.
+                List<Link> ls = this.calcShortestPathOnFabricTopo(lrs.getFabricId(), lrd.getFabricId());
 
                 UpdateLneLayer3RoutingtableInputBuilder rtinput = new UpdateLneLayer3RoutingtableInputBuilder();
                 rtinput.setLneId(new VcLneId(lrs.getRouterID()));
@@ -826,7 +892,7 @@ public class FabricMgrProvider implements AutoCloseable {
                 //Get all the reacheable hosts on destiantion router lrd.
                 //for each Host on lrd, a Host route is generated and isntalled on the
                 // source router lrs.
-                for (IpAddress ip : getAllHostIPs(new TenantId(tenantID), uln, lrd)) {
+                for (IpAddress ip : getAllHostIPs(uln, lrd)) {
                     RoutingtableBuilder rtbuilder = new RoutingtableBuilder();
                     rtbuilder.setVrfId(lrs.getRouterID().getValue());
                     rtbuilder.setDestIp(ip);
@@ -857,15 +923,38 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param topo - topology
      * @return the links constructing the path.
      */
-    private List<Link> calcShortestPath(NodeId lrs, NodeId lrd, Graph<NodeId, Link> graph)
+    private List<Link> calcShortestPath(NodeId nodes, NodeId noded, Graph<NodeId, Link> graph)
     {
         DijkstraShortestPath<NodeId, Link> alg = new DijkstraShortestPath<>(graph);
-        return alg.getPath(lrs, lrd);
+        return alg.getPath(nodes, noded);
     }
+
+    private List<Link> calcShortestPathOnFabricTopo(NodeId fabrics, NodeId fabricd)
+    {
+        UndirectedSparseGraph<NodeId, Link> g = new UndirectedSparseGraph<>();
+        Topology topo = this.getFabricTopology();
+        if (topo == null) {
+            LOG.error("Failed to get fabric topology!");
+            return Collections.emptyList();
+        }
+
+        for (Node node : topo.getNode()) {
+            g.addVertex(node.getNodeId());
+        }
+
+        for (Link link : topo.getLink())
+        {
+            g.addEdge(link, link.getSource().getSourceNode(), link.getDestination().getDestNode());
+        }
+
+        return calcShortestPath(fabrics, fabricd, g);
+    }
+
 
     /**
      * Remove a tenant defined logical router.
      * @param tenantId - tenant identifier.
+     * @param fabricId - fabric identifier.
      * @param lrId - logical router identifier.
      */
     public void removeLneLayer3(Uuid tenantId, NodeId fabricId, NodeId lrId) {
@@ -894,6 +983,7 @@ public class FabricMgrProvider implements AutoCloseable {
     /**
      * Binding an physical location with logical port.
      * @param tenantId - tenant identifier.
+     * @param fabricId - fabric identifier.
      * @param lswId - logical switch
      * @param lswLogicalPortId - logical switch port id
      * @param endpoint - end point attributes

@@ -10,6 +10,7 @@ package org.opendaylight.faas.uln.cache;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 
@@ -19,7 +20,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
  *
  */
 public final class RenderedSwitch {
-    private final NodeId parentId;
+    private final Uuid parentId;
     private final NodeId fabricId;
     private final NodeId switchId;
     private Map<TpId, TpId> portMappings;
@@ -30,7 +31,7 @@ public final class RenderedSwitch {
      * @param parentId - the logical switch of which the rendered switch is part.
      * @param switchId - the rendered switch id.
      */
-    public RenderedSwitch(NodeId fabricId, NodeId parentId, NodeId switchId) {
+    public RenderedSwitch(NodeId fabricId, Uuid parentId, NodeId switchId) {
         super();
         this.parentId = parentId;
         this.fabricId = fabricId;
@@ -46,7 +47,7 @@ public final class RenderedSwitch {
         return fabricId;
     }
 
-    public NodeId getParentId() {
+    public Uuid getParentId() {
         return parentId;
     }
 
@@ -78,36 +79,45 @@ public final class RenderedSwitch {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((fabricId == null) ? 0 : fabricId.hashCode());
-        result = prime * result + ((parentId == null) ? 0 : parentId.hashCode());
-        result = prime * result + ((switchId == null) ? 0 : switchId.hashCode());
+        result = prime * result + (fabricId == null ? 0 : fabricId.hashCode());
+        result = prime * result + (parentId == null ? 0 : parentId.hashCode());
+        result = prime * result + (switchId == null ? 0 : switchId.hashCode());
         return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         RenderedSwitch other = (RenderedSwitch) obj;
         if (fabricId == null) {
-            if (other.fabricId != null)
+            if (other.fabricId != null) {
                 return false;
-        } else if (!fabricId.equals(other.fabricId))
+            }
+        } else if (!fabricId.equals(other.fabricId)) {
             return false;
+        }
         if (parentId == null) {
-            if (other.parentId != null)
+            if (other.parentId != null) {
                 return false;
-        } else if (!parentId.equals(other.parentId))
+            }
+        } else if (!parentId.equals(other.parentId)) {
             return false;
+        }
         if (switchId == null) {
-            if (other.switchId != null)
+            if (other.switchId != null) {
                 return false;
-        } else if (!switchId.equals(other.switchId))
+            }
+        } else if (!switchId.equals(other.switchId)) {
             return false;
+        }
         return true;
     }
 
