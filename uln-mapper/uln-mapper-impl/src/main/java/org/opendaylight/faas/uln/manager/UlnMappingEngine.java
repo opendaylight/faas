@@ -131,7 +131,6 @@ public class UlnMappingEngine {
     private final Executor exec;
     private final Semaphore workerThreadLock;
     private boolean applyAclToBothEpgs = true; // see Bug 5191
-    private Map<Uuid, Uuid> lswLswPairStore;
     private FabricMgrProvider fmgr = null;
 
     /**
@@ -146,7 +145,6 @@ public class UlnMappingEngine {
         this.ulnStore = fmgr.getCacheStore();
         assert ulnStore != null;
 
-        this.lswLswPairStore = new HashMap<>();
         this.exec = Executors.newSingleThreadExecutor();
         /*
          * Releases must occur before any acquires will be
@@ -451,7 +449,7 @@ public class UlnMappingEngine {
 
             if (lr.hasServiceBeenRenderedOnFabric(fabricId)) {
                 this.renderLogicalRouter(tenantId, fabricId, uln, lr);
-                fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lr );
+                fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lr.getRenderedRouters());
             }
 
             if (lr.getRenderedRouterOnFabric(fabricId).getGateways().get(lsw) == null){
@@ -467,8 +465,10 @@ public class UlnMappingEngine {
                        );
             }
 
-            fmgr.updateRoutes(UlnUtil.convertToYangUuid(tenantId), uln,
-                    UlnUtil.convertToYangUuid(lr.getLr().getUuid()));
+            fmgr.updateRoutes(
+                    UlnUtil.convertToYangUuid(tenantId),
+                    uln,
+                    lr.getRenderedRouters());
 
             //Set up ACLs between all subnets and logical switches within
             //the logical routing domain.
@@ -476,7 +476,6 @@ public class UlnMappingEngine {
         }
 
     }
-
 
     public synchronized void handleEdgeCreateEvent(Edge edge) {
         Uuid tenantId = edge.getTenantId();
@@ -488,7 +487,7 @@ public class UlnMappingEngine {
             LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: uln is null");
             return;
         }
-        if (uln.isEdgeAlreadyCached(edge) == true) {
+        if (uln.isEdgeAlreadyCached(edge)) {
             LOG.error("FABMGR: ERROR: handleEdgeCreateEvent: edge already exist");
             return;
         }
@@ -499,19 +498,7 @@ public class UlnMappingEngine {
     }
 
     private void doLR2LREdge(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
-        /*
-         * We need to apply ACL to both consumer and producer EPG (Bug 5191).
-         * So, when we detect a LR-LR edge, we use it to find the LSW-to-LSW
-         * pair, and cache that information. Note that we do not cache this
-         * information in UlserLogicalNetworkCache. Instead we cache it in this
-         * class. Also note that one EPG may contain multiple LSWs, so really we
-         * should find a set of LSws to a set of LSW mapping. But since the real
-         * fix for Bug 5191 is to change the ULN model, we only put a simple fix
-         * here.
-         */
-        // TODO - we need to handle this fabric by fabric.
-        this.doFindLswToLswPair(tenantId, uln, edge);
-
+        //Find two routers
         List<Subnet> subnets = new ArrayList<>();
         List<LogicalSwitchMappingInfo> llsws = new ArrayList<>();
         List<LogicalSwitchMappingInfo> rlsws = new ArrayList<>();
@@ -522,6 +509,13 @@ public class UlnMappingEngine {
         LogicalRouterMappingInfo leftLr = uln.findLrFromItsPort(leftPort.getPort());
         LogicalRouterMappingInfo rightLr = uln.findLrFromItsPort(rightPort.getPort());
 
+        //set up connection
+        Map<NodeId,RenderedRouter> combinedMap = new HashMap<>();
+        combinedMap.putAll(leftLr.getRenderedRouters());
+        combinedMap.putAll(rightLr.getRenderedRouters());
+        fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, combinedMap);
+
+        //ACL
         List<EdgeMappingInfo> edges = uln.findLrLswEdge(leftLr);
         for (EdgeMappingInfo edge2 : edges) {
             PortMappingInfo port = uln.findLswPortOnEdge(edge2);
@@ -542,7 +536,7 @@ public class UlnMappingEngine {
 
         String aclName = this.createAclForGroupComm(subnets);
 
-        List<NodeId> fabrics = uln.findRenderedLswsFabricsFromLr(leftLr);
+        List<NodeId> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(leftLr);
         for (NodeId fabricId : fabrics) {
             for (LogicalSwitchMappingInfo lsw : llsws) {
                 RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
@@ -550,13 +544,16 @@ public class UlnMappingEngine {
             }
         }
 
-        List<NodeId> fabrics2 = uln.findRenderedLswsFabricsFromLr(rightLr);
+        List<NodeId> fabrics2 = uln.findAllFabricsOfRenderedLswsFromLr(rightLr);
         for (NodeId fabricId : fabrics2) {
             for (LogicalSwitchMappingInfo lsw : rlsws) {
                 RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
                 fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
             }
         }
+
+        //routing table
+        fmgr.updateRoutes(UlnUtil.convertToYangUuid(tenantId), uln, combinedMap);
     }
 
     final class RenderableInfo {
@@ -693,7 +690,7 @@ public class UlnMappingEngine {
                     this.renderLogicalRouter(tenantId, entry.getKey(), uln, info.getLr());
                 }
             }
-            fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, info.getLr());
+            fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, info.getLr().getRenderedRouters());
 
 
             Map<NodeId, RenderedRouter> renderedRouters = info.getLr().getRenderedRouters();
@@ -734,7 +731,7 @@ public class UlnMappingEngine {
                         );
             }
 
-            fmgr.updateRoutes(UlnUtil.convertToYangUuid(tenantId), uln, UlnUtil.convertToYangUuid(info.getLr().getLr().getUuid()));
+            fmgr.updateRoutes(UlnUtil.convertToYangUuid(tenantId), uln, info.getLr().getRenderedRouters());
 
             /*
              * One subnet can have only one gateway. Mark this subnet as
@@ -867,49 +864,10 @@ public class UlnMappingEngine {
 
     }
 
-    private void doAclCreateOnLswPair(
-            Uuid tenantId,
-            UserLogicalNetworkCache uln,
-            LogicalRouterMappingInfo lr,
-            SecurityRuleGroups ruleGroups) {
-
-        List<EdgeMappingInfo> lrLswEdges = uln.findLrLswEdge(lr);
-        if (lrLswEdges.isEmpty()) {
-            return;
-        }
-        for (EdgeMappingInfo lrLswEdge : lrLswEdges) {
-            PortMappingInfo lswPort = uln.findLswPortOnEdge(lrLswEdge);
-            if (lswPort == null) {
-                continue;
-            }
-
-            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(lswPort.getPort());
-            if (lsw == null) {
-                continue;
-            }
-
-            Map<NodeId, RenderedSwitch> rlsws = lsw.getRenderedSwitches();
-            for (Map.Entry<NodeId, RenderedSwitch> entry : rlsws.entrySet()) {
-                Uuid lswId = lsw.getLsw().getUuid();
-                Uuid lswId2 = this.lswLswPairStore.get(lswId);
-                LogicalSwitchMappingInfo lsw2 = uln.findLswFromLswId(lswId2);
-
-                Map<NodeId, RenderedSwitch> llsws = lsw2.getRenderedSwitches();
-                for (Map.Entry<NodeId, RenderedSwitch> entry2 : llsws.entrySet()) {
-                    this.renderSecurityRuleGroupsOnPair(
-                            tenantId,uln,
-                            entry.getKey(),
-                            entry.getValue().getSwitchID(),
-                            entry2.getKey(),
-                            entry2.getValue().getSwitchID(),
-                            ruleGroups);
-                }
-            }
-        }
-    }
 
     private NodeId renderLogicalSwitch(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, LogicalSwitch lsw) {
-        return fmgr.createLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, UlnUtil.convertToYangUuid(lsw.getUuid()), uln);
+        return fmgr.createLneLayer2(UlnUtil.convertToYangUuid(tenantId),
+                fabricId, UlnUtil.convertToYangUuid(lsw.getUuid()), uln);
     }
 
     private IpAddress getPublicIP(LogicalRouter lr, UserLogicalNetworkCache uln)
@@ -959,44 +917,41 @@ public class UlnMappingEngine {
        }
    }
 
-   private void setACLforLogicalRouter (Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr) {
-       List<Subnet> subnets = new ArrayList<>();
-       List<LogicalSwitchMappingInfo> lsws = new ArrayList<>();
+    private void setACLforLogicalRouter(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr) {
+        List<Subnet> subnets = new ArrayList<>();
+        List<LogicalSwitchMappingInfo> lsws = new ArrayList<>();
 
-       List<EdgeMappingInfo> edges = uln.findLrLswEdge(lr);
-       for (EdgeMappingInfo edge: edges) {
-           PortMappingInfo port = uln.findLswPortOnEdge(edge);
-           LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
-           lsws.add(lsw);
-           SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
-           subnets.add(subnet.getSubnet());
-       }
-       String aclName = this.createAclForGroupComm(subnets);
+        List<EdgeMappingInfo> edges = uln.findLrLswEdge(lr);
+        for (EdgeMappingInfo edge : edges) {
+            PortMappingInfo port = uln.findLswPortOnEdge(edge);
+            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
+            lsws.add(lsw);
+            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
+            subnets.add(subnet.getSubnet());
+        }
+        String aclName = this.createAclForGroupComm(subnets);
 
-       List<NodeId> fabrics = uln.findRenderedLswsFabricsFromLr(lr);
-       for (NodeId fId : fabrics) {
-           for (LogicalSwitchMappingInfo lsw :lsws) {
-               RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fId);
-               fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fId, rsw.getSwitchID(), aclName);
-           }
-       }
-   }
+        List<NodeId> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(lr);
+        for (NodeId fId : fabrics) {
+            for (LogicalSwitchMappingInfo lsw : lsws) {
+                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fId);
+                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fId, rsw.getSwitchID(), aclName);
+            }
+        }
+    }
+
     private NodeId renderLogicalRouter(
             Uuid tenantId, NodeId fabricId,
             UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr) {
 
         NodeId rr ;
         if ((rr = uln.getRenderedRouterOnFabirc(fabricId)) == null) {
-            rr =  fmgr.createLneLayer3(
-                UlnUtil.convertToYangUuid(tenantId),
-                fabricId,
-                uln,
-                lr);
+            rr =  fmgr.createLneLayer3(UlnUtil.convertToYangUuid(tenantId), fabricId,uln);
+            uln.addRenderedRouterOnFabric(fabricId, rr);
         }
 
-        RenderedRouter renderedLr = new RenderedRouter(fabricId, rr, new NodeId(lr.getLr().getUuid().getValue()));
+        RenderedRouter renderedLr = new RenderedRouter(fabricId, rr);
         uln.getLrStore().get(lr).addRenderedRouter(renderedLr);
-        uln.addRenderedRouterOnFabric(fabricId, rr);
         return rr;
     }
 
@@ -1257,10 +1212,12 @@ public class UlnMappingEngine {
             } else if (!lrInfo.hasServiceBeenRendered()) {
                 LOG.debug("FABMGR: processPendingUlnRequests: doLogicalRouterCreate: {}",
                         lrInfo.getLr().getUuid().getValue());
-                List<NodeId> rlrs = uln.findRenderedLswsFabricsFromLr(lrInfo);
+                List<NodeId> rlrs = uln.findAllFabricsOfRenderedLswsFromLr(lrInfo);
                 for (NodeId fabricId : rlrs) {
                     this.renderLogicalRouter(tenantId, fabricId, uln, lrInfo);
                 }
+                fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lrInfo.getRenderedRouters());
+                fmgr.updateRoutes(UlnUtil.convertToYangUuid(tenantId), uln, lrInfo.getRenderedRouters());
             }
         }
 
@@ -2438,23 +2395,23 @@ public class UlnMappingEngine {
         this.workerThreadLock.release();
     }
 
-    private void doFindLswToLswPair(Uuid tenantId, UserLogicalNetworkCache uln, Edge lrToLrEdge) {
+    private Map<Uuid, Uuid> doFindLswToLswPair(Uuid tenantId, UserLogicalNetworkCache uln, Edge lrToLrEdge) {
         if (!uln.isEdgeLrToLrType(lrToLrEdge)) {
-            return;
+            return null;
         }
 
         // Find the left side lsw associated with left lr.
         PortMappingInfo leftLrPort = uln.findLeftPortOnEdge(lrToLrEdge);
         if (leftLrPort == null) {
-            return;
+            return null;
         }
         LogicalRouterMappingInfo leftLr = uln.findLrFromItsPort(leftLrPort.getPort());
         if (leftLr == null) {
-            return;
+            return null;
         }
         List<EdgeMappingInfo> leftLrLswEdges = uln.findLrLswEdge(leftLr);
         if (leftLrLswEdges.isEmpty()) {
-            return;
+            return null;
         }
 
         List<LogicalSwitchMappingInfo> leftLsws = new ArrayList<>();
@@ -2473,15 +2430,15 @@ public class UlnMappingEngine {
         // Find the right side lsw associated with right lr.
         PortMappingInfo rightLrPort = uln.findRightPortOnEdge(lrToLrEdge);
         if (rightLrPort == null) {
-            return;
+            return null;
         }
         LogicalRouterMappingInfo rightLr = uln.findLrFromItsPort(rightLrPort.getPort());
         if (rightLr == null) {
-            return;
+            return null;
         }
         List<EdgeMappingInfo> rightLrLswEdges = uln.findLrLswEdge(rightLr);
         if (rightLrLswEdges.isEmpty()) {
-            return;
+            return null;
         }
 
         List<LogicalSwitchMappingInfo> rightLsws = new ArrayList<>();
@@ -2498,14 +2455,17 @@ public class UlnMappingEngine {
             rightLsws.add(rightLsw);
         }
 
+        Map<Uuid, Uuid> pairs = new HashMap<>();
         for (LogicalSwitchMappingInfo leftLsw : leftLsws) {
             for (LogicalSwitchMappingInfo rightLsw : rightLsws) {
                 Uuid leftLswId = leftLsw.getLsw().getUuid();
                 Uuid rightLswId = rightLsw.getLsw().getUuid();
-                this.lswLswPairStore.put(leftLswId, rightLswId);
-                this.lswLswPairStore.put(rightLswId, leftLswId);
+                pairs.put(leftLswId, rightLswId);
+                pairs.put(rightLswId, leftLswId);
             }
         }
+
+        return pairs;
     }
 }
 

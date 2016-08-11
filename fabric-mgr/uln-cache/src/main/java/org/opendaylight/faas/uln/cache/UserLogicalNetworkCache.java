@@ -141,6 +141,13 @@ public final class UserLogicalNetworkCache {
         return renderedRouters.get(fabricId);
     }
 
+
+
+    public Map<NodeId, NodeId> getRenderedRouters() {
+        return renderedRouters;
+    }
+
+
     /**
      * Check if a given security group has been rendered.
      * @param ruleGroups - the group of rules to be rendered.
@@ -689,7 +696,7 @@ public final class UserLogicalNetworkCache {
     /**
      * Find the edge connects the given port.
      * @param port - the target port.
-     * @return
+     * @return the Endge connects the given port.
      */
     @Nonnull
     public EdgeMappingInfo findTheEdge(PortMappingInfo port) {
@@ -842,7 +849,7 @@ public final class UserLogicalNetworkCache {
     }
 
     @Nonnull
-    public List<NodeId> findRenderedLswsFabricsFromLr(LogicalRouterMappingInfo lr) {
+    public List<NodeId> findAllFabricsOfRenderedLswsFromLr(LogicalRouterMappingInfo lr) {
         List<EdgeMappingInfo> lrLswEdges = this.findLrLswEdge(lr);
         List<NodeId> lsws = new ArrayList<>();
 
