@@ -71,12 +71,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.VlanId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxTunIdCaseBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nodes.node.table.flow.instructions.instruction.instruction.apply.actions._case.apply.actions.action.action.NxActionSetNshc1NodesNodeTableFlowApplyActionsCaseBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nodes.node.table.flow.instructions.instruction.instruction.apply.actions._case.apply.actions.action.action.NxActionSetNshc2NodesNodeTableFlowApplyActionsCaseBuilder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._1.grouping.NxSetNshc1;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._1.grouping.NxSetNshc1Builder;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._2.grouping.NxSetNshc2;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.nx.action.set.nshc._2.grouping.NxSetNshc2Builder;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,7 +126,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
-            List<Action> actionList = new ArrayList<Action>();
+            List<Action> actionList = new ArrayList<>();
             List<Instruction> instructions = Lists.newArrayList();
             ActionBuilder pushVlanActionBuilder = new ActionBuilder();
             ActionBuilder setVlanActionBuilder = new ActionBuilder();
@@ -281,7 +275,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
-            List<Action> actionList = new ArrayList<Action>();
+            List<Action> actionList = new ArrayList<>();
             List<Instruction> instructions = Lists.newArrayList();
 
             ActionBuilder ab = new ActionBuilder();
@@ -347,7 +341,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
-            List<Action> actionList = new ArrayList<Action>();
+            List<Action> actionList = new ArrayList<>();
             List<Instruction> instructions = Lists.newArrayList();
 
             ActionBuilder ab = new ActionBuilder();
@@ -421,7 +415,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Instantiate the Builders for the OF Actions and Instructions
             InstructionBuilder ib = new InstructionBuilder();
             InstructionsBuilder isb = new InstructionsBuilder();
-            List<Action> actionList = new ArrayList<Action>();
+            List<Action> actionList = new ArrayList<>();
             List<Instruction> instructions = Lists.newArrayList();
 
             ActionBuilder ab = new ActionBuilder();
@@ -471,16 +465,16 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         }
     }
 
+
+
     private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc1RegAction(
             Long value) {
-        NxSetNshc1 newNshc1 = new NxSetNshc1Builder().setNshc(value).build();
-        return new NxActionSetNshc1NodesNodeTableFlowApplyActionsCaseBuilder().setNxSetNshc1(newNshc1).build();
+        return OfActionUtils.nxLoadNshc1RegAction(value);
     }
 
     private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc2RegAction(
             Long value) {
-        NxSetNshc2 newNshc2 = new NxSetNshc2Builder().setNshc(value).build();
-        return new NxActionSetNshc2NodesNodeTableFlowApplyActionsCaseBuilder().setNxSetNshc2(newNshc2).build();
+        return OfActionUtils.nxLoadNshc2RegAction(value);
     }
 
     private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadTunIdAction(
@@ -952,7 +946,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
              */
             Instruction in = instructions.get(0);
             if (in.getInstruction() instanceof ApplyActionsCase) {
-                existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                existingActions = ((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction();
                 // Only include output actions
                 for (Action action : existingActions) {
                     if (action.getAction() instanceof OutputActionCase) {
@@ -1073,7 +1067,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         if (instructions != null) {
             for (Instruction in : instructions) {
                 if (in.getInstruction() instanceof ApplyActionsCase) {
-                    existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                    existingActions = ((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction();
                     actionList.addAll(existingActions);
                 }
             }
@@ -1259,7 +1253,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         if (instructions != null) {
             for (Instruction in : instructions) {
                 if (in.getInstruction() instanceof ApplyActionsCase) {
-                    existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                    existingActions = ((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction();
                     actionList.addAll(existingActions);
                 }
             }
@@ -1314,8 +1308,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             Buckets buckets = groupBuilder.getBuckets();
 
             for (Bucket bucket : buckets.getBucket()) {
-                if ((bucket.getBucketId().getValue() == bucketId.getValue())
-                        && (bucket.getBucketId().getValue() != 1l)) {
+                if (bucket.getBucketId().getValue() == bucketId.getValue()
+                        && bucket.getBucketId().getValue() != 1l) {
                     LOG.warn(
                             "Warning: createOutputGroupInstructionsToTunnelPort: the bucket is exsit for a tunnel port");
                     addNew = false;
@@ -1430,7 +1424,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         if (instructions != null) {
             for (Instruction in : instructions) {
                 if (in.getInstruction() instanceof ApplyActionsCase) {
-                    existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                    existingActions = ((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction();
                     actionList.addAll(existingActions);
                 }
             }
@@ -1491,8 +1485,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             Buckets buckets = groupBuilder.getBuckets();
 
             for (Bucket bucket : buckets.getBucket()) {
-                if ((bucket.getBucketId().getValue() == bucketId.getValue())
-                        && (bucket.getBucketId().getValue() != 1l)) {
+                if (bucket.getBucketId().getValue() == bucketId.getValue()
+                        && bucket.getBucketId().getValue() != 1l) {
                     LOG.warn(
                             "Warning: createOutputGroupInstructionsToTunnelPort: the bucket is exsit for a tunnel port");
                     addNew = false;
@@ -1614,7 +1608,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         if (instructions != null) {
             for (Instruction in : instructions) {
                 if (in.getInstruction() instanceof ApplyActionsCase) {
-                    existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                    existingActions = ((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction();
                     actionList.addAll(existingActions);
                     break;
                 }
@@ -1745,7 +1739,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         if (instructions != null) {
             for (Instruction in : instructions) {
                 if (in.getInstruction() instanceof ApplyActionsCase) {
-                    existingActions = (((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction());
+                    existingActions = ((ApplyActionsCase) in.getInstruction()).getApplyActions().getAction();
                     actionList.addAll(existingActions);
                     break;
                 }
