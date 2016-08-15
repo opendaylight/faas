@@ -11,6 +11,7 @@ package org.opendaylight.faas.uln.cache;
 import java.util.HashMap;
 import java.util.Map;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 
 /**
@@ -22,6 +23,11 @@ public final class RenderedRouter {
     private final NodeId fabricId;
     private final NodeId routerID;
     private final Map<NodeId, Uuid> gateways;
+    private boolean isExternal = false;
+    private NodeId extSwitch;
+    private TpId accessTP;
+    private int extAccessTag;
+    private Uuid gwid;
 
 
     /**
@@ -42,6 +48,49 @@ public final class RenderedRouter {
 
     public NodeId getRouterID() {
         return routerID;
+    }
+
+
+
+    public boolean isExternal() {
+        return isExternal;
+    }
+
+    public void setExternal(boolean isExternal) {
+        this.isExternal = isExternal;
+    }
+
+    public NodeId getExtSwitch() {
+        return extSwitch;
+    }
+
+    public void setExtSwitch(NodeId extSwitch) {
+        this.extSwitch = extSwitch;
+    }
+
+
+    public TpId getAccessTP() {
+        return accessTP;
+    }
+
+    public void setAccessTP(TpId accessTP) {
+        this.accessTP = accessTP;
+    }
+
+    public Uuid getGwid() {
+        return gwid;
+    }
+
+    public void setGwid(Uuid gwid) {
+        this.gwid = gwid;
+    }
+
+    public int getExtAccessTag() {
+        return extAccessTag;
+    }
+
+    public void setExtAccessTag(int extAccessTag) {
+        this.extAccessTag = extAccessTag;
     }
 
     public Map<NodeId, Uuid> getGateways() {

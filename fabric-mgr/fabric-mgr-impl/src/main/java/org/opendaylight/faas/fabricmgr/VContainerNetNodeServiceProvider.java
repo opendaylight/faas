@@ -59,6 +59,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingEntryBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.next.hop.options.SimpleNextHopBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VcLneId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.CreateLneLayer2Input;
@@ -318,8 +319,18 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         for(Routingtable rt : input.getRoutingtable())
         {
             RouteBuilder rb = new RouteBuilder();
-            rb.setDestinationPrefix(new Ipv4Prefix(rt.getDestIp().getIpv4Address().getValue()));
-            rb.setNextHopOptions(rb.getNextHopOptions());
+            String destIP = rt.getDestIp().getIpv4Address().getValue();
+            if (destIP.equals("0.0.0.0")) {
+                rb.setDestinationPrefix(new Ipv4Prefix("0.0.0.0/0"));
+            } else { //host route
+                rb.setDestinationPrefix(new Ipv4Prefix(rt.getDestIp().getIpv4Address().getValue() + "/32"));
+            }
+
+            SimpleNextHopBuilder shb = new SimpleNextHopBuilder();
+            shb.setNextHop(rt.getNexthopIp().getIpv4Address());
+            //TODO TODO
+            //shb.setOutgoingInterface() ?
+            rb.setNextHopOptions(shb.build());
             rl.add(rb.build());
         }
 
@@ -466,7 +477,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
      * @param lswId - logical switch identifier.
      * @param gatewayIpAddr - the gateway Ip address
      * @param ipPrefix - network prefix.
-     * @return
+     * @return the gw logical port TpId.
      */
     public Uuid createLrLswGateway(NodeId fId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
             IpPrefix ipPrefix) {

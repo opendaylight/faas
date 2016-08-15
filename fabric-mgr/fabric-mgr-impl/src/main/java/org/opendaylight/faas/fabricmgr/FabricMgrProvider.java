@@ -581,34 +581,59 @@ public class FabricMgrProvider implements AutoCloseable {
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
+    /**
+     * To get the border Fabric and its port connects to the External network
+     * for now we only only return the first one.
+     * @return
+     */
     private Entry<FabricId, TpId> getBorderInfo()
     {
-        for (FabricId id : this.netNodeServiceProvider.getAllFabrics()) {
-            for (Capability cap : getCapability(id)) {
-                if (cap.getName().equalsIgnoreCase("external")) {
-                    return new AbstractMap.SimpleEntry(id, new TpId(cap.getValue()));
-                }
+        Topology fabricTopo = this.getFabricTopology();
+        if (fabricTopo == null) {
+            LOG.error("Fabric Topology is NULL!");
+            return null;
+        }
+        for (Link l : fabricTopo.getLink()) {
+            if ("external".equalsIgnoreCase(l.getSource().getSourceNode().getValue())) {
+                return new AbstractMap.SimpleEntry(l.getDestination().getDestNode(), l.getDestination().getDestTp());
+            }
+            if ("external".equalsIgnoreCase(l.getDestination().getDestNode().getValue())) {
+                return new AbstractMap.SimpleEntry(l.getSource().getSourceNode(), l.getSource().getSourceTp());
             }
         }
+
+        LOG.error("No Fabric Topology found!");
         return null;
     }
 
-    public void setupExternalGW(
+    public NodeId setupExternalGW(
             Uuid tenantId,
             UserLogicalNetworkCache uln,
             LogicalRouterMappingInfo lr,
-            IpAddress gatewayIPAddr,
+            IpAddress gatewayIP,
             IpPrefix prefix,
             int tag)
     {
         Entry<FabricId, TpId> entry = getBorderInfo();
-        NodeId lrId = null;
-        if(uln.getLrStore().get(lr).getRenderedDeviceIdOnFabric(entry.getKey()) == null) {
-            lrId = this.createLneLayer3(tenantId, entry.getKey(), uln);
-            if (lrId == null) {
+        if (entry == null) {
+            return null;
+        }
+
+        NodeId renderedLrId;
+        if( (renderedLrId = uln.getRenderedRouterOnFabirc(entry.getKey())) == null) {
+            renderedLrId = this.createLneLayer3(tenantId, entry.getKey(), uln);
+            if (renderedLrId == null) {
                 LOG.error("Failed to create VRF on border Fabric {}" , entry.getKey());
-                return;
+                return null;
             }
+            uln.addRenderedRouterOnFabric(entry.getKey(), renderedLrId);
+        }
+
+        RenderedRouter rr;
+        if ((rr = lr.getRenderedRouterOnFabric(entry.getKey())) == null) {
+                rr = new RenderedRouter(new NodeId(entry.getKey()),renderedLrId);
+                uln.getExtGateways().put(entry.getKey(), rr);
+                lr.addRenderedRouter(rr);
         }
 
         PortBuilder pb = new PortBuilder();
@@ -619,7 +644,6 @@ public class FabricMgrProvider implements AutoCloseable {
         builder.setTenantId(new TenantId(tenantId));
         builder.setVfabricId(entry.getKey());
 
-        //
         NodeId slsw = this.createLneLayer2(
                 tenantId,
                 entry.getKey(),
@@ -627,32 +651,37 @@ public class FabricMgrProvider implements AutoCloseable {
                 this.ulnStore.get(tenantId));
 
         TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(entry.getKey(),slsw, AccessType.Vlan, tag);
-
         this.netNodeServiceProvider.portBindingLogicalToFabric(entry.getKey(), entry.getValue(), slsw, tpId);
 
-        IpAddress[] gwpair = this.allocateReservedGatewayIP();
-
-        this.createLrLswGateway(tenantId,
+        Uuid gid = this.createLrLswGateway(tenantId,
                 entry.getKey(),
-                lrId,
-                slsw, gwpair[0],
-                this.alloateReservedGatewayPrefix());
+                rr.getRouterID(),
+                slsw, gatewayIP,
+                prefix);
+
+        rr.setExternal(true);
+        rr.setExtAccessTag(tag);
+        rr.setExtSwitch(slsw);
+        rr.setAccessTP(tpId);
+        rr.setGwid(gid);
 
         //default static routes to exchange with outside
         UpdateLneLayer3RoutingtableInputBuilder rtinput = new UpdateLneLayer3RoutingtableInputBuilder();
-        rtinput.setLneId(new VcLneId(lrId));
+        rtinput.setLneId(new VcLneId(rr.getRouterID()));
         rtinput.setTenantId(new TenantId(tenantId));
         rtinput.setVfabricId(entry.getKey());
 
         List<Routingtable> rtl = new ArrayList<>();
 
         RoutingtableBuilder rtbuilder = new RoutingtableBuilder();
-        rtbuilder.setVrfId(lrId.getValue());
+        rtbuilder.setVrfId(rr.getRouterID().getValue());
         rtbuilder.setDestIp(new IpAddress(defaultIP));
-        rtbuilder.setNexthopIp(gatewayIPAddr);
+        //rtbuilder.setNexthopIp(); //TODO  where we can get it ?
         rtl.add(rtbuilder.build());
 
         this.netNodeServiceProvider.updateLneLayer3Routingtable(rtinput.build());
+
+        return renderedLrId;
     }
 
     public Topology getFabricTopology()
@@ -692,6 +721,10 @@ public class FabricMgrProvider implements AutoCloseable {
                     iplist.add(ip.getIpAddress());
                 }
             }
+        }
+
+        if(lr.isExternal()) {
+            iplist.add(new IpAddress(new Ipv4Address("0.0.0.0"))); //use it as default gw for external access.
         }
 
         return iplist;
@@ -896,6 +929,7 @@ public class FabricMgrProvider implements AutoCloseable {
                     RoutingtableBuilder rtbuilder = new RoutingtableBuilder();
                     rtbuilder.setVrfId(lrs.getRouterID().getValue());
                     rtbuilder.setDestIp(ip);
+
                     // The resulted path is ordered by distance from
                     // nearest
                     // to farthest, the second one should be the next hop.
@@ -1113,5 +1147,15 @@ public class FabricMgrProvider implements AutoCloseable {
 
 
         this.netNodeServiceProvider.removeAcl(fabricId, nodeId, aclName);
+    }
+
+    public void setIPMapping(Uuid tenantId, NodeId fabricId, NodeId lrId, TpId tpid,  IpAddress pubIP, IpAddress priip) {
+        VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: removeAcl: vcMgr is null: tenantId={}", tenantId.getValue());
+            return; // ----->
+        }
+
+        this.netNodeServiceProvider.addIPMapping(new FabricId(fabricId), lrId, tpid, pubIP.getIpv4Address(), priip.getIpv4Address());
     }
 }

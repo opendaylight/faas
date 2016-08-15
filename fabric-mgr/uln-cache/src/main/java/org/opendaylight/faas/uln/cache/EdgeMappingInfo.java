@@ -17,6 +17,7 @@ public class EdgeMappingInfo {
     private NodeId renderedDeviceId;
     private boolean serviceHasBeenRendered;
     private boolean isToBeDeleted;
+    private String groupACLName = null; ;
 
     public EdgeMappingInfo(Edge edge) {
         super();
@@ -33,6 +34,16 @@ public class EdgeMappingInfo {
 
     public NodeId getRenderedDeviceId() {
         return renderedDeviceId;
+    }
+
+
+
+    public String getGroupACLName() {
+        return groupACLName;
+    }
+
+    public void setGroupACLName(String groupACLName) {
+        this.groupACLName = groupACLName;
     }
 
     public void setRenderedDeviceId(NodeId renderedLswId) {

@@ -27,6 +27,7 @@ public final class LogicalRouterMappingInfo {
     private final Set<Uuid> portList;
     private final Set<Uuid> lrLswEdgeList;
     private IpAddress gatewayIpAddr;
+    private String groupAclName = null;
 
     public LogicalRouterMappingInfo(LogicalRouter lr) {
         super();
@@ -43,6 +44,15 @@ public final class LogicalRouterMappingInfo {
         return this.renderedRouters;
     }
 
+
+
+    public String getGroupAclName() {
+        return groupAclName;
+    }
+
+    public void setGroupAclName(String groupAclName) {
+        this.groupAclName = groupAclName;
+    }
 
     public LogicalRouter getLr() {
         return lr;
