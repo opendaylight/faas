@@ -324,7 +324,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
                 PipelineL3Routing.REG_VALUE_IS_STATIC_ROUTING));
         flowBuilder.setMatch(matchBuilder.build());
 
-        String flowId = "NexthopTunnelOut_" +  OFPortOut + "_" + dstTunIpAddress.getIpv4Address().getValue();
+        String flowId = "NexthopTunnelOut_" + OFPortOut + "_" + dstTunIpAddress.getIpv4Address().getValue();
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -423,13 +423,13 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             // Load Dest Vm Vtep IP to Nshc1 Register
             int ip = InetAddresses.coerceToInteger(InetAddresses.forString(dstVmVtepIp.getIpv4Address().getValue()));
             long ipl = ip & 0xffffffffL;
-            ab.setAction(nxLoadNshc1RegAction(ipl));
+            ab.setAction(OfActionUtils.nxLoadNshc1RegAction(ipl));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
 
             // Load Dest Vm VNI to Nshc1 Register
-            ab.setAction(nxLoadNshc2RegAction(segmentationId));
+            ab.setAction(OfActionUtils.nxLoadNshc2RegAction(segmentationId));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
@@ -463,18 +463,6 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         } else {
             removeFlow(flowBuilder, nodeBuilder);
         }
-    }
-
-
-
-    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc1RegAction(
-            Long value) {
-        return OfActionUtils.nxLoadNshc1RegAction(value);
-    }
-
-    private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadNshc2RegAction(
-            Long value) {
-        return OfActionUtils.nxLoadNshc2RegAction(value);
     }
 
     private static org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action nxLoadTunIdAction(
@@ -1308,8 +1296,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             Buckets buckets = groupBuilder.getBuckets();
 
             for (Bucket bucket : buckets.getBucket()) {
-                if (bucket.getBucketId().getValue() == bucketId.getValue()
-                        && bucket.getBucketId().getValue() != 1l) {
+                if (bucket.getBucketId().getValue() == bucketId.getValue() && bucket.getBucketId().getValue() != 1l) {
                     LOG.warn(
                             "Warning: createOutputGroupInstructionsToTunnelPort: the bucket is exsit for a tunnel port");
                     addNew = false;
@@ -1485,8 +1472,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             Buckets buckets = groupBuilder.getBuckets();
 
             for (Bucket bucket : buckets.getBucket()) {
-                if (bucket.getBucketId().getValue() == bucketId.getValue()
-                        && bucket.getBucketId().getValue() != 1l) {
+                if (bucket.getBucketId().getValue() == bucketId.getValue() && bucket.getBucketId().getValue() != 1l) {
                     LOG.warn(
                             "Warning: createOutputGroupInstructionsToTunnelPort: the bucket is exsit for a tunnel port");
                     addNew = false;
