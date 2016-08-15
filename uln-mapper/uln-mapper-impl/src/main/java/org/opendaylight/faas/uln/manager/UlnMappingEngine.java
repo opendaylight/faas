@@ -86,6 +86,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitch;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.Port;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.port.PrivateIps;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.parameter.values.grouping.ParameterValue;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.security.rule.groups.SecurityRuleGroup;
@@ -123,7 +124,6 @@ public class UlnMappingEngine {
     private static final String PV_PROTO_TYPE_NAME = "proto";
     private static final String PV_DESTPORT_TYPE_NAME = "destport";
     private static final String PV_SOURCEPORT_TYPE_NAME = "sourceport";
-    private final Ipv4Prefix defaultIpv4Prefix = new Ipv4Prefix("255.255.255.0/24");
     private final int EXT_ACCESS_TAG_START = 100;
     private final int EXT_ACCESS_TAG_RANGE = 100;
 
@@ -473,6 +473,18 @@ public class UlnMappingEngine {
             //Set up ACLs between all subnets and logical switches within
             //the logical routing domain.
             this.setACLforLogicalRouter(tenantId, uln, lr);
+
+            //Set IP Mapping //TODO
+            List<IpAddress> pips = epPort.getPort().getPublicIps();
+            List<PrivateIps> priips = epPort.getPort().getPrivateIps();
+            if(! pips.isEmpty() && !priips.isEmpty()) {
+                for (Map.Entry<NodeId, RenderedRouter> entry : uln.getExtGateways().entrySet()) {
+                    this.fmgr.setIPMapping(UlnUtil.convertToYangUuid(tenantId), entry.getKey(),
+                            entry.getValue().getExtSwitch(), entry.getValue().getAccessTP(), pips.get(0),
+                            priips.get(0).getIpAddress());
+                    return; //only support the first pair.
+                }
+            }
         }
 
     }
@@ -534,7 +546,9 @@ public class UlnMappingEngine {
             subnets.add(subnet.getSubnet());
         }
 
-        String aclName = this.createAclForGroupComm(subnets);
+        String aclName = this.createAclForGroupComm(subnets, leftLr.getLr().getName() + "-" + leftLr.getLr().getName());
+        uln.getEdgeStore().get(edge.getUuid()).setGroupACLName(aclName);
+
 
         List<NodeId> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(leftLr);
         for (NodeId fabricId : fabrics) {
@@ -870,21 +884,22 @@ public class UlnMappingEngine {
                 fabricId, UlnUtil.convertToYangUuid(lsw.getUuid()), uln);
     }
 
-    private IpAddress getPublicIP(LogicalRouter lr, UserLogicalNetworkCache uln)
+    private IpAddress getPubIP(LogicalRouter lr, UserLogicalNetworkCache uln)
     {
-        List<IpAddress> ips = new ArrayList<>();
+        List<IpAddress> pubips = new ArrayList<>();
+        new ArrayList<>();
         for (Uuid p : lr.getPort())
         {
             PortMappingInfo pi = uln.getPortStore().get(p);
-            ips.addAll(pi.getPort().getPublicIps());
+            pubips.addAll(pi.getPort().getPublicIps());
         }
 
-        //TODO - only use the first one for now.
-        if(!ips.isEmpty()) {
-            return ips.get(0);
+        //TODO - for now Only provide the first available Public IP address
+        if (pubips.isEmpty()) {
+            return null;
         }
 
-        return null;
+        return pubips.get(0);
     }
 
    private void renderExternalGW (
@@ -892,26 +907,20 @@ public class UlnMappingEngine {
        if (lr.getLr().isPublic() &&
                !uln.isHasExternalGateway()) {
 
-           IpAddress publicIP = getPublicIP(lr.getLr(), uln);
-           if (publicIP == null) {
-               LOG.error("No public IP found, cannot render external access");
-               return;
-           }
-
            // TODO
            // the prefix and tag should all come from admin provisioning,
            // so does the tag. we hard code it for now.
            Random rand = new Random();
-           int access_tag = rand.nextInt(EXT_ACCESS_TAG_RANGE) + EXT_ACCESS_TAG_START;
-           IpPrefix prefix = new IpPrefix(defaultIpv4Prefix);
+           int accessTag = rand.nextInt(EXT_ACCESS_TAG_RANGE) + EXT_ACCESS_TAG_START;
+           IpAddress pubip = this.getPubIP(lr.getLr(), uln);
 
            this.fmgr.setupExternalGW(
                    UlnUtil.convertToYangUuid(tenantId),
                    uln,
                    lr,
-                   publicIP,
-                   prefix,
-                   access_tag);
+                   pubip,
+                   new IpPrefix(new Ipv4Prefix(pubip.getIpv4Address().getValue() + "/24")),
+                   accessTag);
 
            uln.setHasExternalGateway(true);
        }
@@ -929,7 +938,8 @@ public class UlnMappingEngine {
             SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
             subnets.add(subnet.getSubnet());
         }
-        String aclName = this.createAclForGroupComm(subnets);
+        String aclName = this.createAclForGroupComm(subnets,lr.getLr().getName().getValue());
+        lr.setGroupAclName(aclName);
 
         List<NodeId> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(lr);
         for (NodeId fId : fabrics) {
@@ -1388,7 +1398,7 @@ public class UlnMappingEngine {
         } else {
             LogicalRouterMappingInfo lr = uln.findLrFromPortId(portId);
             if (lr != null) {
-                if (lr.hasServiceBeenRendered() == false) {
+                if (!lr.hasServiceBeenRendered()) {
                     LOG.error("FABMGR: ERROR: doSecurityRuleGroupsRemove: lr not rendered: {}",
                             lr.getLr().getUuid().getValue());
                     return;
@@ -1458,6 +1468,14 @@ public class UlnMappingEngine {
         }
     }
 
+    void removeACLforInterLrComm(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr, String aclname) {
+        for (Map.Entry<NodeId, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
+            for (NodeId rsw :uln.findLswRenderedDeviceIdFromLr(lr, entry.getKey())) {
+                fmgr.removeAcl(UlnUtil.convertToYangUuid(tenantId), entry.getKey(), rsw, aclname);
+            }
+        }
+    }
+
     private void doEdgeRemove(Uuid tenantId, UserLogicalNetworkCache uln, Edge edge) {
         /*
          * An edge has the following type:
@@ -1473,7 +1491,18 @@ public class UlnMappingEngine {
          * directly from the ULN cache.
          */
         if (!uln.isEdgeLrToLswType(edge)) {
-            uln.removeEdgeFromCache(edge);
+            if (uln.isEdgeLrToLrType(edge)) {
+                PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
+                PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
+                LogicalRouterMappingInfo rlr = uln.findLrFromItsPort(rightPort.getPort());
+                LogicalRouterMappingInfo llr = uln.findLrFromItsPort(rightPort.getPort());
+
+                this.removeACLforInterLrComm(tenantId, uln, rlr, uln.getEdgeStore().get(edge.getUuid()).getGroupACLName());
+                this.removeACLforInterLrComm(tenantId, uln, llr, uln.getEdgeStore().get(edge.getUuid()).getGroupACLName());
+
+                uln.removeEdgeFromCache(edge);
+
+            }
             return;
         }
 
@@ -1500,6 +1529,14 @@ public class UlnMappingEngine {
                     lr = uln.findLrFromItsPort(rightPort.getPort());
                     if (lr != null) {
                         uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
+                        for (Map.Entry<NodeId, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
+                            fmgr.removeAcl(
+                                    UlnUtil.convertToYangUuid(tenantId),
+                                    entry.getKey(),
+                                    entry.getValue().getSwitchID(),
+                                    lr.getGroupAclName());
+                        }
+
                     } else {
                         LOG.error("FABMGR: ERROR: doEdgeRemove: lr is null: {}", edge.getUuid().getValue());
                         return;
@@ -1531,6 +1568,14 @@ public class UlnMappingEngine {
                         }
 
                         uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
+                        for (Map.Entry<NodeId, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
+                            fmgr.removeAcl(
+                                    UlnUtil.convertToYangUuid(tenantId),
+                                    entry.getKey(),
+                                    entry.getValue().getSwitchID(),
+                                    lr.getGroupAclName());
+                        }
+
                     } else {
                         LOG.error("FABMGR: ERROR: doEdgeRemove: lr is null: {}", edge.getUuid().getValue());
                         return;
@@ -1650,7 +1695,7 @@ public class UlnMappingEngine {
             return;
         }
 
-        if (lrInfo.hasServiceBeenRendered() == false) {
+        if (!lrInfo.hasServiceBeenRendered()) {
             LOG.error("FABMGR: ERROR: doLogicalRouterRemove: lr has not been rendered: {}", lr.getUuid().getValue());
             return;
         }
@@ -1726,8 +1771,8 @@ public class UlnMappingEngine {
         return accessListEntriesBuilder.build();
     }
 
-    private String createAclForGroupComm(List<Subnet> subnets) {
-        String aclName = "GroupComm" + subnets.hashCode(); //TODO, this is not right :(
+    private String createAclForGroupComm(List<Subnet> subnets, String groupName) {
+        String aclName = "lracl" + groupName; //TODO, this is not right :(
         /*
          * create Access List with entries and IID, then write transaction to data store
          */

@@ -53,6 +53,7 @@ public final class UserLogicalNetworkCache {
     private Map<Uuid, LogicalSwitchMappingInfo> lswStore;
     private Map<Uuid, LogicalRouterMappingInfo> lrStore;
     private final Map<NodeId, NodeId> renderedRouters;
+    private Map<NodeId, RenderedRouter> extGateways;
     private final Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> renderedrLinks;
     //private Graph<NodeId, Link> topo;
 
@@ -82,6 +83,7 @@ public final class UserLogicalNetworkCache {
         epLocationStore = new ConcurrentHashMap<>();
 
         this.renderedRouters = new ConcurrentHashMap<>();
+        this.extGateways = new ConcurrentHashMap<>();
         this.renderedrLinks = new ConcurrentHashMap<>();
     }
 
@@ -89,6 +91,13 @@ public final class UserLogicalNetworkCache {
     public Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> getRenderedrLinks() {
         return renderedrLinks;
     }
+
+
+
+    public Map<NodeId, RenderedRouter> getExtGateways() {
+        return extGateways;
+    }
+
 
     public void  addRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
         renderedrLinks.put(key,  link);
