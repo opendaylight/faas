@@ -228,7 +228,7 @@ if __name__ == "__main__":
          rpc_create_logic_port_data("vswitch-1", "vswitch-1-p-4"), True)
 
     for host in hosts:
-        if host["name"] in ('h35_2', 'h35_3', 'h35_4', 'h35_5'):
+        if host["name"] in ('h35-2', 'h35-3', 'h35-4', 'h35-5'):
             post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(),
                  rpc_register_endpoint_data(host), True)
 
@@ -250,7 +250,7 @@ if __name__ == "__main__":
          rpc_create_logic_port_data("vswitch-2", "vswitch-2-p-4"), True)
 
     for host in hosts:
-        if host["name"] in ('h36_2', 'h36_3', 'h36_4', 'h36_5'):
+        if host["name"] in ('h36-2', 'h36-3', 'h36-4', 'h36-5'):
             post(controller, DEFAULT_PORT, rpc_register_endpoint_uri(),
                  rpc_register_endpoint_data(host), True)
 

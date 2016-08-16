@@ -190,7 +190,7 @@ def rpc_locate_endpoint_data1():
            "endpoint-id":UUID_EP1,
             "location": {
                 "node-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']",
-                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h35_2']",
+                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h35-2']",
                 "access-type":"exclusive"
             }
        }
@@ -203,7 +203,7 @@ def rpc_locate_endpoint_data2():
            "endpoint-id":UUID_EP2,
             "location": {
                 "node-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']",
-                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h35_3']",
+                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW1 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h35-3']",
                 "access-type":"exclusive"
             }
        }
@@ -216,7 +216,7 @@ def rpc_locate_endpoint_data3():
            "endpoint-id":UUID_EP3,
             "location": {
                 "node-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']",
-                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h35_4']",
+                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h35-4']",
                 "access-type":"exclusive"
             }
        }
@@ -229,7 +229,7 @@ def rpc_locate_endpoint_data4():
            "endpoint-id":UUID_EP4,
             "location": {
                 "node-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']",
-                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h36_4']",
+                "tp-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB_SW6 + "']/network-topology:termination-point[network-topology:tp-id='vethl-h36-4']",
                 "access-type":"exclusive"
             }
        }

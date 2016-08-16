@@ -40,6 +40,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.ta
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.tables.table.FlowKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.flow.InstructionsBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.flow.MatchBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.instruction.ApplyActionsCase;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.instruction.ApplyActionsCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.instruction.apply.actions._case.ApplyActionsBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
@@ -151,6 +152,22 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
             // Instructions List Stores Individual Instructions
             List<Instruction> instructions = Lists.newArrayList();
+
+            List<Action> actionList = Lists.newArrayList();
+            ActionBuilder ab = new ActionBuilder();
+
+            //pop_nsh
+            ab.setAction(OfActionUtils.nxPopNshAction());
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
+            ApplyActionsBuilder aab = new ApplyActionsBuilder();
+            aab.setAction(actionList);
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
+            instructions.add(ib.build());
 
             // Append the default pipeline after the first classification
             ib = this.getMutablePipelineInstructionBuilder();
@@ -379,6 +396,24 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
                     redirectActionBuilder.setAction(
                             OfActionUtils.nxLoadTunIPv4Action(destSffVtepIp.getIpv4Address().getValue(), false));
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
+                    redirectActionList.add(redirectActionBuilder.build());
+
+                    //push_nsh
+                    redirectActionBuilder.setAction(OfActionUtils.nxPushNshAction());
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
+                    redirectActionList.add(redirectActionBuilder.build());
+
+                    //load mdtype
+                    redirectActionBuilder.setAction(OfActionUtils.nxLoadNshMdtypeAction(Short.valueOf((short)0x1)));
+                    redirectActionBuilder.setOrder(redirectActionList.size());
+                    redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
+                    redirectActionList.add(redirectActionBuilder.build());
+
+                    //load nsh np
+                    redirectActionBuilder.setAction(OfActionUtils.nxLoadNshNpAction(Short.valueOf((short)0x3)));
                     redirectActionBuilder.setOrder(redirectActionList.size());
                     redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
