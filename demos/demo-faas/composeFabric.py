@@ -107,7 +107,7 @@ if __name__ == "__main__":
                                 switch["nodeid"] = ovsdb_node["node-id"]
 
     SUBNET = os.environ.get("SUBNET")
-    for sw_index in range(0, len(switches)-1):
+    for sw_index in range(0, len(switches)):
         switches[sw_index]["vtep"] = SUBNET + str(70 + sw_index)
 
     print "compose fabric"

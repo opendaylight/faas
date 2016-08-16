@@ -56,6 +56,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.ni
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxNsiCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxNspCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxRegCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxTunGpeNpCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxTunIdCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstNxTunIpv4DstCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowplugin.extension.nicira.action.rev140714.dst.choice.grouping.dst.choice.DstOfArpOpCaseBuilder;
@@ -319,6 +320,11 @@ public final class OfActionUtils {
     public static Action nxLoadNshNpAction(Short value) {
         return nxLoadRegAction(new DstNxNshNpCaseBuilder().setNxNshNp(Boolean.TRUE).build(), BigInteger.valueOf(value),
                 7, false);
+    }
+
+    public static Action nxLoadTunGpeNpAction(Short value) {
+        return nxLoadRegAction(new DstNxTunGpeNpCaseBuilder().setNxTunGpeNp(Boolean.TRUE).build(),
+                BigInteger.valueOf(value), 7, false);
     }
 
     public static Action nxSetNsiAction(Short nsi) {

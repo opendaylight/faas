@@ -216,6 +216,7 @@ public class OvsSouthboundUtils {
 
         Map<String, String> options = Maps.newHashMap();
         options.put("local_ip", String.copyValueOf(getVtepIp(node).getValue()));
+        options.put("exts", "gpe");
         options.put("key", "flow");
         options.put("remote_ip", "flow");
         options.put("nsi", "flow");

@@ -150,6 +150,7 @@ def get_service_function_forwarders_data():
                             "ip": "192.168.50.71"
                         },
                         "service-function-forwarder-ovs:ovs-options": {
+                            "exts": "gpe",
                             "remote-ip": "flow",
                             "dst-port": "6633",
                             "key": "flow",
@@ -187,6 +188,7 @@ def get_service_function_forwarders_data():
                             "ip": "192.168.50.73"
                         },
                         "service-function-forwarder-ovs:ovs-options": {
+                            "exts": "gpe",
                             "remote-ip": "flow",
                             "dst-port": "6633",
                             "key": "flow",

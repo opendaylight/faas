@@ -420,6 +420,12 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
 
             ActionBuilder ab = new ActionBuilder();
 
+            //load Tunnel gpe np
+            ab.setAction(OfActionUtils.nxLoadTunGpeNpAction(Short.valueOf((short)0x4)));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
             // Load Dest Vm Vtep IP to Nshc1 Register
             int ip = InetAddresses.coerceToInteger(InetAddresses.forString(dstVmVtepIp.getIpv4Address().getValue()));
             long ipl = ip & 0xffffffffL;
