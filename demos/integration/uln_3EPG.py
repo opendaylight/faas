@@ -633,7 +633,7 @@
               "node-id": "ovsdb://uuid/67a42b09-526c-4904-95f1-af6e2c5fe1d0/bridge/sw1",
               "faas-port-ref-id": "165b3a20-adc7-11e5-bf7f-feff819cdc9f",
               "description": "gbp-endpoint",
-              "node-connector-id": "vethl-h35_2",
+              "node-connector-id": "vethl-h35-2",
               "port": "5ae32b88-2dc2-46a3-ab87-8d6d14762ce8"
             },
             {
@@ -643,7 +643,7 @@
               "node-id": "ovsdb://uuid/f44aecc4-8d5e-4a4b-bc6b-71e84452b0f1/bridge/sw6",
               "faas-port-ref-id": "6c82ea5c-ae43-11e5-bf7f-feff819cdc9f",
               "description": "gbp-endpoint",
-              "node-connector-id": "vethl-h36_4",
+              "node-connector-id": "vethl-h36-4",
               "port": "32f3592b-0fb5-4399-b170-f6e9ef6e7ce6"
             },
             {
@@ -653,7 +653,7 @@
               "node-id": "ovsdb://uuid/d2a56e91-cb8c-438e-841c-30302c779665/bridge/sw7",
               "faas-port-ref-id": "24eb3395-6c59-443a-9048-4c0b02ce1471",
               "description": "gbp-endpoint",
-              "node-connector-id": "vethl-h37_2",
+              "node-connector-id": "vethl-h37-2",
               "port": "0121a445-2e57-41d6-9894-9910d8fc1c23"
             }
           ]

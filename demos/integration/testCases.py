@@ -82,8 +82,8 @@ def registerEndpointLocation_acl(desc):
 
 #===============================================================================# 
 def registerEndpointLocation_sfc(desc):
-  nc_id1 = "vethl-h35_2"
-  nc_id2 = "vethl-h36_4"
+  nc_id1 = "vethl-h35-2"
+  nc_id2 = "vethl-h36-4"
   nodeId1 = util.getOvsdbNodeIdByName("sw1")
 
   if nodeId1 == constants.ERROR_STR:
@@ -100,9 +100,9 @@ def registerEndpointLocation_sfc(desc):
 
 #===============================================================================# 
 def registerEndpointLocation_3epg_sfc(desc):
-  nc_id1 = "vethl-h35_2"
-  nc_id2 = "vethl-h36_4"
-  nc_id3 = "vethl-h37_2"
+  nc_id1 = "vethl-h35-2"
+  nc_id2 = "vethl-h36-4"
+  nc_id3 = "vethl-h37-2"
 
   nodeId1 = util.getOvsdbNodeIdByName("sw1")
   if nodeId1 == constants.ERROR_STR:
@@ -123,12 +123,12 @@ def registerEndpointLocation_3epg_sfc(desc):
 
 #===============================================================================# 
 def registerEndpointLocation_3epg_sfc_acl(desc):
-  nc_id1a = "vethl-h35_2"
-  nc_id1b = "vethl-h35_3"
-  nc_id2a = "vethl-h36_4"
-  nc_id2b = "vethl-h36_5"
-  nc_id3a = "vethl-h37_2"
-  nc_id3b = "vethl-h37_3"
+  nc_id1a = "vethl-h35-2"
+  nc_id1b = "vethl-h35-3"
+  nc_id2a = "vethl-h36-4"
+  nc_id2b = "vethl-h36-5"
+  nc_id3a = "vethl-h37-2"
+  nc_id3b = "vethl-h37-3"
 
   nodeId1 = util.getOvsdbNodeIdByName("sw1")
   if nodeId1 == constants.ERROR_STR:
@@ -151,7 +151,7 @@ def registerEndpointLocation_3epg_sfc_acl(desc):
 BRIDGE_REF_P="/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='%s']"
 TP_REF_P="/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='%s']/network-topology:termination-point[network-topology:tp-id='%s']"
 def epMigrationDemo(desc):
-   # unregister h35_3
+   # unregister h35-3
    fabricId = "fabric:1" 
    mac = "00:00:00:00:35:03" 
    ip = "10.0.35.3"
@@ -182,7 +182,7 @@ def epMigrationDemo(desc):
    mac = "00:00:00:00:35:04"
    ip = "10.0.35.4"
    gw = "10.0.35.1"
-   port = "vethl-h35_4"
+   port = "vethl-h35-4"
    nodeid = util.getOvsdbNodeIdByName("sw6")
    nodeRef = BRIDGE_REF_P % (nodeid)
    tpRef = TP_REF_P % (nodeid, port)
@@ -201,7 +201,7 @@ testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'vc052': (registerEndpointLocation_sfc, 'Register endpoint locations for Layer 3 ULN with SFC'),
    'vc053': (registerEndpointLocation_3epg_sfc, 'Register endpoint locations for 3EPG-Layer3-ULN with SFC'),
    'vc054': (registerEndpointLocation_3epg_sfc_acl, 'Register 6 endpoints locations for 3EPG-Layer3-ULN with SFC'),
-   'vc064': (epMigrationDemo, 'EP Migration from h35_3 on sw1 to h35_4 on sw6'),
+   'vc064': (epMigrationDemo, 'EP Migration from h35-3 on sw1 to h35-4 on sw6'),
 }
 
 testCases2_ga = {
