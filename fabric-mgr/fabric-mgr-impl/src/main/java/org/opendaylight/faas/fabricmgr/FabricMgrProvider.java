@@ -66,6 +66,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.vfabric.ser
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
@@ -171,6 +172,9 @@ public class FabricMgrProvider implements AutoCloseable {
      */
     public NodeId createLneLayer2(Uuid tenantId, NodeId fabricId, Uuid lsw, UserLogicalNetworkCache uln) {
 
+    org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid flsw
+        = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(lsw.getValue());
+
         // Check resource availability
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
@@ -180,7 +184,8 @@ public class FabricMgrProvider implements AutoCloseable {
 
         CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder();
         if (!vcMgr.getLdNodeConfigDataMgr().isVFabricAvailable(fabricId)) {
-            LOG.error("FABMGR: ERROR: createLneLayer2: vfabricId is not in tenant {} 's vcontainer.",
+            LOG.error("FABMGR: ERROR: createLneLayer2: vfabricId ({}) is not in tenant {} 's vcontainer.",
+                    fabricId,
                     tenantId.getValue());
             return null; // ---->
         }
@@ -202,18 +207,23 @@ public class FabricMgrProvider implements AutoCloseable {
 
                 LOG.debug("FABMGR: createLneLayer2: lswId={}", renderedLSWId.getValue());
 
+
                 RenderedSwitch renderedSW = new RenderedSwitch(fabricId, lsw, renderedLSWId);
-                uln.getLswStore().get(lsw).addRenderedSwitch(renderedSW);
+                uln.getLswStore()
+                    .get(flsw)
+                    .addRenderedSwitch(renderedSW);
+
             }
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: createLneLayer2: createLneLayer2 RPC failed: {}", e);
         }
 
-        Map<NodeId, RenderedSwitch> sws = uln.getLswStore().get(lsw).getRenderedSwitches();
+        Map<NodeId, RenderedSwitch> sws = uln.getLswStore().get(flsw).getRenderedSwitches();
         Graph<NodeId, Link> graph = calcMinimumSpanningTree(new ArrayList<>(sws.keySet()));
         TopologyBuilder topo = new TopologyBuilder();
 
         //we only need to store the link info.
+        topo.setTopologyId(new TopologyId(lsw.getValue()));
         topo.setLink(new ArrayList<>(graph.getEdges()));
         FabMgrDatastoreUtil.putData(LogicalDatastoreType.CONFIGURATION,
                 FabMgrYangDataUtil.buildTopologyPath(lsw.getValue()),topo.build());
@@ -243,6 +253,7 @@ public class FabricMgrProvider implements AutoCloseable {
             graph.addVertex(node.getNodeId());
         }
 
+        if (topo.getLink() != null)
         for (Link link : topo.getLink())
         {
             graph.addEdge(link, link.getSource().getSourceNode(), link.getDestination().getDestNode());
@@ -803,7 +814,7 @@ public class FabricMgrProvider implements AutoCloseable {
         List<Link> alllinks = new ArrayList<>();
         for (RenderedRouter rrsentry : rmaps.values()) {
             for (RenderedRouter rrdentry : rmaps.values()) {
-                List<Link> links = this.calcShortestPathOnFabricTopo(rrsentry.getFabricId(), rrdentry.getRouterID());
+                List<Link> links = this.calcShortestPathOnFabricTopo(rrsentry.getFabricId(), rrdentry.getFabricId());
                 alllinks.removeAll(links);
                 alllinks.addAll(links);
             }
@@ -976,6 +987,7 @@ public class FabricMgrProvider implements AutoCloseable {
             g.addVertex(node.getNodeId());
         }
 
+        if (topo.getLink() != null)
         for (Link link : topo.getLink())
         {
             g.addEdge(link, link.getSource().getSourceNode(), link.getDestination().getDestNode());

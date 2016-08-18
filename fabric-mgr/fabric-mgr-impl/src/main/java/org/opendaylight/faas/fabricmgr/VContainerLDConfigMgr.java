@@ -75,7 +75,7 @@ public final class VContainerLDConfigMgr {
          * Just (randomly) grab the first entry in the vfabMgr list for now.
          */
         for (Entry<NodeId, VFabricConfigDataMgr> entry : this.vfabricDataMgrStore.entrySet()) {
-            if (entry.getKey() == target) {
+            if (entry.getKey().equals(  target)) {
                 return true;
             }
         }
@@ -90,9 +90,9 @@ public final class VContainerLDConfigMgr {
             return 0;
         }
 
-        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
+        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(new NodeId(vfabricId));
         if (vfabDataMgr == null) {
-            LOG.error("FABMGR: ERROR: getAvailableL2Resurce: vfabDataMgr is null");
+            LOG.error("FABMGR: ERROR: getAvailableL2Resurce: vfabDataMgr is null. fabric = {}", vfabricId);
             return 0;
         }
 
