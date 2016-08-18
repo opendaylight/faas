@@ -447,12 +447,18 @@ public class UlnMappingEngine {
             //Should we render its external gateway.
             this.renderExternalGW(tenantId, uln, lr);
 
-            if (lr.hasServiceBeenRenderedOnFabric(fabricId)) {
+            if (!lr.hasServiceBeenRenderedOnFabric(fabricId)) {
                 this.renderLogicalRouter(tenantId, fabricId, uln, lr);
                 fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lr.getRenderedRouters());
             }
 
-            if (lr.getRenderedRouterOnFabric(fabricId).getGateways().get(lsw) == null){
+//    org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid flsw 
+//        = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(lsw.getValue());
+
+            if (lr
+                .getRenderedRouterOnFabric(fabricId)
+                .getGateways()
+                .get(lsw) == null){
                lr.getRenderedRouterOnFabric(fabricId).addGateway(
                        lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(),
                        this.fmgr.createLrLswGateway(
@@ -477,7 +483,7 @@ public class UlnMappingEngine {
             //Set IP Mapping //TODO
             List<IpAddress> pips = epPort.getPort().getPublicIps();
             List<PrivateIps> priips = epPort.getPort().getPrivateIps();
-            if(! pips.isEmpty() && !priips.isEmpty()) {
+            if(pips != null && ! pips.isEmpty() && priips != null && !priips.isEmpty()) {
                 for (Map.Entry<NodeId, RenderedRouter> entry : uln.getExtGateways().entrySet()) {
                     this.fmgr.setIPMapping(UlnUtil.convertToYangUuid(tenantId), entry.getKey(),
                             entry.getValue().getExtSwitch(), entry.getValue().getAccessTP(), pips.get(0),
@@ -521,6 +527,7 @@ public class UlnMappingEngine {
         LogicalRouterMappingInfo leftLr = uln.findLrFromItsPort(leftPort.getPort());
         LogicalRouterMappingInfo rightLr = uln.findLrFromItsPort(rightPort.getPort());
 
+        if (leftLr == null || rightLr == null) return;
         //set up connection
         Map<NodeId,RenderedRouter> combinedMap = new HashMap<>();
         combinedMap.putAll(leftLr.getRenderedRouters());
@@ -603,6 +610,7 @@ public class UlnMappingEngine {
     {
         PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
         PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
+        if (leftPort == null || rightPort == null) return;
         uln.addLrLswEdgeToPort(leftPort.getPort(), edge);
         uln.addLrLswEdgeToPort(rightPort.getPort(), edge);
     }
@@ -961,7 +969,7 @@ public class UlnMappingEngine {
         }
 
         RenderedRouter renderedLr = new RenderedRouter(fabricId, rr);
-        uln.getLrStore().get(lr).addRenderedRouter(renderedLr);
+        uln.getLrStore().get(lr.getLr().getUuid()).addRenderedRouter(renderedLr);
         return rr;
     }
 
