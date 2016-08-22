@@ -374,7 +374,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         FabricId fabricId = new FabricId(fId);
         inputBuilder.setFabricId(fabricId);
         inputBuilder.setLogicalDevice(lswId);
-        inputBuilder.setName("LswLogicalPort");
+
         AttributeBuilder  attbuilder = new AttributeBuilder();
         PortLayerBuilder plb = new PortLayerBuilder();
         Layer2InfoBuilder layer2infob = new Layer2InfoBuilder();

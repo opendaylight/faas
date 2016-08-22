@@ -70,10 +70,26 @@ runGbpFaasIntegrationDemo()
   python testCases.py -t vc064
 }
 
+
+runGbpFaasMultiFabricDemo()
+{
+  read -n1 -r -p "Ready to create vcontainer. Press any key to continue..." key
+  python testCases.py -t vc023
+
+  read -n1 -r -p "Ready to create Group Based Policy. Press any key to continue..." key
+  python testCases.py -t vc035
+
+  read -n1 -r -p "Ready to register endpoints. Press any key to continue..." key
+  python testCases.py -t vc045
+  sleep 4
+  python testCases.py -t vc055
+}
+
 showHelp()
 {  
   echo "$0 -t 1     # create layer 3 logical network for sanity test"
   echo "$0 -t 2     # run GBP-FAAS integration demo"
+  echo "$0 -t 3     # run GBP-FAAS integration demo with multi-fabric"
   echo "$0 -d       # delete layer 3 logical network for sanity test"
 }
 
@@ -92,6 +108,9 @@ main()
         elif [[ $OPTARG == '2' ]]
         then
           runGbpFaasIntegrationDemo
+        elif [[ $OPTARG == '3' ]]
+        then
+          runGbpFaasMultiFabricDemo
         fi
         exit 0
         ;;

@@ -362,7 +362,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
             }
 
         } else {
-            LOG.warn("Not yet support layer3 port located.");
+            LOG.warn("Not yet support layer3 port located.({})", nodeId.getValue());
         }
     }
 

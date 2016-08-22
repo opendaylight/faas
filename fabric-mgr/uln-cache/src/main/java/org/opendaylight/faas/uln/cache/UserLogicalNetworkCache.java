@@ -54,7 +54,7 @@ public final class UserLogicalNetworkCache {
     private Map<Uuid, LogicalRouterMappingInfo> lrStore;
     private final Map<NodeId, NodeId> renderedRouters;
     private Map<NodeId, RenderedRouter> extGateways;
-    private final Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> renderedrLinks;
+    private final Map<RenderedLinkKey<String>, RenderedLayer3Link> renderedrLinks;
     //private Graph<NodeId, Link> topo;
 
     private Map<Uuid, SecurityRuleGroupsMappingInfo> securityRuleGroupsStore;
@@ -88,7 +88,7 @@ public final class UserLogicalNetworkCache {
     }
 
 
-    public Map<RenderedLinkKey<RenderedRouter>, RenderedLayer3Link> getRenderedrLinks() {
+    public Map<RenderedLinkKey<String>, RenderedLayer3Link> getRenderedrLinks() {
         return renderedrLinks;
     }
 
@@ -99,11 +99,11 @@ public final class UserLogicalNetworkCache {
     }
 
 
-    public void  addRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
+    public void  addRenderedrLink(RenderedLinkKey<String> key, RenderedLayer3Link link) {
         renderedrLinks.put(key,  link);
     }
 
-    public void  rmRenderedrLink(RenderedLinkKey<RenderedRouter> key, RenderedLayer3Link link) {
+    public void  rmRenderedrLink(RenderedLinkKey<String> key, RenderedLayer3Link link) {
         renderedrLinks.remove(key);
     }
 

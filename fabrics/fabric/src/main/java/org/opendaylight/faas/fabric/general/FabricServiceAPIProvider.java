@@ -81,6 +81,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.PortLayerBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer1InfoBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.port.port.layer.Layer3InfoBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.router.Routes;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.logical.router.RoutesBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.RouteBuilder;
@@ -322,7 +324,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         lpCtx.setLportAttribute(lpAttr.build());
         tpBuilder.addAugmentation(LogicalPortAugment.class, lpCtx.build());
 
-        trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
+        trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build(), true);
 
         return tpid;
     }
@@ -362,7 +364,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpBuilder.addAugmentation(LogicalPortAugment.class, lpCtx.build());
 
         InstanceIdentifier<TerminationPoint> tpIId = MdSalUtils.createLogicPortIId(fabricId, routerId, tpid);
-        trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
+        trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build(), true);
 
         outputBuilder.setTpId(tpid);
         outputBuilder.setPortLayer(lpAttr.getPortLayer());
@@ -386,7 +388,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         }
 
         final String uuid = UUID.randomUUID().toString();
-        final NodeId newNodeId = new NodeId(name);
+        final NodeId newNodeId = new NodeId(name == null ? uuid : name);
         final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), newNodeId);
 
         NodeBuilder nodeBuilder = new NodeBuilder();
@@ -554,8 +556,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                     new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
-        //final TpId tpid = new TpId(UUID.randomUUID().toString());
-        final TpId tpid = new TpId(input.getName());
+        final TpId tpid = new TpId(name == null ? UUID.randomUUID().toString() : name);
 
         TerminationPointBuilder tpBuilder = new TerminationPointBuilder();
         tpBuilder.setTpId(tpid);
@@ -722,26 +723,27 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             }
         }
 
-        final InstanceIdentifier<LrAttribute> attrIId = MdSalUtils.createNodeIId(fabricId, ldev)
+        final InstanceIdentifier<Routes> routesIId = MdSalUtils.createNodeIId(fabricId, ldev)
                 .augmentation(LogicalRouterAugment.class)
-                .child(LrAttribute.class);
+                .child(LrAttribute.class)
+                .child(Routes.class);
 
         final List<InstanceIdentifier<Route>> routeKeys = Lists.newArrayList();
         for (Route route : routes) {
-            routeKeys.add(attrIId.child(Route.class, route.getKey()));
+            routeKeys.add(routesIId.child(Route.class, route.getKey()));
         }
 
-        LrAttributeBuilder builder = new LrAttributeBuilder();
+        RoutesBuilder builder = new RoutesBuilder();
         builder.setRoute(routes);
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-        trans.merge(LogicalDatastoreType.OPERATIONAL,attrIId, builder.build(), false);
+        trans.merge(LogicalDatastoreType.OPERATIONAL, routesIId, builder.build(), true);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyRouteUpdated(attrIId.firstIdentifierOf(Node.class), routes, false);
+                fabricObj.notifyRouteUpdated(routesIId.firstIdentifierOf(Node.class), routes, false);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }
         }, executor);
@@ -849,19 +851,19 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                     new IllegalArgumentException(String.format("fabric %s does not exist", fabricId)));
         }
 
-        final InstanceIdentifier<Route> routeIId = MdSalUtils.createNodeIId(fabricId, ldev)
+        final InstanceIdentifier<Routes> routesIId = MdSalUtils.createNodeIId(fabricId, ldev)
                 .augmentation(LogicalRouterAugment.class)
                 .child(LrAttribute.class)
-                .child(Route.class);
+                .child(Routes.class);
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-        trans.delete(LogicalDatastoreType.OPERATIONAL,routeIId);
+        trans.delete(LogicalDatastoreType.OPERATIONAL,routesIId);
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyRouteCleared(routeIId.firstIdentifierOf(Node.class));
+                fabricObj.notifyRouteCleared(routesIId.firstIdentifierOf(Node.class));
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }
         }, executor);
@@ -884,20 +886,21 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             routes.add(new RouteBuilder().setKey(new RouteKey(destIp)).build());
         }
 
-        final InstanceIdentifier<LrAttribute> attrIId = MdSalUtils.createNodeIId(fabricId, ldev)
+        final InstanceIdentifier<Routes> routesIId = MdSalUtils.createNodeIId(fabricId, ldev)
                 .augmentation(LogicalRouterAugment.class)
-                .child(LrAttribute.class);
+                .child(LrAttribute.class)
+                .child(Routes.class);
 
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         for (Route route : routes) {
-            trans.delete(LogicalDatastoreType.OPERATIONAL,attrIId.child(Route.class, route.getKey()));
+            trans.delete(LogicalDatastoreType.OPERATIONAL,routesIId.child(Route.class, route.getKey()));
         }
 
         return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyRouteUpdated(attrIId.firstIdentifierOf(Node.class), routes, true);
+                fabricObj.notifyRouteUpdated(routesIId.firstIdentifierOf(Node.class), routes, true);
                 return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }
         }, executor);

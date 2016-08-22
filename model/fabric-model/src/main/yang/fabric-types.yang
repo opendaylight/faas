@@ -199,7 +199,10 @@ module fabric-types {
         }
 
         uses acl-list;
-        uses route-group;
+
+		container routes {
+        	uses route-group;
+      	}
     }
 
     grouping logical-port {

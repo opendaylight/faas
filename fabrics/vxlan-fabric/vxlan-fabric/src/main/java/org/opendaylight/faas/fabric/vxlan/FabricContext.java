@@ -34,11 +34,11 @@ public class FabricContext implements AutoCloseable {
 
     private final List<GatewayMac> availableMacs;
 
-    private final Map<NodeId, LogicSwitchContext> logicSwitches = Maps.newConcurrentMap();
+    private final Map<String, LogicSwitchContext> logicSwitches = Maps.newConcurrentMap();
 
     private final Map<DeviceKey, DeviceContext> devices = Maps.newConcurrentMap();
 
-    private final Map<NodeId, LogicRouterContext> logicRouters = Maps.newConcurrentMap();
+    private final Map<String, LogicRouterContext> logicRouters = Maps.newConcurrentMap();
 
     private final DataBroker databroker;
 
@@ -60,21 +60,21 @@ public class FabricContext implements AutoCloseable {
     }
 
     public void addLogicRouter(NodeId routerId, long vrf) {
-        logicRouters.put(routerId, new LogicRouterContext(vrf, databroker));
+        logicRouters.put(routerId.getValue(), new LogicRouterContext(vrf, databroker));
     }
 
     public void removeLogicRouter(NodeId routerId) {
-        logicRouters.remove(routerId);
+        logicRouters.remove(routerId.getValue());
     }
 
     public LogicSwitchContext addLogicSwitch(NodeId nodeId, long vni, boolean external) {
         LogicSwitchContext lswCtx = new LogicSwitchContext(databroker, fabricId, vni, nodeId, executor, external);
-        logicSwitches.put(nodeId, lswCtx);
+        logicSwitches.put(nodeId.getValue(), lswCtx);
         return lswCtx;
     }
 
     public LogicSwitchContext removeLogicSwitch(NodeId nodeId) {
-        return logicSwitches.remove(nodeId);
+        return logicSwitches.remove(nodeId.getValue());
     }
 
     public DeviceContext addDeviceSwitch(InstanceIdentifier<Node> deviceIId, IpAddress vtep) {
@@ -88,7 +88,7 @@ public class FabricContext implements AutoCloseable {
     }
 
     public LogicSwitchContext getLogicSwitchCtx(NodeId nodeId) {
-        return logicSwitches.get(nodeId);
+        return logicSwitches.get(nodeId.getValue());
     }
 
     public Collection<LogicSwitchContext> getLogicSwitchCtxs() {
@@ -124,15 +124,15 @@ public class FabricContext implements AutoCloseable {
     }
 
     public LogicRouterContext getLogicRouterCtx(NodeId routerId) {
-        return logicRouters.get(routerId);
+        return logicRouters.get(routerId.getValue());
     }
 
     public boolean isValidLogicSwitch(NodeId nodeid) {
-        return logicSwitches.containsKey(nodeid);
+        return logicSwitches.containsKey(nodeid.getValue());
     }
 
     public boolean isValidLogicRouter(NodeId nodeid) {
-        return logicRouters.containsKey(nodeid);
+        return logicRouters.containsKey(nodeid.getValue());
     }
 
     public MacAddress findAvaiableMac(IpPrefix ip, long vrf) {
