@@ -408,7 +408,7 @@ public class UlnMappingEngine {
             }
         }
 
-        if (!lswPort.hasServiceBeenRendered()) {
+        if (!lswPort.hasServiceBeenRenderedOnFabric(fabricId)) {
             this.renderPortOnLsw(tenantId, fabricId, uln, lsw, lswPort);
             uln.addPortToLsw(lsw.getLsw(), lswPort.getPort());
         }
@@ -416,7 +416,8 @@ public class UlnMappingEngine {
         //Register end point
         EndpointAttachInfo endpoint = UlnUtil.createEpAttachmentInput(epLocation, subnet.getSubnet(), epPort.getPort());
 
-        this.renderEpRegistration(tenantId, fabricId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(), lswPort.getRenderedLogicalPortId(),
+        this.renderEpRegistration(tenantId, fabricId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(),
+                lswPort.getRenderedLogicalPortIdOnFabric(fabricId),
                 endpoint);
         uln.setLswIdOnEpLocation(epLocation, lsw.getLsw().getUuid());
         uln.setLswPortIdOnEpLocation(epLocation, lswPort.getPort().getUuid());
@@ -452,7 +453,7 @@ public class UlnMappingEngine {
                 fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lr.getRenderedRouters());
             }
 
-//    org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid flsw 
+//    org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid flsw
 //        = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(lsw.getValue());
 
             if (lr
@@ -991,7 +992,7 @@ public class UlnMappingEngine {
         NodeId renderedLswId = lswInfo.getRenderedSwitchOnFabric(fabricId).getSwitchID();
         TpId renderedPortId = fmgr
             .createLogicalPortOnLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, renderedLswId);
-        lswPortInfo.markAsRendered(renderedPortId);
+        lswPortInfo.markAsRendered(renderedPortId, fabricId);
     }
 
     private org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid renderLrLswEdge(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId lrId, NodeId lswId,
