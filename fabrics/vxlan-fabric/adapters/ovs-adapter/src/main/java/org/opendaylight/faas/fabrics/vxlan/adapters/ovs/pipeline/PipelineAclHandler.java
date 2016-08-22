@@ -269,6 +269,10 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             Actions aclActions) {
         NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
 
+        if (aceIp.getDscp() != null) {
+            OfMatchUtils.addDscp(matchBuilder, aceIp.getDscp().getValue());
+        }
+
         short aceIpProtocol = aceIp.getProtocol();
         matchBuilder = createIpProtocolMatch(matchBuilder, aceIpProtocol);
 
@@ -332,7 +336,10 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             ipMmatch.setIpProtocol(PROTOCOL_UDP);
         } else if (ipProtocol == PROTOCOL_ICMP) {
             ipMmatch.setIpProtocol(PROTOCOL_ICMP);
+        } else {
+            ipMmatch.setIpProtocol(ipProtocol);
         }
+
         matchBuilder.setIpMatch(ipMmatch.build());
         return matchBuilder;
     }
