@@ -8,10 +8,7 @@
 package org.opendaylight.faas.fabricmgr;
 
 import com.google.common.base.Optional;
-import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
-import edu.uci.ics.jung.algorithms.shortestpath.PrimMinimumSpanningTree;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.UndirectedSparseGraph;
+
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationService;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
@@ -46,6 +44,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.switches.rev151013.logical.switches.container.logical.switches.LogicalSwitchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.ports.rev151013.ports.container.ports.port.PrivateIps;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.subnet.ExternalGateways;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
@@ -62,17 +61,21 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.ports.PortBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.vfabric.service.rev151010.update.vf.lr.routingtable.input.Routingtable;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.vfabric.service.rev151010.update.vf.lr.routingtable.input.RoutingtableBuilder;
-
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
+import edu.uci.ics.jung.algorithms.shortestpath.PrimMinimumSpanningTree;
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 
 
 /**
@@ -399,22 +402,25 @@ public class FabricMgrProvider implements AutoCloseable {
         for (Link l : topo.getLink()) {
             RenderedSwitch sswitch  = maps.get(new FabricId(l.getSource().getSourceNode()));
             if (sswitch == null) {
-                NodeId slsw = this.createLneLayer2(
-                        tenantId,l.getSource().getSourceNode(),
-                        new Uuid(UUID.randomUUID().toString()),
-                        uln);
-
-                RenderedSwitch slswR = new RenderedSwitch(l.getSource().getSourceNode(), lsw, slsw);
-                uln.getLswStore().get(lsw).addRenderedSwitch(slswR);
+//                NodeId slsw = this.createLneLayer2(
+//                        tenantId,l.getSource().getSourceNode(),
+//                        new Uuid(UUID.randomUUID().toString()),
+//                        uln);
+//
+//                RenderedSwitch slswR = new RenderedSwitch(l.getSource().getSourceNode(), lsw, slsw);
+//                uln.getLswStore().get(lsw).addRenderedSwitch(slswR);
+                continue;
             }
+
             RenderedSwitch dswitch = maps.get(new FabricId(l.getDestination().getDestNode()));
             if (dswitch == null) {
-                NodeId dlsw = this.createLneLayer2(
-                        tenantId,l.getDestination().getDestNode(),
-                        new Uuid(UUID.randomUUID().toString()),
-                        uln);
-                RenderedSwitch dlswR = new RenderedSwitch(l.getDestination().getDestNode(), lsw, dlsw);
-                uln.getLswStore().get(lsw).addRenderedSwitch(dlswR);
+//                NodeId dlsw = this.createLneLayer2(
+//                        tenantId,l.getDestination().getDestNode(),
+//                        new Uuid(UUID.randomUUID().toString()),
+//                        uln);
+//                RenderedSwitch dlswR = new RenderedSwitch(l.getDestination().getDestNode(), lsw, dlsw);
+//                uln.getLswStore().get(lsw).addRenderedSwitch(dlswR);
+                continue;
             }
 
 
@@ -546,9 +552,11 @@ public class FabricMgrProvider implements AutoCloseable {
 
 
     //TODO
-    private IpAddress getGatewayIP(TenantId tid,NodeId lswId)
+    private IpAddress getGatewayIP(org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid tid, NodeId lswId)
     {
-        LogicalSwitchMappingInfo lmap = ulnStore.get(tid).getLswStore().get(lswId);
+        org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid lswUuid = new
+                org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(lswId.getValue());
+        LogicalSwitchMappingInfo lmap = ulnStore.get(tid).getLswStore().get(lswUuid);
         SubnetMappingInfo snm = ulnStore.get(tid).findSubnetFromLsw(lmap);
         ExternalGateways exg = snm.getSubnet().getExternalGateways().get(0);
         return exg.getExternalGateway();
@@ -807,6 +815,9 @@ public class FabricMgrProvider implements AutoCloseable {
 
     public void connectAllDVRs(Uuid tenantID, UserLogicalNetworkCache uln, Map<NodeId, RenderedRouter> rmaps)
     {
+        org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid fTenantID
+        = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(tenantID.getValue());
+
         List<RenderReadyL3Link> tasks = new ArrayList<>();
 
         //For layer 3 , all we need are all shortest path links.
@@ -861,11 +872,23 @@ public class FabricMgrProvider implements AutoCloseable {
             //builder.setSegmentId(xxx)); //let FaaS to determine
             builder.setTenantId(new TenantId(tenantID));
             builder.setVfabricId(new FabricId(task.getL().getSource().getSourceNode()));
+//begin
+            Uuid newLswId = new Uuid(UUID.randomUUID().toString());
+            org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid flsw
+            = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(newLswId.getValue());
+            LogicalSwitchBuilder lswBuilder = new LogicalSwitchBuilder();
+            lswBuilder.setUuid(flsw);
+            lswBuilder.setAdminStateUp(true);
 
+            this.ulnStore
+                .get(fTenantID)
+                .getLswStore()
+                .put(flsw, new LogicalSwitchMappingInfo(lswBuilder.build()));
+//end
             NodeId slsw = this.createLneLayer2(
                     tenantID,task.getL().getSource().getSourceNode(),
-                    new Uuid(UUID.randomUUID().toString()),
-                    this.ulnStore.get(tenantID));
+                    newLswId,
+                    this.ulnStore.get(fTenantID));
 
             TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(task.getL().getSource().getSourceNode(),slsw, AccessType.Vlan, task.getTag());
             TpId tpIdf = task.getL().getSource().getSourceTp();
@@ -886,9 +909,23 @@ public class FabricMgrProvider implements AutoCloseable {
                     this.alloateReservedGatewayPrefix());
 
             builder.setVfabricId(new FabricId(task.getL().getDestination().getDestNode()));
+
+//begin
+            Uuid newdLswId = new Uuid(UUID.randomUUID().toString());
+            org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid fdlsw
+            = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(newdLswId.getValue());
+            lswBuilder = new LogicalSwitchBuilder();
+            lswBuilder.setUuid(flsw);
+            lswBuilder.setAdminStateUp(true);
+
+            this.ulnStore
+                .get(fTenantID)
+                .getLswStore()
+                .put(fdlsw, new LogicalSwitchMappingInfo(lswBuilder.build()));
+//end
             NodeId dlsw = this.createLneLayer2(tenantID, task.getL().getDestination().getDestNode(),
-                    null,
-                    this.ulnStore.get(tenantID));
+                    newdLswId,
+                    this.ulnStore.get(fTenantID));
 
             TpId tpId2 = this.netNodeServiceProvider.createLogicalPortOnLsw(task.getL().getDestination().getDestNode(),dlsw, AccessType.Vlan, task.getTag());
             TpId tpIdf2 = task.getL().getDestination().getDestTp();
@@ -903,8 +940,10 @@ public class FabricMgrProvider implements AutoCloseable {
                     this.alloateReservedGatewayPrefix());
 
             RenderedLayer2Link l2link = new RenderedLayer2Link(slswR,  dlswR, task.getTag(), tpIdf, tpId, tpIdf2, tpId2);
+//            RenderedLayer3Link l3link = new RenderedLayer3Link(task.getRouterA(), task.getRouterB(), slswR, dlswR,
+//                    srcGWPort,this.getGatewayIP(fTenantID,slsw), destGWPort, this.getGatewayIP(fTenantID,dlsw), l2link);
             RenderedLayer3Link l3link = new RenderedLayer3Link(task.getRouterA(), task.getRouterB(), slswR, dlswR,
-                    srcGWPort,this.getGatewayIP(new TenantId(tenantID),slsw), destGWPort, this.getGatewayIP(new TenantId(tenantID),dlsw), l2link);
+                    srcGWPort,gwpair[0], destGWPort, gwpair[1], l2link);
             RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(task.getRouterA(), task.getRouterB());
             uln.addRenderedrLink(key, l3link);
         }
@@ -931,13 +970,14 @@ public class FabricMgrProvider implements AutoCloseable {
                 rtinput.setTenantId(new TenantId(tenantID));
                 rtinput.setVfabricId(lrd.getFabricId());
 
-                List<Routingtable> rtl = new ArrayList<>();
+                List<org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable> rtl = new ArrayList<>();
+                rtinput.setRoutingtable(rtl);
 
                 //Get all the reacheable hosts on destiantion router lrd.
                 //for each Host on lrd, a Host route is generated and isntalled on the
                 // source router lrs.
                 for (IpAddress ip : getAllHostIPs(uln, lrd)) {
-                    RoutingtableBuilder rtbuilder = new RoutingtableBuilder();
+                    org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.RoutingtableBuilder rtbuilder = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.RoutingtableBuilder();
                     rtbuilder.setVrfId(lrs.getRouterID().getValue());
                     rtbuilder.setDestIp(ip);
 
