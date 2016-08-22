@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Dscp;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
@@ -122,9 +123,12 @@ public class OfMatchUtils {
     /**
      * Create Ingress Port Match dpidLong, inPort
      *
-     * @param matchBuilder Map matchBuilder MatchBuilder Object without a match
-     * @param dpidLong     Long the datapath ID of a switch/node
-     * @param inPort       Long ingress port on a switch
+     * @param matchBuilder
+     *            Map matchBuilder MatchBuilder Object without a match
+     * @param dpidLong
+     *            Long the datapath ID of a switch/node
+     * @param inPort
+     *            Long ingress port on a switch
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createInPortMatch(MatchBuilder matchBuilder, Long dpidLong, Long inPort) {
@@ -140,8 +144,8 @@ public class OfMatchUtils {
     public static MatchBuilder createInPortReservedMatch(MatchBuilder matchBuilder, Long dpidLong, String inPort) {
 
         NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpidLong + ":" + inPort);
-        LOG.debug("createInPortResrevedMatch() Node Connector ID is - Type=openflow: DPID={} inPort={} ",
-                dpidLong, inPort);
+        LOG.debug("createInPortResrevedMatch() Node Connector ID is - Type=openflow: DPID={} inPort={} ", dpidLong,
+                inPort);
         matchBuilder.setInPort(NodeConnectorId.getDefaultInstance(ncid.getValue()));
         matchBuilder.setInPort(ncid);
 
@@ -151,8 +155,10 @@ public class OfMatchUtils {
     /**
      * Create EtherType Match
      *
-     * @param matchBuilder Map matchBuilder MatchBuilder Object without a match
-     * @param etherType    Long EtherType
+     * @param matchBuilder
+     *            Map matchBuilder MatchBuilder Object without a match
+     * @param etherType
+     *            Long EtherType
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createEtherTypeMatch(MatchBuilder matchBuilder, EtherType etherType) {
@@ -190,8 +196,10 @@ public class OfMatchUtils {
     /**
      * Create Ethernet Source Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param sMacAddr     String representing a source MAC
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param sMacAddr
+     *            String representing a source MAC
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createEthSrcMatch(MatchBuilder matchBuilder, MacAddress sMacAddr) {
@@ -219,8 +227,10 @@ public class OfMatchUtils {
     /**
      * Create Ethernet Destination Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param vlanId       Integer representing a VLAN ID Integer representing a VLAN ID
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param vlanId
+     *            Integer representing a VLAN ID Integer representing a VLAN ID
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createVlanIdMatch(MatchBuilder matchBuilder, VlanId vlanId, boolean present) {
@@ -237,8 +247,10 @@ public class OfMatchUtils {
     /**
      * Create Ethernet Destination Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param dMacAddr     String representing a destination MAC
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param dMacAddr
+     *            String representing a destination MAC
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createDestEthMatch(MatchBuilder matchBuilder, MacAddress dMacAddr, MacAddress mask) {
@@ -258,29 +270,35 @@ public class OfMatchUtils {
     /**
      * Create Ethernet Destination Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param dMacAddr     String representing a destination MAC
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param dMacAddr
+     *            String representing a destination MAC
      * @return matchBuilder Map MatchBuilder Object with a match
      */
-//    public static MatchBuilder createDestEthMatch(MatchBuilder matchBuilder, String dMacAddr, MacAddress mask) {
-//
-//        EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
-//        EthernetDestinationBuilder ethDestinationBuilder = new EthernetDestinationBuilder();
-//        ethDestinationBuilder.setAddress(new MacAddress(dMacAddr));
-//        if (mask != null) {
-//            ethDestinationBuilder.setMask(mask);
-//        }
-//        ethernetMatch.setEthernetDestination(ethDestinationBuilder.build());
-//        matchBuilder.setEthernetMatch(ethernetMatch.build());
-//
-//        return matchBuilder;
-//    }
+    // public static MatchBuilder createDestEthMatch(MatchBuilder matchBuilder,
+    // String dMacAddr, MacAddress mask) {
+    //
+    // EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
+    // EthernetDestinationBuilder ethDestinationBuilder = new
+    // EthernetDestinationBuilder();
+    // ethDestinationBuilder.setAddress(new MacAddress(dMacAddr));
+    // if (mask != null) {
+    // ethDestinationBuilder.setMask(mask);
+    // }
+    // ethernetMatch.setEthernetDestination(ethDestinationBuilder.build());
+    // matchBuilder.setEthernetMatch(ethernetMatch.build());
+    //
+    // return matchBuilder;
+    // }
 
     /**
      * Create Ethernet Destination Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param dMacAddr     String representing a destination MAC
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param dMacAddr
+     *            String representing a destination MAC
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createDestEthMatch(MatchBuilder matchBuilder, String dMacAddr, String mask) {
@@ -297,8 +315,8 @@ public class OfMatchUtils {
         return matchBuilder;
     }
 
-    public static MatchBuilder createDmacDestIpMatch(
-            MatchBuilder matchBuilder, String destMac,  Ipv4Prefix destIpPrefix) {
+    public static MatchBuilder createDmacDestIpMatch(MatchBuilder matchBuilder, String destMac,
+            Ipv4Prefix destIpPrefix) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -313,8 +331,9 @@ public class OfMatchUtils {
         }
 
         if (destIpPrefix != null) {
+            Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(destIpPrefix);
             Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-            ipv4match.setIpv4Destination(destIpPrefix);
+            ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
             matchBuilder.setLayer3Match(ipv4match.build());
         }
 
@@ -324,8 +343,10 @@ public class OfMatchUtils {
     /**
      * Tunnel ID Match Builder
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param tunnelId     BigInteger representing a tunnel ID
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param tunnelId
+     *            BigInteger representing a tunnel ID
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createTunnelIDMatch(MatchBuilder matchBuilder, BigInteger tunnelId) {
@@ -340,9 +361,12 @@ public class OfMatchUtils {
     /**
      * Match ICMP code and type
      *
-     * @param matchBuilder MatchBuilder Object
-     * @param type         short representing an ICMP type
-     * @param code         short representing an ICMP code
+     * @param matchBuilder
+     *            MatchBuilder Object
+     * @param type
+     *            short representing an ICMP type
+     * @param code
+     *            short representing an ICMP code
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createICMPv4Match(MatchBuilder matchBuilder, short type, short code) {
@@ -368,9 +392,12 @@ public class OfMatchUtils {
     /**
      * Match ICMPv6 code and type
      *
-     * @param matchBuilder MatchBuilder Object
-     * @param type         short representing an ICMP type
-     * @param code         short representing an ICMP code
+     * @param matchBuilder
+     *            MatchBuilder Object
+     * @param type
+     *            short representing an ICMP type
+     * @param code
+     *            short representing an ICMP code
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createICMPv6Match(MatchBuilder matchBuilder, short type, short code) {
@@ -392,8 +419,10 @@ public class OfMatchUtils {
     }
 
     /**
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param dstip        String containing an IPv4 prefix
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param dstip
+     *            String containing an IPv4 prefix
      * @return matchBuilder Map Object with a match
      */
     public static MatchBuilder createDstL3IPv4Match(MatchBuilder matchBuilder, Ipv4Prefix dstip) {
@@ -405,7 +434,8 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(eth.build());
 
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-        ipv4match.setIpv4Destination(dstip);
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(dstip);
+        ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
 
         matchBuilder.setLayer3Match(ipv4match.build());
 
@@ -414,8 +444,10 @@ public class OfMatchUtils {
     }
 
     /**
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param dstip        String containing an IPv4 prefix
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param dstip
+     *            String containing an IPv4 prefix
      * @return matchBuilder Map Object with a match
      */
     public static MatchBuilder createDstL3IPv4Match(MatchBuilder matchBuilder, String dstip) {
@@ -427,7 +459,8 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(eth.build());
 
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-        ipv4match.setIpv4Destination(new Ipv4Prefix(dstip));
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(new Ipv4Prefix(dstip));
+        ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
 
         matchBuilder.setLayer3Match(ipv4match.build());
 
@@ -436,14 +469,18 @@ public class OfMatchUtils {
     }
 
     /**
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param dstip        String containing an IPv4 prefix
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param dstip
+     *            String containing an IPv4 prefix
      * @return matchBuilder Map Object with a match
      */
     public static MatchBuilder createArpDstIpv4Match(MatchBuilder matchBuilder, Ipv4Prefix dstip) {
         ArpMatchBuilder arpDstMatch = new ArpMatchBuilder();
-        arpDstMatch.setArpTargetTransportAddress(dstip)
-                .setArpOp(OfFlowUtils.ARP_OP_REQUEST);
+
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(dstip);
+
+        arpDstMatch.setArpTargetTransportAddress(canonicalizedIpv4Prefix).setArpOp(OfFlowUtils.ARP_OP_REQUEST);
         matchBuilder.setLayer3Match(arpDstMatch.build());
 
         return matchBuilder;
@@ -451,9 +488,14 @@ public class OfMatchUtils {
 
     /**
      * Builds the arp match with src and destintion mac address.
-     * @param matchBuilder the match builder
-     * @param srcMac the src mac address , will not be added to match if null.
-     * @param dstMac the destination mac address, will not be added to match if null.
+     *
+     * @param matchBuilder
+     *            the match builder
+     * @param srcMac
+     *            the src mac address , will not be added to match if null.
+     * @param dstMac
+     *            the destination mac address, will not be added to match if
+     *            null.
      * @return the match builder with the matches
      */
     public static MatchBuilder addArpMacMatch(MatchBuilder matchBuilder, String srcMac, String dstMac) {
@@ -473,8 +515,10 @@ public class OfMatchUtils {
     }
 
     /**
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param srcip        String containing an IPv4 prefix
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param srcip
+     *            String containing an IPv4 prefix
      * @return matchBuilder Map Object with a match
      */
     public static MatchBuilder createSrcL3IPv4Match(MatchBuilder matchBuilder, Ipv4Prefix srcip) {
@@ -486,7 +530,10 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(eth.build());
 
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-        ipv4match.setIpv4Source(srcip);
+
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(srcip);
+
+        ipv4match.setIpv4Source(canonicalizedIpv4Prefix);
         matchBuilder.setLayer3Match(ipv4match.build());
 
         return matchBuilder;
@@ -496,8 +543,10 @@ public class OfMatchUtils {
     /**
      * Create Source TCP Port Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param tcpport      Integer representing a source TCP port
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param tcpport
+     *            Integer representing a source TCP port
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createSetSrcTcpMatch(MatchBuilder matchBuilder, PortNumber tcpport) {
@@ -523,8 +572,10 @@ public class OfMatchUtils {
     /**
      * Create Destination TCP Port Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param tcpDstPort   Integer representing a destination TCP port
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param tcpDstPort
+     *            Integer representing a destination TCP port
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createSetDstTcpMatch(MatchBuilder matchBuilder, PortNumber tcpDstPort) {
@@ -549,15 +600,17 @@ public class OfMatchUtils {
     /**
      * Test match for TCP_Flags
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param tcpPort  PortNumber representing a destination TCP port
-     * @param tcpFlag  int representing a tcp_flag
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param tcpPort
+     *            PortNumber representing a destination TCP port
+     * @param tcpFlag
+     *            int representing a tcp_flag
      * @return match containing TCP_Flag (), IP Protocol (TCP), TCP_Flag (SYN)
-     * <p>
-     * Defined TCP Flag values in OVS v2.1+
-     * TCP_FIN 0x001 / TCP_SYN 0x002 / TCP_RST 0x004
-     * TCP_PSH 0x008 / TCP_ACK 0x010 / TCP_URG 0x020
-     * TCP_ECE 0x040 / TCP_CWR 0x080 / TCP_NS  0x100
+     *         <p>
+     *         Defined TCP Flag values in OVS v2.1+ TCP_FIN 0x001 / TCP_SYN
+     *         0x002 / TCP_RST 0x004 TCP_PSH 0x008 / TCP_ACK 0x010 / TCP_URG
+     *         0x020 TCP_ECE 0x040 / TCP_CWR 0x080 / TCP_NS 0x100
      */
     public static MatchBuilder createTcpFlagMatch(MatchBuilder matchBuilder, PortNumber tcpPort, int tcpFlag) {
 
@@ -588,7 +641,8 @@ public class OfMatchUtils {
     /**
      * @return MatchBuilder containing the metadata match values
      */
-    public static MatchBuilder createMetadataMatch(MatchBuilder matchBuilder, BigInteger metaData,  BigInteger metaDataMask) {
+    public static MatchBuilder createMetadataMatch(MatchBuilder matchBuilder, BigInteger metaData,
+            BigInteger metaDataMask) {
 
         // metadata matchbuilder
         MetadataBuilder metadata = new MetadataBuilder();
@@ -603,10 +657,12 @@ public class OfMatchUtils {
     }
 
     /**
-     * Create  TCP Port Match
+     * Create TCP Port Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param ipProtocol   Integer representing the IP protocol
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param ipProtocol
+     *            Integer representing the IP protocol
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createIpProtocolMatch(MatchBuilder matchBuilder, short ipProtocol) {
@@ -620,11 +676,9 @@ public class OfMatchUtils {
         IpMatchBuilder ipMmatch = new IpMatchBuilder();
         if (ipProtocol == TCP_SHORT) {
             ipMmatch.setIpProtocol(TCP_SHORT);
-        }
-        else if (ipProtocol == UDP_SHORT) {
+        } else if (ipProtocol == UDP_SHORT) {
             ipMmatch.setIpProtocol(UDP_SHORT);
-        }
-        else if (ipProtocol == ICMP_SHORT) {
+        } else if (ipProtocol == ICMP_SHORT) {
             ipMmatch.setIpProtocol(ICMP_SHORT);
         }
         matchBuilder.setIpMatch(ipMmatch.build());
@@ -632,10 +686,12 @@ public class OfMatchUtils {
     }
 
     /**
-     * Create  TCP Port Match
+     * Create TCP Port Match
      *
-     * @param matchBuilder MatchBuilder Object without a match yet
-     * @param ipProtocol   Integer representing the IP protocol
+     * @param matchBuilder
+     *            MatchBuilder Object without a match yet
+     * @param ipProtocol
+     *            Integer representing the IP protocol
      * @return matchBuilder Map MatchBuilder Object with a match
      */
     public static MatchBuilder createIpv6ProtocolMatch(MatchBuilder matchBuilder, short ipProtocol) {
@@ -649,11 +705,9 @@ public class OfMatchUtils {
         IpMatchBuilder ipMmatch = new IpMatchBuilder();
         if (ipProtocol == TCP_SHORT) {
             ipMmatch.setIpProtocol(TCP_SHORT);
-        }
-        else if (ipProtocol == UDP_SHORT) {
+        } else if (ipProtocol == UDP_SHORT) {
             ipMmatch.setIpProtocol(UDP_SHORT);
-        }
-        else if (ipProtocol == ICMP_SHORT) {
+        } else if (ipProtocol == ICMP_SHORT) {
             ipMmatch.setIpProtocol(ICMP_SHORT);
         }
         matchBuilder.setIpMatch(ipMmatch.build());
@@ -663,7 +717,8 @@ public class OfMatchUtils {
     /**
      * Create tcp syn with proto match.
      *
-     * @param matchBuilder the match builder
+     * @param matchBuilder
+     *            the match builder
      * @return matchBuilder match builder
      */
     public static MatchBuilder createTcpSynWithProtoMatch(MatchBuilder matchBuilder) {
@@ -689,7 +744,8 @@ public class OfMatchUtils {
     /**
      * Create tcp proto syn match.
      *
-     * @param matchBuilder the match builder
+     * @param matchBuilder
+     *            the match builder
      * @return matchBuilder match builder
      */
     public static MatchBuilder createTcpProtoSynMatch(MatchBuilder matchBuilder) {
@@ -708,43 +764,61 @@ public class OfMatchUtils {
     /**
      * Create dmac tcp port with flag match.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpFlag the tcp flag
-     * @param tunnelID the tunnel iD
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpFlag
+     *            the tcp flag
+     * @param tunnelID
+     *            the tunnel iD
      * @return match containing TCP_Flag (), IP Protocol (TCP), TCP_Flag (SYN)
      */
-    public static MatchBuilder createDmacTcpPortWithFlagMatch(MatchBuilder matchBuilder,
-            String attachedMac, Integer tcpFlag, String tunnelID) {
+    public static MatchBuilder createDmacTcpPortWithFlagMatch(MatchBuilder matchBuilder, String attachedMac,
+            Integer tcpFlag, String tunnelID) {
         return createDmacTcpPortIpSaWithFlagMatch(matchBuilder, attachedMac, tcpFlag, null, tunnelID);
     }
 
     /**
      * Create dmac ipSa match.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param ipPrefix the src ipPrefix
-     * @param tunnelID the tunnel iD
-     * @return match containing TCP_Flag (), IP Protocol (TCP), TCP_Flag (SYN), Ip Source Address (IPsa)
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param ipPrefix
+     *            the src ipPrefix
+     * @param tunnelID
+     *            the tunnel iD
+     * @return match containing TCP_Flag (), IP Protocol (TCP), TCP_Flag (SYN),
+     *         Ip Source Address (IPsa)
      */
-    public static MatchBuilder createDmacIpSaMatch(
-            MatchBuilder matchBuilder, String attachedMac, Ipv4Prefix ipPrefix, String tunnelID) {
-        return createDmacTcpPortIpSaWithFlagMatch(matchBuilder, attachedMac, null, ipPrefix, tunnelID);
+    public static MatchBuilder createDmacIpSaMatch(MatchBuilder matchBuilder, String attachedMac, Ipv4Prefix ipPrefix,
+            String tunnelID) {
+
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(ipPrefix);
+
+        return createDmacTcpPortIpSaWithFlagMatch(matchBuilder, attachedMac, null, canonicalizedIpv4Prefix, tunnelID);
     }
 
     /**
      * Create dmac tcp port ipSa with flag match.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpFlag the tcp flag
-     * @param ipPrefix the src ipPrefix
-     * @param tunnelID the tunnel iD
-     * @return match containing TCP_Flag (), IP Protocol (TCP), TCP_Flag (SYN), Ip Source Address (IPsa)
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpFlag
+     *            the tcp flag
+     * @param ipPrefix
+     *            the src ipPrefix
+     * @param tunnelID
+     *            the tunnel iD
+     * @return match containing TCP_Flag (), IP Protocol (TCP), TCP_Flag (SYN),
+     *         Ip Source Address (IPsa)
      */
-    public static MatchBuilder createDmacTcpPortIpSaWithFlagMatch(
-            MatchBuilder matchBuilder, String attachedMac, Integer tcpFlag, Ipv4Prefix ipPrefix, String tunnelID) {
+    private static MatchBuilder createDmacTcpPortIpSaWithFlagMatch(MatchBuilder matchBuilder, String attachedMac,
+            Integer tcpFlag, Ipv4Prefix ipPrefix, String tunnelID) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -777,7 +851,9 @@ public class OfMatchUtils {
 
         if (ipPrefix != null) {
             Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-            ipv4match.setIpv4Source(ipPrefix);
+
+            Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(ipPrefix);
+            ipv4match.setIpv4Source(canonicalizedIpv4Prefix);
             matchBuilder.setLayer3Match(ipv4match.build());
         }
 
@@ -787,15 +863,20 @@ public class OfMatchUtils {
     /**
      * Create dmac tcp syn match.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpPort the tcp port
-     * @param tcpFlag the tcp flag
-     * @param tunnelID the tunnel iD
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpPort
+     *            the tcp port
+     * @param tcpFlag
+     *            the tcp flag
+     * @param tunnelID
+     *            the tunnel iD
      * @return the match builder
      */
-    public static MatchBuilder createDmacTcpSynMatch(MatchBuilder matchBuilder,
-            String attachedMac, PortNumber tcpPort, Integer tcpFlag, String tunnelID) {
+    public static MatchBuilder createDmacTcpSynMatch(MatchBuilder matchBuilder, String attachedMac, PortNumber tcpPort,
+            Integer tcpFlag, String tunnelID) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -832,17 +913,22 @@ public class OfMatchUtils {
     /**
      * Create dmac tcp syn dst ip prefix tcp port.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpPort the tcp port
-     * @param tcpFlag the tcp flag
-     * @param segmentationId the segmentation id
-     * @param dstIp the dst ip
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpPort
+     *            the tcp port
+     * @param tcpFlag
+     *            the tcp flag
+     * @param segmentationId
+     *            the segmentation id
+     * @param dstIp
+     *            the dst ip
      * @return the match builder
      */
-    public static MatchBuilder createDmacTcpSynDstIpPrefixTcpPort(MatchBuilder matchBuilder,
-            MacAddress attachedMac, PortNumber tcpPort,  Integer tcpFlag, String segmentationId,
-            Ipv4Prefix dstIp) {
+    public static MatchBuilder createDmacTcpSynDstIpPrefixTcpPort(MatchBuilder matchBuilder, MacAddress attachedMac,
+            PortNumber tcpPort, Integer tcpFlag, String segmentationId, Ipv4Prefix dstIp) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -856,7 +942,9 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(ethernetMatch.build());
 
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-        ipv4match.setIpv4Destination(dstIp);
+
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(dstIp);
+        ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
         matchBuilder.setLayer3Match(ipv4match.build());
 
         // TCP Protocol Match
@@ -884,14 +972,18 @@ public class OfMatchUtils {
     /**
      * Create dmac ip tcp syn match.
      *
-     * @param matchBuilder the match builder
-     * @param dMacAddr the d mac addr
-     * @param mask the mask
-     * @param ipPrefix the ip prefix
+     * @param matchBuilder
+     *            the match builder
+     * @param dMacAddr
+     *            the d mac addr
+     * @param mask
+     *            the mask
+     * @param ipPrefix
+     *            the ip prefix
      * @return MatchBuilder containing the metadata match values
      */
-    public static MatchBuilder createDmacIpTcpSynMatch(MatchBuilder matchBuilder,
-            MacAddress dMacAddr, MacAddress mask, Ipv4Prefix ipPrefix) {
+    public static MatchBuilder createDmacIpTcpSynMatch(MatchBuilder matchBuilder, MacAddress dMacAddr, MacAddress mask,
+            Ipv4Prefix ipPrefix) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetDestinationBuilder ethDestBuilder = new EthernetDestinationBuilder();
@@ -909,7 +1001,10 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(ethernetType.build());
         if (ipPrefix != null) {
             Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-            ipv4match.setIpv4Destination(ipPrefix);
+
+            Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(ipPrefix);
+
+            ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
             matchBuilder.setLayer3Match(ipv4match.build());
         }
         // TCP Protocol Match
@@ -927,12 +1022,18 @@ public class OfMatchUtils {
     /**
      * Create smac tcp syn dst ip prefix tcp port.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpPort the tcp port
-     * @param tcpFlag the tcp flag
-     * @param segmentationId the segmentation id
-     * @param dstIp the dst ip
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpPort
+     *            the tcp port
+     * @param tcpFlag
+     *            the tcp flag
+     * @param segmentationId
+     *            the segmentation id
+     * @param dstIp
+     *            the dst ip
      * @return the match builder
      */
     public static MatchBuilder createSmacTcpSynDstIpPrefixTcpPort(MatchBuilder matchBuilder, MacAddress attachedMac,
@@ -950,7 +1051,9 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(ethernetMatch.build());
 
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-        ipv4match.setIpv4Destination(dstIp);
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(dstIp);
+
+        ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
         matchBuilder.setLayer3Match(ipv4match.build());
 
         // TCP Protocol Match
@@ -978,10 +1081,14 @@ public class OfMatchUtils {
     /**
      * Create smac tcp port with flag match.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpFlag the tcp flag
-     * @param tunnelID the tunnel iD
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpFlag
+     *            the tcp flag
+     * @param tunnelID
+     *            the tunnel iD
      * @return matchBuilder
      */
     public static MatchBuilder createSmacTcpPortWithFlagMatch(MatchBuilder matchBuilder, String attachedMac,
@@ -1016,14 +1123,18 @@ public class OfMatchUtils {
     /**
      * Create smac ip tcp syn match.
      *
-     * @param matchBuilder the match builder
-     * @param dMacAddr the d mac addr
-     * @param mask the mask
-     * @param ipPrefix the ip prefix
+     * @param matchBuilder
+     *            the match builder
+     * @param dMacAddr
+     *            the d mac addr
+     * @param mask
+     *            the mask
+     * @param ipPrefix
+     *            the ip prefix
      * @return MatchBuilder containing the metadata match values
      */
-    public static MatchBuilder createSmacIpTcpSynMatch(MatchBuilder matchBuilder, MacAddress dMacAddr,
-            MacAddress mask, Ipv4Prefix ipPrefix) {
+    public static MatchBuilder createSmacIpTcpSynMatch(MatchBuilder matchBuilder, MacAddress dMacAddr, MacAddress mask,
+            Ipv4Prefix ipPrefix) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetSourceBuilder ethSrcBuilder = new EthernetSourceBuilder();
@@ -1041,7 +1152,8 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(ethernetType.build());
         if (ipPrefix != null) {
             Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-            ipv4match.setIpv4Destination(ipPrefix);
+            Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(ipPrefix);
+            ipv4match.setIpv4Destination(canonicalizedIpv4Prefix);
             matchBuilder.setLayer3Match(ipv4match.build());
         }
         // TCP Protocol Match
@@ -1059,15 +1171,20 @@ public class OfMatchUtils {
     /**
      * Create smac tcp syn.
      *
-     * @param matchBuilder the match builder
-     * @param attachedMac the attached mac
-     * @param tcpPort the tcp port
-     * @param tcpFlag the tcp flag
-     * @param tunnelID the tunnel iD
+     * @param matchBuilder
+     *            the match builder
+     * @param attachedMac
+     *            the attached mac
+     * @param tcpPort
+     *            the tcp port
+     * @param tcpFlag
+     *            the tcp flag
+     * @param tunnelID
+     *            the tunnel iD
      * @return the match builder
      */
-    public static MatchBuilder createSmacTcpSyn(MatchBuilder matchBuilder,
-            String attachedMac, PortNumber tcpPort, Integer tcpFlag, String tunnelID) {
+    public static MatchBuilder createSmacTcpSyn(MatchBuilder matchBuilder, String attachedMac, PortNumber tcpPort,
+            Integer tcpFlag, String tunnelID) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -1090,7 +1207,6 @@ public class OfMatchUtils {
         tcpMatch.setTcpDestinationPort(dstPort);
         matchBuilder.setLayer4Match(tcpMatch.build());
 
-
         TcpFlagsMatchBuilder tcpFlagMatch = new TcpFlagsMatchBuilder();
         tcpFlagMatch.setTcpFlags(tcpFlag);
         matchBuilder.setTcpFlagsMatch(tcpFlagMatch.build());
@@ -1105,8 +1221,8 @@ public class OfMatchUtils {
     /**
      * @return MatchBuilder containing the metadata match values
      */
-    public static MatchBuilder createMacSrcIpTcpSynMatch(MatchBuilder matchBuilder,
-            MacAddress dMacAddr,  MacAddress mask, Ipv4Prefix ipPrefix) {
+    public static MatchBuilder createMacSrcIpTcpSynMatch(MatchBuilder matchBuilder, MacAddress dMacAddr,
+            MacAddress mask, Ipv4Prefix ipPrefix) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetDestinationBuilder ethDestinationBuilder = new EthernetDestinationBuilder();
@@ -1124,7 +1240,9 @@ public class OfMatchUtils {
         matchBuilder.setEthernetMatch(ethernetType.build());
         if (ipPrefix != null) {
             Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
-            ipv4match.setIpv4Source(ipPrefix);
+            Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(ipPrefix);
+
+            ipv4match.setIpv4Source(canonicalizedIpv4Prefix);
             matchBuilder.setLayer3Match(ipv4match.build());
         }
         // TCP Protocol Match
@@ -1142,13 +1260,15 @@ public class OfMatchUtils {
     /**
      * Create a DHCP match with port provided.
      *
-     * @param matchBuilder the match builder
-     * @param srcPort the source port
-     * @param dstPort the destination port
+     * @param matchBuilder
+     *            the match builder
+     * @param srcPort
+     *            the source port
+     * @param dstPort
+     *            the destination port
      * @return the DHCP match
      */
-    public static MatchBuilder createDhcpMatch(MatchBuilder matchBuilder,
-                                               int srcPort, int dstPort) {
+    public static MatchBuilder createDhcpMatch(MatchBuilder matchBuilder, int srcPort, int dstPort) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -1172,13 +1292,15 @@ public class OfMatchUtils {
     /**
      * Create a DHCP match with port provided.
      *
-     * @param matchBuilder the match builder
-     * @param srcPort the source port
-     * @param dstPort the destination port
+     * @param matchBuilder
+     *            the match builder
+     * @param srcPort
+     *            the source port
+     * @param dstPort
+     *            the destination port
      * @return the DHCP match
      */
-    public static MatchBuilder createDhcpv6Match(MatchBuilder matchBuilder,
-                                                 int srcPort, int dstPort) {
+    public static MatchBuilder createDhcpv6Match(MatchBuilder matchBuilder, int srcPort, int dstPort) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
@@ -1202,10 +1324,14 @@ public class OfMatchUtils {
     /**
      * Creates DHCP server packet match with DHCP mac address and port.
      *
-     * @param matchBuilder the matchbuilder
-     * @param dhcpServerMac MAc address of the DHCP server of the subnet
-     * @param srcPort the source port
-     * @param dstPort the destination port
+     * @param matchBuilder
+     *            the matchbuilder
+     * @param dhcpServerMac
+     *            MAc address of the DHCP server of the subnet
+     * @param srcPort
+     *            the source port
+     * @param dstPort
+     *            the destination port
      * @return the DHCP server match
      */
     public static MatchBuilder createDhcpServerMatch(MatchBuilder matchBuilder, String dhcpServerMac, int srcPort,
@@ -1238,10 +1364,14 @@ public class OfMatchUtils {
     /**
      * Creates DHCPv6 server packet match with DHCP mac address and port.
      *
-     * @param matchBuilder the matchbuilder
-     * @param dhcpServerMac MAc address of the DHCP server of the subnet
-     * @param srcPort the source port
-     * @param dstPort the destination port
+     * @param matchBuilder
+     *            the matchbuilder
+     * @param dhcpServerMac
+     *            MAc address of the DHCP server of the subnet
+     * @param srcPort
+     *            the source port
+     * @param dstPort
+     *            the destination port
      * @return the DHCP server match
      */
     public static MatchBuilder createDhcpv6ServerMatch(MatchBuilder matchBuilder, String dhcpServerMac, int srcPort,
@@ -1273,22 +1403,26 @@ public class OfMatchUtils {
 
     /**
      * Creates a Match with src ip address mac address set.
-     * @param matchBuilder MatchBuilder Object
-     * @param srcip String containing an IPv4 prefix
-     * @param srcMac The source macAddress
+     *
+     * @param matchBuilder
+     *            MatchBuilder Object
+     * @param srcip
+     *            String containing an IPv4 prefix
+     * @param srcMac
+     *            The source macAddress
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder createSrcL3Ipv4MatchWithMac(MatchBuilder matchBuilder, Ipv4Prefix srcip, MacAddress srcMac) {
+    public static MatchBuilder createSrcL3Ipv4MatchWithMac(MatchBuilder matchBuilder, Ipv4Prefix srcip,
+            MacAddress srcMac) {
 
         Ipv4MatchBuilder ipv4MatchBuilder = new Ipv4MatchBuilder();
-        ipv4MatchBuilder.setIpv4Source(srcip);
+        Ipv4Prefix canonicalizedIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(srcip);
+        ipv4MatchBuilder.setIpv4Source(canonicalizedIpv4Prefix);
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
         ethTypeBuilder.setType(new EtherType(0x0800L));
         EthernetMatchBuilder eth = new EthernetMatchBuilder();
         eth.setEthernetType(ethTypeBuilder.build());
-        eth.setEthernetSource(new EthernetSourceBuilder()
-                .setAddress(srcMac)
-                .build());
+        eth.setEthernetSource(new EthernetSourceBuilder().setAddress(srcMac).build());
 
         matchBuilder.setLayer3Match(ipv4MatchBuilder.build());
         matchBuilder.setEthernetMatch(eth.build());
@@ -1298,12 +1432,17 @@ public class OfMatchUtils {
 
     /**
      * Creates a Match with src ip address mac address set.
-     * @param matchBuilder MatchBuilder Object
-     * @param srcip String containing an IPv6 prefix
-     * @param srcMac The source macAddress
+     *
+     * @param matchBuilder
+     *            MatchBuilder Object
+     * @param srcip
+     *            String containing an IPv6 prefix
+     * @param srcMac
+     *            The source macAddress
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder createSrcL3Ipv6MatchWithMac(MatchBuilder matchBuilder, Ipv6Prefix srcip, MacAddress srcMac) {
+    public static MatchBuilder createSrcL3Ipv6MatchWithMac(MatchBuilder matchBuilder, Ipv6Prefix srcip,
+            MacAddress srcMac) {
 
         Ipv6MatchBuilder ipv6MatchBuilder = new Ipv6MatchBuilder();
         ipv6MatchBuilder.setIpv6Source(srcip);
@@ -1311,9 +1450,7 @@ public class OfMatchUtils {
         ethTypeBuilder.setType(new EtherType(0x86DDL));
         EthernetMatchBuilder eth = new EthernetMatchBuilder();
         eth.setEthernetType(ethTypeBuilder.build());
-        eth.setEthernetSource(new EthernetSourceBuilder()
-                .setAddress(srcMac)
-                .build());
+        eth.setEthernetSource(new EthernetSourceBuilder().setAddress(srcMac).build());
 
         matchBuilder.setLayer3Match(ipv6MatchBuilder.build());
         matchBuilder.setEthernetMatch(eth.build());
@@ -1323,24 +1460,26 @@ public class OfMatchUtils {
 
     /**
      * Creates a ether net match with ether type set to 0x0800L.
-     * @param matchBuilder MatchBuilder Object
-     * @param srcMac The source macAddress
-     * @param dstMac The destination mac address
+     *
+     * @param matchBuilder
+     *            MatchBuilder Object
+     * @param srcMac
+     *            The source macAddress
+     * @param dstMac
+     *            The destination mac address
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder createV4EtherMatchWithType(MatchBuilder matchBuilder,String srcMac, String dstMac, Long type)
-    {
+    public static MatchBuilder createV4EtherMatchWithType(MatchBuilder matchBuilder, String srcMac, String dstMac,
+            Long type) {
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
         ethTypeBuilder.setType(new EtherType(type));
         EthernetMatchBuilder eth = new EthernetMatchBuilder();
         eth.setEthernetType(ethTypeBuilder.build());
         if (null != srcMac) {
-            eth.setEthernetSource(new EthernetSourceBuilder()
-            .setAddress(new MacAddress(srcMac)).build());
+            eth.setEthernetSource(new EthernetSourceBuilder().setAddress(new MacAddress(srcMac)).build());
         }
         if (null != dstMac) {
-            eth.setEthernetDestination(new EthernetDestinationBuilder()
-                           .setAddress(new MacAddress(dstMac)).build());
+            eth.setEthernetDestination(new EthernetDestinationBuilder().setAddress(new MacAddress(dstMac)).build());
         }
         matchBuilder.setEthernetMatch(eth.build());
         return matchBuilder;
@@ -1348,24 +1487,25 @@ public class OfMatchUtils {
 
     /**
      * Creates a ether net match with ether type set to 0x86DDL.
-     * @param matchBuilder MatchBuilder Object
-     * @param srcMac The source macAddress
-     * @param dstMac The destination mac address
+     *
+     * @param matchBuilder
+     *            MatchBuilder Object
+     * @param srcMac
+     *            The source macAddress
+     * @param dstMac
+     *            The destination mac address
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder createV6EtherMatchWithType(MatchBuilder matchBuilder,String srcMac, String dstMac)
-    {
+    public static MatchBuilder createV6EtherMatchWithType(MatchBuilder matchBuilder, String srcMac, String dstMac) {
         EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
         ethTypeBuilder.setType(new EtherType(0x86DDL));
         EthernetMatchBuilder eth = new EthernetMatchBuilder();
         eth.setEthernetType(ethTypeBuilder.build());
         if (null != srcMac) {
-            eth.setEthernetSource(new EthernetSourceBuilder()
-            .setAddress(new MacAddress(srcMac)).build());
+            eth.setEthernetSource(new EthernetSourceBuilder().setAddress(new MacAddress(srcMac)).build());
         }
         if (null != dstMac) {
-            eth.setEthernetDestination(new EthernetDestinationBuilder()
-                           .setAddress(new MacAddress(dstMac)).build());
+            eth.setEthernetDestination(new EthernetDestinationBuilder().setAddress(new MacAddress(dstMac)).build());
         }
         matchBuilder.setEthernetMatch(eth.build());
         return matchBuilder;
@@ -1373,19 +1513,25 @@ public class OfMatchUtils {
 
     /**
      * Adds remote Ip prefix to existing match.
-     * @param matchBuilder The match builder
-     * @param sourceIpPrefix The source IP prefix
-     * @param destIpPrefix The destination IP prefix
+     *
+     * @param matchBuilder
+     *            The match builder
+     * @param sourceIpPrefix
+     *            The source IP prefix
+     * @param destIpPrefix
+     *            The destination IP prefix
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder addRemoteIpPrefix(MatchBuilder matchBuilder,
-                                          Ipv4Prefix sourceIpPrefix,Ipv4Prefix destIpPrefix) {
+    public static MatchBuilder addRemoteIpPrefix(MatchBuilder matchBuilder, Ipv4Prefix sourceIpPrefix,
+            Ipv4Prefix destIpPrefix) {
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
         if (null != sourceIpPrefix) {
-            ipv4match.setIpv4Source(sourceIpPrefix);
+            Ipv4Prefix canonicalizedSourceIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(sourceIpPrefix);
+            ipv4match.setIpv4Source(canonicalizedSourceIpv4Prefix);
         }
         if (null != destIpPrefix) {
-            ipv4match.setIpv4Destination(destIpPrefix);
+            Ipv4Prefix canonicalizedDestIpv4Prefix = IpAddressUtils.canonicalizeIpPrefixToNetAddress(destIpPrefix);
+            ipv4match.setIpv4Destination(canonicalizedDestIpv4Prefix);
         }
         matchBuilder.setLayer3Match(ipv4match.build());
 
@@ -1394,13 +1540,17 @@ public class OfMatchUtils {
 
     /**
      * Adds remote Ipv6 prefix to existing match.
-     * @param matchBuilder The match builder
-     * @param sourceIpPrefix The source IP prefix
-     * @param destIpPrefix The destination IP prefix
+     *
+     * @param matchBuilder
+     *            The match builder
+     * @param sourceIpPrefix
+     *            The source IP prefix
+     * @param destIpPrefix
+     *            The destination IP prefix
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder addRemoteIpv6Prefix(MatchBuilder matchBuilder,
-                                                   Ipv6Prefix sourceIpPrefix,Ipv6Prefix destIpPrefix) {
+    public static MatchBuilder addRemoteIpv6Prefix(MatchBuilder matchBuilder, Ipv6Prefix sourceIpPrefix,
+            Ipv6Prefix destIpPrefix) {
         Ipv6MatchBuilder ipv6match = new Ipv6MatchBuilder();
         if (null != sourceIpPrefix) {
             ipv6match.setIpv6Source(sourceIpPrefix);
@@ -1415,29 +1565,31 @@ public class OfMatchUtils {
 
     /**
      * Add a DSCP match to an existing match
-     * @param matchBuilder Map matchBuilder MatchBuilder Object with a match
+     *
+     * @param matchBuilder
+     *            Map matchBuilder MatchBuilder Object with a match
      * @param dscpValue
      * @return {@link MatchBuilder}
      */
     public static MatchBuilder addDscp(MatchBuilder matchBuilder, short dscpValue) {
         createEtherTypeMatch(matchBuilder, new EtherType(ETHERTYPE_IPV4));
-        return matchBuilder.setIpMatch(
-                new IpMatchBuilder()
-                        .setIpDscp(new Dscp(dscpValue))
-                        .build());
+        return matchBuilder.setIpMatch(new IpMatchBuilder().setIpDscp(new Dscp(dscpValue)).build());
     }
 
     /**
      * Add a layer4 match to an existing match
      *
-     * @param matchBuilder Map matchBuilder MatchBuilder Object with a match
-     * @param protocol The layer4 protocol
-     * @param srcPort The src port
-     * @param destPort The destination port
+     * @param matchBuilder
+     *            Map matchBuilder MatchBuilder Object with a match
+     * @param protocol
+     *            The layer4 protocol
+     * @param srcPort
+     *            The src port
+     * @param destPort
+     *            The destination port
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder addLayer4Match(MatchBuilder matchBuilder,
-                                              int protocol, int srcPort, int destPort) {
+    public static MatchBuilder addLayer4Match(MatchBuilder matchBuilder, int protocol, int srcPort, int destPort) {
         IpMatchBuilder ipmatch = new IpMatchBuilder();
         if (TCP_SHORT == protocol) {
             ipmatch.setIpProtocol(TCP_SHORT);
@@ -1478,15 +1630,20 @@ public class OfMatchUtils {
     /**
      * Add a layer4 match to an existing match with mask
      *
-     * @param matchBuilder Map matchBuilder MatchBuilder Object with a match.
-     * @param protocol The layer4 protocol
-     * @param srcPort The src port
-     * @param destPort The destination port
-     * @param mask the mask for the port
+     * @param matchBuilder
+     *            Map matchBuilder MatchBuilder Object with a match.
+     * @param protocol
+     *            The layer4 protocol
+     * @param srcPort
+     *            The src port
+     * @param destPort
+     *            The destination port
+     * @param mask
+     *            the mask for the port
      * @return matchBuilder Map Object with a match
      */
-    public static MatchBuilder addLayer4MatchWithMask(MatchBuilder matchBuilder,
-                                                      int protocol, int srcPort, int destPort,int mask) {
+    public static MatchBuilder addLayer4MatchWithMask(MatchBuilder matchBuilder, int protocol, int srcPort,
+            int destPort, int mask) {
 
         IpMatchBuilder ipmatch = new IpMatchBuilder();
 
@@ -1499,23 +1656,23 @@ public class OfMatchUtils {
                 tcpSrc.setPort(new PortNumber(srcPort));
                 tcpSrc.setMask(mask);
                 nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder().setNxmOfTcpSrc(tcpSrc.build()).build();
-                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder()
-                .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfTcpSrcKey.class)
-                                                   .setExtension(new ExtensionBuilder()
-                                                   .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch)
-                                                                 .build()).build())).build();
+                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder().setExtensionList(
+                        ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfTcpSrcKey.class)
+                                .setExtension(new ExtensionBuilder()
+                                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch).build())
+                                .build()))
+                        .build();
             } else if (0 != destPort) {
                 NxmOfTcpDstBuilder tcpDst = new NxmOfTcpDstBuilder();
                 tcpDst.setPort(new PortNumber(destPort));
                 tcpDst.setMask(mask);
-                nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder()
-                .setNxmOfTcpDst(tcpDst.build())
-                .build();
-                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder()
-                .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfTcpDstKey.class)
-                                                   .setExtension(new ExtensionBuilder()
-                                                   .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch)
-                                                                 .build()).build())).build();
+                nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder().setNxmOfTcpDst(tcpDst.build()).build();
+                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder().setExtensionList(
+                        ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfTcpDstKey.class)
+                                .setExtension(new ExtensionBuilder()
+                                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch).build())
+                                .build()))
+                        .build();
             }
 
         } else if (UDP_SHORT == protocol) {
@@ -1525,23 +1682,23 @@ public class OfMatchUtils {
                 udpSrc.setPort(new PortNumber(srcPort));
                 udpSrc.setMask(mask);
                 nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder().setNxmOfUdpSrc(udpSrc.build()).build();
-                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder()
-                .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfUdpSrcKey.class)
-                                                   .setExtension(new ExtensionBuilder()
-                                                   .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch)
-                                                                 .build()).build())).build();
+                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder().setExtensionList(
+                        ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfUdpSrcKey.class)
+                                .setExtension(new ExtensionBuilder()
+                                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch).build())
+                                .build()))
+                        .build();
             } else if (0 != destPort) {
                 NxmOfUdpDstBuilder udpDst = new NxmOfUdpDstBuilder();
                 udpDst.setPort(new PortNumber(destPort));
                 udpDst.setMask(mask);
-                nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder()
-                .setNxmOfUdpDst(udpDst.build())
-                .build();
-                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder()
-                .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfUdpDstKey.class)
-                                                   .setExtension(new ExtensionBuilder()
-                                                   .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch)
-                                                                 .build()).build())).build();
+                nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder().setNxmOfUdpDst(udpDst.build()).build();
+                genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder().setExtensionList(
+                        ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmOfUdpDstKey.class)
+                                .setExtension(new ExtensionBuilder()
+                                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch).build())
+                                .build()))
+                        .build();
             }
         }
         matchBuilder.setIpMatch(ipmatch.build());
@@ -1549,33 +1706,33 @@ public class OfMatchUtils {
         return matchBuilder;
     }
 
-    public static MatchBuilder addCtState(MatchBuilder matchBuilder,int ct_state, int mask) {
+    public static MatchBuilder addCtState(MatchBuilder matchBuilder, int ct_state, int mask) {
         NxmNxCtStateBuilder ctStateBuilder = new NxmNxCtStateBuilder();
-        ctStateBuilder.setCtState((long)ct_state);
-        ctStateBuilder.setMask((long)mask);
+        ctStateBuilder.setCtState((long) ct_state);
+        ctStateBuilder.setMask((long) mask);
         NxAugMatchNodesNodeTableFlow nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder()
-        .setNxmNxCtState(ctStateBuilder.build())
-        .build();
+                .setNxmNxCtState(ctStateBuilder.build()).build();
         GeneralAugMatchNodesNodeTableFlow genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder()
-        .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmNxCtStateKey.class)
-                                           .setExtension(new ExtensionBuilder()
-                                           .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch)
-                                                         .build()).build())).build();
+                .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmNxCtStateKey.class)
+                        .setExtension(new ExtensionBuilder()
+                                .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch).build())
+                        .build()))
+                .build();
         matchBuilder.addAugmentation(GeneralAugMatchNodesNodeTableFlow.class, genAugMatch);
         return matchBuilder;
     }
 
-    public static MatchBuilder addCtZone(MatchBuilder matchBuilder,int ct_zone) {
+    public static MatchBuilder addCtZone(MatchBuilder matchBuilder, int ct_zone) {
         NxmNxCtZoneBuilder ctZoneBuilder = new NxmNxCtZoneBuilder();
         ctZoneBuilder.setCtZone(ct_zone);
         NxAugMatchNodesNodeTableFlow nxAugMatch = new NxAugMatchNodesNodeTableFlowBuilder()
-        .setNxmNxCtZone(ctZoneBuilder.build())
-        .build();
+                .setNxmNxCtZone(ctZoneBuilder.build()).build();
         GeneralAugMatchNodesNodeTableFlow genAugMatch = new GeneralAugMatchNodesNodeTableFlowBuilder()
-        .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmNxCtZoneKey.class)
-                                           .setExtension(new ExtensionBuilder()
-                                           .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch)
-                                                         .build()).build())).build();
+                .setExtensionList(ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmNxCtZoneKey.class)
+                        .setExtension(new ExtensionBuilder()
+                                .addAugmentation(NxAugMatchNodesNodeTableFlow.class, nxAugMatch).build())
+                        .build()))
+                .build();
         matchBuilder.addAugmentation(GeneralAugMatchNodesNodeTableFlow.class, genAugMatch);
         return matchBuilder;
     }
@@ -1583,11 +1740,13 @@ public class OfMatchUtils {
     public static class RegMatch {
         final Class<? extends NxmNxReg> reg;
         final Long value;
+
         public RegMatch(Class<? extends NxmNxReg> reg, Long value) {
             super();
             this.reg = reg;
             this.value = value;
         }
+
         public static RegMatch of(Class<? extends NxmNxReg> reg, Long value) {
             return new RegMatch(reg, value);
         }
@@ -1614,109 +1773,78 @@ public class OfMatchUtils {
             } else {
                 key = NxmNxReg7Key.class;
             }
-            NxAugMatchNodesNodeTableFlow am =
-                    new NxAugMatchNodesNodeTableFlowBuilder()
-                            .setNxmNxReg(new NxmNxRegBuilder()
-                                    .setReg(rm.reg)
-                                    .setValue(rm.value)
-                                    .build())
-                            .build();
-            extensions.add(new ExtensionListBuilder()
-                    .setExtensionKey(key)
-                    .setExtension(new ExtensionBuilder()
-                            .addAugmentation(NxAugMatchNodesNodeTableFlow.class, am)
-                            .build())
+            NxAugMatchNodesNodeTableFlow am = new NxAugMatchNodesNodeTableFlowBuilder()
+                    .setNxmNxReg(new NxmNxRegBuilder().setReg(rm.reg).setValue(rm.value).build()).build();
+            extensions.add(new ExtensionListBuilder().setExtensionKey(key)
+                    .setExtension(
+                            new ExtensionBuilder().addAugmentation(NxAugMatchNodesNodeTableFlow.class, am).build())
                     .build());
         }
         GeneralAugMatchNodesNodeTableFlow m = new GeneralAugMatchNodesNodeTableFlowBuilder()
-                .setExtensionList(extensions)
-                .build();
+                .setExtensionList(extensions).build();
         matchBuilder.addAugmentation(GeneralAugMatchNodesNodeTableFlow.class, m);
         return matchBuilder;
     }
 
     public static MatchBuilder addNxTunIdMatch(MatchBuilder matchBuilder, int tunId) {
         NxAugMatchNodesNodeTableFlow am = new NxAugMatchNodesNodeTableFlowBuilder()
-                .setNxmNxTunId(new NxmNxTunIdBuilder()
-                        .setValue(BigInteger.valueOf(tunId))
-                        .build())
-                .build();
-        GeneralAugMatchNodesNodeTableFlow m =
-                new GeneralAugMatchNodesNodeTableFlowBuilder()
-                        .setExtensionList(ImmutableList.of(new ExtensionListBuilder()
-                                .setExtensionKey(NxmNxTunIdKey.class)
+                .setNxmNxTunId(new NxmNxTunIdBuilder().setValue(BigInteger.valueOf(tunId)).build()).build();
+        GeneralAugMatchNodesNodeTableFlow m = new GeneralAugMatchNodesNodeTableFlowBuilder()
+                .setExtensionList(
+                        ImmutableList.of(new ExtensionListBuilder().setExtensionKey(NxmNxTunIdKey.class)
                                 .setExtension(new ExtensionBuilder()
-                                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, am)
-                                        .build())
+                                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, am).build())
                                 .build()))
-                        .build();
+                .build();
         matchBuilder.addAugmentation(GeneralAugMatchNodesNodeTableFlow.class, m);
         return matchBuilder;
     }
 
     public static MatchBuilder addNxNspMatch(MatchBuilder matchBuilder, long nsp) {
         NxAugMatchNodesNodeTableFlow am = new NxAugMatchNodesNodeTableFlowBuilder()
-                .setNxmNxNsp(new NxmNxNspBuilder()
-                        .setValue(nsp)
-                        .build())
-                .build();
+                .setNxmNxNsp(new NxmNxNspBuilder().setValue(nsp).build()).build();
         addExtension(matchBuilder, NxmNxNspKey.class, am);
         return matchBuilder;
     }
 
     public static MatchBuilder addNxNsiMatch(MatchBuilder matchBuilder, short nsi) {
         NxAugMatchNodesNodeTableFlow am = new NxAugMatchNodesNodeTableFlowBuilder()
-                .setNxmNxNsi(new NxmNxNsiBuilder()
-                        .setNsi(nsi)
-                        .build())
-                .build();
+                .setNxmNxNsi(new NxmNxNsiBuilder().setNsi(nsi).build()).build();
         addExtension(matchBuilder, NxmNxNsiKey.class, am);
         return matchBuilder;
     }
 
     private static void addExtension(MatchBuilder matchBuilder, Class<? extends ExtensionKey> extensionKey,
-                                     NxAugMatchNodesNodeTableFlow am) {
-        GeneralAugMatchNodesNodeTableFlow existingAugmentations =
-                matchBuilder.getAugmentation(GeneralAugMatchNodesNodeTableFlow.class);
+            NxAugMatchNodesNodeTableFlow am) {
+        GeneralAugMatchNodesNodeTableFlow existingAugmentations = matchBuilder
+                .getAugmentation(GeneralAugMatchNodesNodeTableFlow.class);
         List<ExtensionList> extensions = null;
-        if (existingAugmentations != null ) {
+        if (existingAugmentations != null) {
             extensions = existingAugmentations.getExtensionList();
         }
         if (extensions == null) {
             extensions = Lists.newArrayList();
         }
 
-        extensions.add(new ExtensionListBuilder()
-                .setExtensionKey(extensionKey)
-                .setExtension(new ExtensionBuilder()
-                        .addAugmentation(NxAugMatchNodesNodeTableFlow.class, am)
-                        .build())
+        extensions.add(new ExtensionListBuilder().setExtensionKey(extensionKey)
+                .setExtension(new ExtensionBuilder().addAugmentation(NxAugMatchNodesNodeTableFlow.class, am).build())
                 .build());
 
         GeneralAugMatchNodesNodeTableFlow m = new GeneralAugMatchNodesNodeTableFlowBuilder()
-                .setExtensionList(extensions)
-                .build();
+                .setExtensionList(extensions).build();
         matchBuilder.addAugmentation(GeneralAugMatchNodesNodeTableFlow.class, m);
     }
 
-    public static EthernetMatch ethernetMatch(MacAddress srcMac,
-                                              MacAddress dstMac,
-                                              Long etherType) {
-        EthernetMatchBuilder emb = new  EthernetMatchBuilder();
+    public static EthernetMatch ethernetMatch(MacAddress srcMac, MacAddress dstMac, Long etherType) {
+        EthernetMatchBuilder emb = new EthernetMatchBuilder();
         if (srcMac != null) {
-            emb.setEthernetSource(new EthernetSourceBuilder()
-                .setAddress(srcMac)
-                .build());
+            emb.setEthernetSource(new EthernetSourceBuilder().setAddress(srcMac).build());
         }
         if (dstMac != null) {
-            emb.setEthernetDestination(new EthernetDestinationBuilder()
-                .setAddress(dstMac)
-                .build());
+            emb.setEthernetDestination(new EthernetDestinationBuilder().setAddress(dstMac).build());
         }
         if (etherType != null) {
-            emb.setEthernetType(new EthernetTypeBuilder()
-                .setType(new EtherType(etherType))
-                .build());
+            emb.setEthernetType(new EthernetTypeBuilder().setType(new EtherType(etherType)).build());
         }
         return emb.build();
     }
@@ -1724,7 +1852,8 @@ public class OfMatchUtils {
     /**
      * Create ipv4 prefix from ipv4 address, by appending /32 mask
      *
-     * @param ipv4AddressString the ip address, in string format
+     * @param ipv4AddressString
+     *            the ip address, in string format
      * @return Ipv4Prefix with ipv4Address and /32 mask
      */
     public static Ipv4Prefix iPv4PrefixFromIPv4Address(String ipv4AddressString) {
@@ -1734,7 +1863,8 @@ public class OfMatchUtils {
     /**
      * Create ipv6 prefix from ipv6 address, by appending /128 mask
      *
-     * @param ipv6AddressString the ip address, in string format
+     * @param ipv6AddressString
+     *            the ip address, in string format
      * @return Ipv6Prefix with ipv6Address and /128 mask
      */
     public static Ipv6Prefix iPv6PrefixFromIPv6Address(String ipv6AddressString) {
@@ -1755,34 +1885,36 @@ public class OfMatchUtils {
     /**
      * Converts port range into a set of masked port ranges.
      *
-     * @param portMin the strating port of the range.
-     * @param portMax the ending port of the range.
+     * @param portMin
+     *            the strating port of the range.
+     * @param portMax
+     *            the ending port of the range.
      * @return the map contianing the port no and their mask.
      *
      */
-    public static Map<Integer,Integer>  getLayer4MaskForRange(int portMin, int portMax) {
-        int [] offset = {32768,16384,8192,4096,2048,1024,512,256,128,64,32,16,8,4,2,1};
-        int[] mask = {0x8000,0xC000,0xE000,0xF000,0xF800,0xFC00,0xFE00,0xFF00,
-            0xFF80,0xFFC0,0xFFE0,0xFFF0,0xFFF8,0xFFFC,0xFFFE,0xFFFF};
+    public static Map<Integer, Integer> getLayer4MaskForRange(int portMin, int portMax) {
+        int[] offset = { 32768, 16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
+        int[] mask = { 0x8000, 0xC000, 0xE000, 0xF000, 0xF800, 0xFC00, 0xFE00, 0xFF00, 0xFF80, 0xFFC0, 0xFFE0, 0xFFF0,
+                0xFFF8, 0xFFFC, 0xFFFE, 0xFFFF };
         int noOfPorts = portMax - portMin + 1;
         String binaryNoOfPorts = Integer.toBinaryString(noOfPorts);
         int medianOffset = 16 - binaryNoOfPorts.length();
         int medianLength = offset[medianOffset];
         int median = 0;
-        for (int tempMedian = 0;tempMedian < portMax;) {
+        for (int tempMedian = 0; tempMedian < portMax;) {
             tempMedian = medianLength + tempMedian;
             if (portMin < tempMedian) {
                 median = tempMedian;
                 break;
             }
         }
-        Map<Integer,Integer> portMap = new HashMap<>();
+        Map<Integer, Integer> portMap = new HashMap<>();
         int tempMedian = 0;
         int currentMedain = median;
-        for (int tempMedianOffset = medianOffset;16 > tempMedianOffset;tempMedianOffset++) {
+        for (int tempMedianOffset = medianOffset; 16 > tempMedianOffset; tempMedianOffset++) {
             tempMedian = currentMedain - offset[tempMedianOffset];
             if (portMin <= tempMedian) {
-                for (;portMin <= tempMedian;) {
+                for (; portMin <= tempMedian;) {
                     portMap.put(tempMedian, mask[tempMedianOffset]);
                     currentMedain = tempMedian;
                     tempMedian = tempMedian - offset[tempMedianOffset];
@@ -1790,13 +1922,13 @@ public class OfMatchUtils {
             }
         }
         currentMedain = median;
-        for (int tempMedianOffset = medianOffset;16 > tempMedianOffset;tempMedianOffset++) {
+        for (int tempMedianOffset = medianOffset; 16 > tempMedianOffset; tempMedianOffset++) {
             tempMedian = currentMedain + offset[tempMedianOffset];
             if (portMax >= tempMedian - 1) {
-                for (;portMax >= tempMedian - 1;) {
+                for (; portMax >= tempMedian - 1;) {
                     portMap.put(currentMedain, mask[tempMedianOffset]);
                     currentMedain = tempMedian;
-                    tempMedian = tempMedian  + offset[tempMedianOffset];
+                    tempMedian = tempMedian + offset[tempMedianOffset];
                 }
             }
         }
@@ -1804,9 +1936,11 @@ public class OfMatchUtils {
     }
 
     /**
-     * Return Long that represents OF port for strings where OF is explicitly provided
+     * Return Long that represents OF port for strings where OF is explicitly
+     * provided
      *
-     * @param ofPortIdentifier the string with encoded OF port (example format "OFPort|999")
+     * @param ofPortIdentifier
+     *            the string with encoded OF port (example format "OFPort|999")
      * @return the OFport or null
      */
     public static Long parseExplicitOFPort(String ofPortIdentifier) {
@@ -1855,18 +1989,23 @@ public class OfMatchUtils {
         Ipv4MatchBuilder ipv4match = new Ipv4MatchBuilder();
 
         if (sourceIpv4 != null) {
-            ipv4match.setIpv4Source(new Ipv4Prefix(sourceIpv4));
+            Ipv4Prefix canonicalizedSourceIpv4Prefix = IpAddressUtils
+                    .canonicalizeIpPrefixToNetAddress(new Ipv4Prefix(sourceIpv4));
+            ipv4match.setIpv4Source(canonicalizedSourceIpv4Prefix);
         }
 
         if (destIpv4 != null) {
-            ipv4match.setIpv4Destination(new Ipv4Prefix(destIpv4));
+            Ipv4Prefix canonicalizedDestSourceIpv4Prefix = IpAddressUtils
+                    .canonicalizeIpPrefixToNetAddress(new Ipv4Prefix(destIpv4));
+            ipv4match.setIpv4Destination(canonicalizedDestSourceIpv4Prefix);
         }
 
         matchBuilder.setLayer3Match(ipv4match.build());
         return matchBuilder;
     }
 
-    public static MatchBuilder createTcpMatch(MatchBuilder matchBuilder, Integer tcpSourcePortLower, Integer tcpDestinationPortLower) {
+    public static MatchBuilder createTcpMatch(MatchBuilder matchBuilder, Integer tcpSourcePortLower,
+            Integer tcpDestinationPortLower) {
         TcpMatchBuilder tcpmatch = new TcpMatchBuilder();
 
         if (0 != tcpSourcePortLower) {
