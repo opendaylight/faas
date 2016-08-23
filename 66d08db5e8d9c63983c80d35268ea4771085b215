@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7a6b29fe_57b1f98d",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/FabricMgrProvider.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 405,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-08-23T19:46:08Z",
+      "side": 1,
+      "message": "Why comments this out?",
+      "revId": "66d08db5e8d9c63983c80d35268ea4771085b215",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7a6b29fe_37ac3d35",
+        "filename": "fabric-mgr/fabric-mgr-impl/src/main/java/org/opendaylight/faas/fabricmgr/FabricMgrProvider.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 417,
+      "author": {
+        "id": 223
+      },
+      "writtenOn": "2016-08-23T19:46:08Z",
+      "side": 1,
+      "message": "Why comments this out?",
+      "revId": "66d08db5e8d9c63983c80d35268ea4771085b215",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
