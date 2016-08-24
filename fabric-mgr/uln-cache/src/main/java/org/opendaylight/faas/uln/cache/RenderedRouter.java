@@ -32,12 +32,24 @@ public final class RenderedRouter {
 
     /**
      * Constructor.
+     * @param ofabricId - the host fabric of the rendered switch.
+     * @param routerID - the rendered router id.
+     */
+    public RenderedRouter(NodeId ofabricId, NodeId routerID) {
+        super();
+        this.fabricId = ofabricId;
+        this.routerID = routerID;
+        this.gateways = new HashMap<>(); //Differentiators
+    }
+
+    /**
+     * Constructor.
      * @param fabricId - the host fabric of the rendered switch.
      * @param routerID - the rendered router id.
      */
-    public RenderedRouter(NodeId fabricId, NodeId routerID) {
+    public RenderedRouter(String fabricId, NodeId routerID) {
         super();
-        this.fabricId = fabricId;
+        this.fabricId = new NodeId(fabricId);
         this.routerID = routerID;
         this.gateways = new HashMap<>(); //Differentiators
     }

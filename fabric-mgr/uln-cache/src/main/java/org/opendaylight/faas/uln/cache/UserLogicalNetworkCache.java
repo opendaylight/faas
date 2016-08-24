@@ -52,7 +52,7 @@ public final class UserLogicalNetworkCache {
 
     private Map<Uuid, LogicalSwitchMappingInfo> lswStore;
     private Map<Uuid, LogicalRouterMappingInfo> lrStore;
-    private final Map<NodeId, NodeId> renderedRouters;
+    private final Map<String, NodeId> renderedRouters;
     private Map<NodeId, RenderedRouter> extGateways;
     private final Map<RenderedLinkKey<String>, RenderedLayer3Link> renderedrLinks;
     //private Graph<NodeId, Link> topo;
@@ -142,17 +142,28 @@ public final class UserLogicalNetworkCache {
      * @param fabricId - fabric identifier
      * @param renderedLr - the corresponding rendered logical router on a fabric.
      */
-    public void addRenderedRouterOnFabric(NodeId fabricId, NodeId renderedLr) {
+    public void addRenderedRouterOnFabric(String fabricId, NodeId renderedLr) {
         this.renderedRouters.put(fabricId,  renderedLr);
     }
 
+    /**
+     * Cache a rendered logical router
+     * @param oFabricId - fabric identifier
+     * @param renderedLr - the corresponding rendered logical router on a fabric.
+     */
+    public void addRenderedRouterOnFabric(NodeId oFabricId, NodeId renderedLr) {
+        this.renderedRouters.put(oFabricId.getValue(),  renderedLr);
+    }
+
     public NodeId getRenderedRouterOnFabirc(NodeId fabricId) {
+        return renderedRouters.get(fabricId.getValue());
+    }
+
+    public NodeId getRenderedRouterOnFabirc(String fabricId) {
         return renderedRouters.get(fabricId);
     }
 
-
-
-    public Map<NodeId, NodeId> getRenderedRouters() {
+    public Map<String, NodeId> getRenderedRouters() {
         return renderedRouters;
     }
 
@@ -843,7 +854,7 @@ public final class UserLogicalNetworkCache {
      * @return list of th rendered switches ids.
      */
     @Nonnull
-    public List<NodeId> findLswRenderedDeviceIdFromLr(LogicalRouterMappingInfo lr, NodeId fabricId) {
+    public List<NodeId> findLswRenderedDeviceIdFromLr(LogicalRouterMappingInfo lr, String fabricId) {
         List<EdgeMappingInfo> lrLswEdges = this.findLrLswEdge(lr);
         List<NodeId> lsws = new ArrayList<>();
 
@@ -858,9 +869,9 @@ public final class UserLogicalNetworkCache {
     }
 
     @Nonnull
-    public List<NodeId> findAllFabricsOfRenderedLswsFromLr(LogicalRouterMappingInfo lr) {
+    public List<String> findAllFabricsOfRenderedLswsFromLr(LogicalRouterMappingInfo lr) {
         List<EdgeMappingInfo> lrLswEdges = this.findLrLswEdge(lr);
-        List<NodeId> lsws = new ArrayList<>();
+        List<String> lsws = new ArrayList<>();
 
         for (EdgeMappingInfo lrLswEdge:lrLswEdges)
         {
@@ -1131,7 +1142,7 @@ public final class UserLogicalNetworkCache {
         for (Entry<Uuid, LogicalSwitchMappingInfo> entry : this.lswStore.entrySet()) {
             LogicalSwitchMappingInfo info = entry.getValue();
             sb.append("lswId=" + entry.getKey().getValue());
-            for (NodeId fabricId : info.getRenderedSwitches().keySet())
+            for (String fabricId : info.getRenderedSwitches().keySet())
             {
                 sb.append(", renderedDevId="
                     + (info.getRenderedSwitchOnFabric(fabricId) == null ? "null" : info.getRenderedSwitchOnFabric(fabricId).getSwitchID().getValue()));
@@ -1143,7 +1154,7 @@ public final class UserLogicalNetworkCache {
         for (Entry<Uuid, LogicalRouterMappingInfo> entry : this.lrStore.entrySet()) {
             LogicalRouterMappingInfo info = entry.getValue();
             sb.append("lrId=" + entry.getKey().getValue());
-            for (NodeId fabricId : info.getRenderedRouters().keySet())
+            for (String fabricId : info.getRenderedRouters().keySet())
             {
                 sb.append(", renderedDevId="
                     + (info.getRenderedDeviceIdOnFabric(fabricId) == null ? "null" : info.getRenderedDeviceIdOnFabric(fabricId).getValue()));
@@ -1467,7 +1478,7 @@ public final class UserLogicalNetworkCache {
             return;
         }
 
-        Map<NodeId, RenderedSwitch> renderedLsws = null;
+        Map<String, RenderedSwitch> renderedLsws = null;
         for (EdgeMappingInfo edge : subnetLswEdgeList) {
             LogicalSwitchMappingInfo lswInfo = this.findLswFromSubnetLswEdge(edge);
             if (lswInfo != null && lswInfo.hasServiceBeenRendered()) {
@@ -1485,7 +1496,7 @@ public final class UserLogicalNetworkCache {
         for (EdgeMappingInfo edge : subnetLswEdgeList) {
             LogicalSwitchMappingInfo lswInfo = this.findLswFromSubnetLswEdge(edge);
             if (lswInfo != null && !lswInfo.hasServiceBeenRendered()) {
-                for (Map.Entry<NodeId, RenderedSwitch> entry : renderedLsws.entrySet())
+                for (Map.Entry<String, RenderedSwitch> entry : renderedLsws.entrySet())
                 {
                     lswInfo.addRenderedSwitch(entry.getValue());
                 }

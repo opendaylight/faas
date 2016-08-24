@@ -21,7 +21,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 public final class LogicalRouterMappingInfo {
 
     private final LogicalRouter lr;
-    private final Map<NodeId, RenderedRouter> renderedRouters;
+    private final Map<String, RenderedRouter> renderedRouters;
     private boolean isToBeDeleted;
     private final Set<Uuid> securityRuleGroupsList;
     private final Set<Uuid> portList;
@@ -40,7 +40,7 @@ public final class LogicalRouterMappingInfo {
     }
 
     @Nonnull
-    public Map<NodeId, RenderedRouter> getRenderedRouters() {
+    public Map<String, RenderedRouter> getRenderedRouters() {
         return this.renderedRouters;
     }
 
@@ -58,18 +58,25 @@ public final class LogicalRouterMappingInfo {
         return lr;
     }
 
-    public RenderedRouter getRenderedRouterOnFabric(NodeId fabricId) {
+    public RenderedRouter getRenderedRouterOnFabric(NodeId oFabricId) {
+        return renderedRouters.get(oFabricId.getValue());
+    }
+
+    public RenderedRouter getRenderedRouterOnFabric(String fabricId) {
         return renderedRouters.get(fabricId);
     }
 
+    public NodeId getRenderedDeviceIdOnFabric(NodeId oFabricId) {
+        return renderedRouters.get(oFabricId.getValue()).getRouterID();
+    }
 
-    public NodeId getRenderedDeviceIdOnFabric(NodeId fabricId) {
+    public NodeId getRenderedDeviceIdOnFabric(String fabricId) {
         return renderedRouters.get(fabricId).getRouterID();
     }
 
 
     public void addRenderedRouter(RenderedRouter renderedRouter) {
-        this.renderedRouters.put(renderedRouter.getFabricId(),  renderedRouter);
+        this.renderedRouters.put(renderedRouter.getFabricId().getValue(),  renderedRouter);
     }
 
     public boolean hasServiceBeenRendered() {
@@ -77,6 +84,10 @@ public final class LogicalRouterMappingInfo {
     }
 
     public boolean hasServiceBeenRenderedOnFabric(NodeId fabricID) {
+        return renderedRouters.containsKey(fabricID.getValue());
+    }
+
+    public boolean hasServiceBeenRenderedOnFabric(String fabricID) {
         return renderedRouters.containsKey(fabricID);
     }
 

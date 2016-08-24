@@ -510,7 +510,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
      * @param lrId - logical router identifier.
      * @param gatewayIpAddr - the IP address of the gateway.
      */
-    public void removeLrLswGateway(NodeId fId, NodeId lrId, IpAddress gatewayIpAddr) {
+    public void removeLrLswGateway(String fId, NodeId lrId, IpAddress gatewayIpAddr) {
         RmGatewayInputBuilder inputBuilder = new RmGatewayInputBuilder();
         FabricId fabricId = new FabricId(fId);
         inputBuilder.setFabricId(fabricId);
@@ -528,7 +528,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public void createAcl(NodeId vfabricId, NodeId nodeId, String aclName) {
+    public void createAcl(String vfabricId, NodeId nodeId, String aclName) {
         AddAclInputBuilder inputBuilder = new AddAclInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
@@ -554,7 +554,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         }
     }
 
-    public void removeAcl(NodeId vfabricId, NodeId nodeId, String aclName) {
+    public void removeAcl(String vfabricId, NodeId nodeId, String aclName) {
         DelAclInputBuilder inputBuilder = new DelAclInputBuilder();
         FabricId fabricId = new FabricId(vfabricId);
         inputBuilder.setFabricId(fabricId);
