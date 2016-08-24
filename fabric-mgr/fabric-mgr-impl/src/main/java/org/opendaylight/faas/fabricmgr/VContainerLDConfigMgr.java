@@ -31,7 +31,7 @@ public final class VContainerLDConfigMgr {
     private static final Logger LOG = LoggerFactory.getLogger(VContainerLDConfigMgr.class);
 
     private Uuid tenantId;
-    private Map<NodeId, VFabricConfigDataMgr> vfabricDataMgrStore; // vfabricId<-->vfabMgr Map
+    private Map<String, VFabricConfigDataMgr> vfabricDataMgrStore; // vfabricId<-->vfabMgr Map
 
     /**
      * allocate a virtual container for a tenant.
@@ -54,7 +54,7 @@ public final class VContainerLDConfigMgr {
         for (NodeId vfabId : vfabricIdList) {
             VFabricConfigDataMgr vfabDataMgr = new VFabricConfigDataMgr(vfabId);
             vfabDataMgr.setTenantId(tenantId);
-            this.vfabricDataMgrStore.put(vfabId, vfabDataMgr);
+            this.vfabricDataMgrStore.put(vfabId.getValue(), vfabDataMgr);
 
             LOG.debug("addFabrics: vfabDataMgr created for vfabId: {}", vfabId.getValue());
         }
@@ -74,8 +74,8 @@ public final class VContainerLDConfigMgr {
         /*
          * Just (randomly) grab the first entry in the vfabMgr list for now.
          */
-        for (Entry<NodeId, VFabricConfigDataMgr> entry : this.vfabricDataMgrStore.entrySet()) {
-            if (entry.getKey().equals(  target)) {
+        for (Entry<String, VFabricConfigDataMgr> entry : this.vfabricDataMgrStore.entrySet()) {
+            if (entry.getKey().equals(target.getValue())) {
                 return true;
             }
         }
@@ -84,13 +84,17 @@ public final class VContainerLDConfigMgr {
 
     }
 
+    public boolean isVFabricAvailable(String target) {
+        return this.isVFabricAvailable(new NodeId(target));
+    }
+
     public int getAvailableL2Resource(NodeId vfabricId) {
         if (this.vfabricDataMgrStore == null || this.vfabricDataMgrStore.isEmpty() == true) {
             LOG.error("FABMGR: ERROR: getAvailableL2Resurce: vfabricDataMgrStore is null");
             return 0;
         }
 
-        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(new NodeId(vfabricId));
+        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId.getValue());
         if (vfabDataMgr == null) {
             LOG.error("FABMGR: ERROR: getAvailableL2Resurce: vfabDataMgr is null. fabric = {}", vfabricId);
             return 0;
@@ -99,11 +103,11 @@ public final class VContainerLDConfigMgr {
         return vfabDataMgr.getAvailableL2Resource();
     }
 
-    public Map<NodeId, VFabricConfigDataMgr> getVfabricDataMgrStore() {
+    public Map<String, VFabricConfigDataMgr> getVfabricDataMgrStore() {
         return vfabricDataMgrStore;
     }
 
-    public void setVfabricDataMgrStore(Map<NodeId, VFabricConfigDataMgr> vfabricDataMgrStore) {
+    public void setVfabricDataMgrStore(Map<String, VFabricConfigDataMgr> vfabricDataMgrStore) {
         this.vfabricDataMgrStore = vfabricDataMgrStore;
     }
 
@@ -113,7 +117,7 @@ public final class VContainerLDConfigMgr {
             return;
         }
 
-        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId);
+        VFabricConfigDataMgr vfabDataMgr = this.vfabricDataMgrStore.get(vfabricId.getValue());
         if (vfabDataMgr == null) {
             LOG.error("FABMGR: ERROR: releaseL2Resource: vfabDataMgr is null");
             return;

@@ -8,6 +8,7 @@
 package org.opendaylight.faas.fabricmgr;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -95,7 +96,7 @@ public class FabricMgrProvider implements AutoCloseable {
     //For internal L3 connection usage.
     private Ipv4Address reservedGatewayAddress = new Ipv4Address("10.123.17.1");
     private final Ipv4Address defaultIP = new Ipv4Address("0.0.0.0");
-    private final Ipv4Prefix defaultIpv4LinkPrefix = new Ipv4Prefix("255.255.255.254/2");
+    private final Ipv4Prefix defaultIpv4LinkPrefix = new Ipv4Prefix("10.123.17.0/24");
     private Map<org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid, UserLogicalNetworkCache> ulnStore;
 
     private FabricMgrProvider(final DataBroker dataProvider, final RpcProviderRegistry rpcRegistry,
@@ -221,8 +222,8 @@ public class FabricMgrProvider implements AutoCloseable {
             LOG.error("FABMGR: ERROR: createLneLayer2: createLneLayer2 RPC failed: {}", e);
         }
 
-        Map<NodeId, RenderedSwitch> sws = uln.getLswStore().get(flsw).getRenderedSwitches();
-        Graph<NodeId, Link> graph = calcMinimumSpanningTree(new ArrayList<>(sws.keySet()));
+        Map<String, RenderedSwitch> sws = uln.getLswStore().get(flsw).getRenderedSwitches();
+        Graph<String, Link> graph = calcMinimumSpanningTree(new ArrayList<String>(sws.keySet()));
         TopologyBuilder topo = new TopologyBuilder();
 
         //we only need to store the link info.
@@ -243,7 +244,7 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param topo - the graph.
      * @return the "pruned" minimal spanning tree.
      */
-    private Graph<NodeId, Link> calcMinimumSpanningTree(List<NodeId> fabrics)
+    private Graph<String, Link> calcMinimumSpanningTree(List<String> fabrics)
     {
         Topology topo = this.getFabricTopology();
         if (topo == null) {
@@ -251,21 +252,21 @@ public class FabricMgrProvider implements AutoCloseable {
             return null;
         }
 
-        UndirectedSparseGraph<NodeId, Link> graph = new UndirectedSparseGraph<>();
+        UndirectedSparseGraph<String, Link> graph = new UndirectedSparseGraph<>();
         for (Node node : topo.getNode()) {
-            graph.addVertex(node.getNodeId());
+            graph.addVertex(node.getNodeId().getValue());
         }
 
         if (topo.getLink() != null)
         for (Link link : topo.getLink())
         {
-            graph.addEdge(link, link.getSource().getSourceNode(), link.getDestination().getDestNode());
+            graph.addEdge(link, link.getSource().getSourceNode().getValue(), link.getDestination().getDestNode().getValue());
         }
 
-        PrimMinimumSpanningTree<NodeId, Link> alg =
-                new PrimMinimumSpanningTree<>(UndirectedSparseGraph.<NodeId, Link>getFactory());
+        PrimMinimumSpanningTree<String, Link> alg =
+                new PrimMinimumSpanningTree<>(UndirectedSparseGraph.<String, Link>getFactory());
 
-        Graph<NodeId, Link> miniTree = alg.transform(graph);
+        Graph<String, Link> miniTree = alg.transform(graph);
 
         return pruneTree(miniTree, fabrics);
     }
@@ -278,10 +279,10 @@ public class FabricMgrProvider implements AutoCloseable {
      * @return a pruned tree with minimal nodes to connect. notes that we can not remove
      *         the vertex or edge within the loop, it will generate concurrent access violation.
      */
-    private Graph<NodeId, Link> pruneTree(Graph<NodeId, Link> tree, List<NodeId> nodes)
+    private Graph<String, Link> pruneTree(Graph<String, Link> tree, List<String> nodes)
     {
         boolean found = false;
-        List<NodeId> nodesToBePruned = new ArrayList<>();
+        List<String> nodesToBePruned = new ArrayList<>();
         List<Link> edgesToBePruned = new ArrayList<>();
 
         if( tree == null || nodes == null || nodes.containsAll(tree.getVertices())) {
@@ -293,7 +294,7 @@ public class FabricMgrProvider implements AutoCloseable {
             found = false;
             // Prune the leaf nodes which is not part of nodes until
             // the given nodes will be disconnected  f one more node is pruned.
-            for (NodeId nodeId : tree.getVertices()) {
+            for (String nodeId : tree.getVertices()) {
                 if (!nodes.contains(nodeId) && tree.getNeighborCount(nodeId) == 1) {
                     nodesToBePruned.add(nodeId);
                     found = true;
@@ -301,14 +302,14 @@ public class FabricMgrProvider implements AutoCloseable {
                 }
             }
 
-            for (NodeId id : nodesToBePruned) {
+            for (String id : nodesToBePruned) {
                 tree.removeVertex(id);
             }
 
             // Prune the links
             for (Link link : tree.getEdges()) {
-                if (!tree.containsVertex(link.getSource().getSourceNode())
-                        || !tree.containsVertex(link.getDestination().getDestNode())) {
+                if (!tree.containsVertex(link.getSource().getSourceNode().getValue())
+                        || !tree.containsVertex(link.getDestination().getDestNode().getValue())) {
                     edgesToBePruned.add(link);
                 }
             }
@@ -396,36 +397,38 @@ public class FabricMgrProvider implements AutoCloseable {
     // bridge the logical switch's all layer2 segments on different fabrics
     //
     private void bridgeAllSegments(Uuid tenantId, UserLogicalNetworkCache uln, Uuid lsw,
-            Topology topo, Map<NodeId, RenderedSwitch> maps) {
+            Topology topo, Map<String, RenderedSwitch> maps) {
 
+        org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid lswUuid
+            = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(lsw.getValue());
         List<RenderReadySwitchLink> tasks = new ArrayList<>();
         for (Link l : topo.getLink()) {
-            RenderedSwitch sswitch  = maps.get(new FabricId(l.getSource().getSourceNode()));
+            RenderedSwitch sswitch  = maps.get(l.getSource().getSourceNode().getValue());
             if (sswitch == null) {
-//                NodeId slsw = this.createLneLayer2(
-//                        tenantId,l.getSource().getSourceNode(),
-//                        new Uuid(UUID.randomUUID().toString()),
-//                        uln);
-//
-//                RenderedSwitch slswR = new RenderedSwitch(l.getSource().getSourceNode(), lsw, slsw);
-//                uln.getLswStore().get(lsw).addRenderedSwitch(slswR);
-                continue;
+                NodeId slsw = this.createLneLayer2(
+                        tenantId,l.getSource().getSourceNode(),
+                        lsw,
+                        uln);
+
+                RenderedSwitch slswR = new RenderedSwitch(l.getSource().getSourceNode(), lsw, slsw);
+                uln.getLswStore().get(lswUuid).addRenderedSwitch(slswR);
+                //continue;
             }
 
-            RenderedSwitch dswitch = maps.get(new FabricId(l.getDestination().getDestNode()));
+            RenderedSwitch dswitch = maps.get(l.getDestination().getDestNode().getValue());
             if (dswitch == null) {
-//                NodeId dlsw = this.createLneLayer2(
-//                        tenantId,l.getDestination().getDestNode(),
-//                        new Uuid(UUID.randomUUID().toString()),
-//                        uln);
-//                RenderedSwitch dlswR = new RenderedSwitch(l.getDestination().getDestNode(), lsw, dlsw);
-//                uln.getLswStore().get(lsw).addRenderedSwitch(dlswR);
-                continue;
+                NodeId dlsw = this.createLneLayer2(
+                        tenantId,l.getDestination().getDestNode(),
+                        lsw,
+                        uln);
+                RenderedSwitch dlswR = new RenderedSwitch(l.getDestination().getDestNode(), lsw, dlsw);
+                uln.getLswStore().get(lswUuid).addRenderedSwitch(dlswR);
+                //continue;
             }
 
 
-            RenderedLinkKey key = new RenderedLinkKey(sswitch, dswitch);
-            if (!uln.getLswStore().get(lsw).getRenderedL2Links().containsKey(key)) {
+            RenderedLinkKey<String> key = new RenderedLinkKey<String>(sswitch.getSwitchID().getValue(), dswitch.getSwitchID().getValue());
+            if (!uln.getLswStore().get(lswUuid).getRenderedL2Links().containsKey(key)) {
                 int tag = uln.getGlobalTag();
                 if (tag != UserLogicalNetworkCache.GLOBAL_END_TAG) {
                     tasks.add(new RenderReadySwitchLink(l, tag, sswitch, dswitch));
@@ -440,16 +443,16 @@ public class FabricMgrProvider implements AutoCloseable {
             RenderedLayer2Link rl2link = this.bridgeTwoSegmentsOverALink(tenantId, task.getTag(), task.getL(),
                 task.getSwitchA(),task.getSwitchB());
 
-            RenderedLinkKey key = new RenderedLinkKey(task.getSwitchA(), task.getSwitchB());
-            uln.getLswStore().get(lsw).addRenderedLink(key, rl2link);
+            RenderedLinkKey<String> key = new RenderedLinkKey<String>(task.getSwitchA().getSwitchID().getValue(), task.getSwitchB().getSwitchID().getValue());
+            uln.getLswStore().get(lswUuid).addRenderedLink(key, rl2link);
         }
     }
 
-    public void removeLneLayer2(Uuid tenantId, NodeId fabricId, NodeId lswId) {
+    public void removeLneLayer2(Uuid tenantId, String fabricId, NodeId lswId) {
 
         RmLneLayer2InputBuilder builder = new RmLneLayer2InputBuilder();
         builder.setTenantId(new TenantId(tenantId));
-        builder.setVfabricId(fabricId);
+        builder.setVfabricId(new NodeId(fabricId));
         builder.setLneId(new VcLneId(lswId));
 
         Future<RpcResult<Void>> result = this.vcNetNodeService.rmLneLayer2(builder.build());
@@ -472,9 +475,10 @@ public class FabricMgrProvider implements AutoCloseable {
      */
     public NodeId createLneLayer3(
             Uuid tenantId,
-            NodeId fabricId,
+            String fabricId,
             UserLogicalNetworkCache uln
             ) {
+        NodeId oFabricId = new NodeId(fabricId);
         CreateLneLayer3InputBuilder builder = new CreateLneLayer3InputBuilder();
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
@@ -482,12 +486,12 @@ public class FabricMgrProvider implements AutoCloseable {
             return null;
         }
 
-        if (!vcMgr.getLdNodeConfigDataMgr().isVFabricAvailable(fabricId)) {
+        if (!vcMgr.getLdNodeConfigDataMgr().isVFabricAvailable(oFabricId)) {
             LOG.error("FABMGR: ERROR: createLneLayer3: vfabricId is null: {}", tenantId.getValue());
             return null;
         }
 
-        builder.setVfabricId(fabricId);
+        builder.setVfabricId(oFabricId);
         builder.setName(tenantId.getValue());
 
         NodeId renderedLrId = null;
@@ -640,7 +644,7 @@ public class FabricMgrProvider implements AutoCloseable {
 
         NodeId renderedLrId;
         if( (renderedLrId = uln.getRenderedRouterOnFabirc(entry.getKey())) == null) {
-            renderedLrId = this.createLneLayer3(tenantId, entry.getKey(), uln);
+            renderedLrId = this.createLneLayer3(tenantId, entry.getKey().getValue(), uln);
             if (renderedLrId == null) {
                 LOG.error("Failed to create VRF on border Fabric {}" , entry.getKey());
                 return null;
@@ -813,7 +817,7 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param rmaps - RenderedRouter on Fabric mapping table
      */
 
-    public void connectAllDVRs(Uuid tenantID, UserLogicalNetworkCache uln, Map<NodeId, RenderedRouter> rmaps)
+    public void connectAllDVRs(Uuid tenantID, UserLogicalNetworkCache uln, Map<String, RenderedRouter> rmaps)
     {
         org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid fTenantID
         = new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(tenantID.getValue());
@@ -835,7 +839,7 @@ public class FabricMgrProvider implements AutoCloseable {
         {
             NodeId srcLr =  uln.getRenderedRouterOnFabirc(l.getSource().getSourceNode());
             if (srcLr == null) {
-                srcLr = this.createLneLayer3(tenantID, l.getSource().getSourceNode(), uln);
+                srcLr = this.createLneLayer3(tenantID, l.getSource().getSourceNode().getValue(), uln);
                 uln.addRenderedRouterOnFabric(l.getSource().getSourceNode(), srcLr);
 
             }
@@ -844,7 +848,7 @@ public class FabricMgrProvider implements AutoCloseable {
                     srcLr);
             NodeId destLr = uln.getRenderedRouterOnFabirc(l.getDestination().getDestNode());
             if (destLr == null) {
-                destLr = this.createLneLayer3(tenantID, l.getDestination().getDestNode(), uln);
+                destLr = this.createLneLayer3(tenantID, l.getDestination().getDestNode().getValue(), uln);
                 uln.addRenderedRouterOnFabric(l.getDestination().getDestNode(), destLr);
             }
 
@@ -955,7 +959,7 @@ public class FabricMgrProvider implements AutoCloseable {
 
     }
 
-    public void updateRoutes(Uuid tenantID, UserLogicalNetworkCache uln, Map<NodeId, RenderedRouter> maps) {
+    public void updateRoutes(Uuid tenantID, UserLogicalNetworkCache uln, Map<String, RenderedRouter> maps) {
         for (RenderedRouter lrs : maps.values()) {
             for (RenderedRouter lrd : maps.values()) {
 
@@ -1048,11 +1052,11 @@ public class FabricMgrProvider implements AutoCloseable {
      * @param fabricId - fabric identifier.
      * @param lrId - logical router identifier.
      */
-    public void removeLneLayer3(Uuid tenantId, NodeId fabricId, NodeId lrId) {
+    public void removeLneLayer3(Uuid tenantId, String fabricId, NodeId lrId) {
 
         RmLneLayer3InputBuilder builder = new RmLneLayer3InputBuilder();
         builder.setTenantId(new TenantId(tenantId));
-        builder.setVfabricId(fabricId);
+        builder.setVfabricId(new NodeId(fabricId));
         builder.setLneId(new VcLneId(lrId));
 
         Future<RpcResult<Void>> result = this.vcNetNodeService.rmLneLayer3(builder.build());
@@ -1152,7 +1156,7 @@ public class FabricMgrProvider implements AutoCloseable {
         return  this.netNodeServiceProvider.createLrLswGateway(vfabricId, lrId, lswId, gatewayIpAddr, ipPrefix);
     }
 
-    public void removeLrLswGateway(Uuid tenantId, NodeId fabricId,  NodeId lrId, IpAddress gatewayIpAddr) {
+    public void removeLrLswGateway(Uuid tenantId, String fabricId,  NodeId lrId, IpAddress gatewayIpAddr) {
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: removeLrLswGateway: vcMgr is null: tenantId={}", tenantId.getValue());
@@ -1180,7 +1184,7 @@ public class FabricMgrProvider implements AutoCloseable {
         LOG.debug("FABMGR: listenerActionOnVcCreate: add tenantId: {}", tenantId.getValue());
     }
 
-    public void createAcl(Uuid tenantId, NodeId fabricId, NodeId nodeId, String aclName) {
+    public void createAcl(Uuid tenantId, String fabricId, NodeId nodeId, String aclName) {
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: createAcl: vcMgr is null: tenantId={}", tenantId.getValue());
@@ -1195,7 +1199,7 @@ public class FabricMgrProvider implements AutoCloseable {
         this.netNodeServiceProvider.createAcl(fabricId, nodeId, aclName);
     }
 
-    public void removeAcl(Uuid tenantId, NodeId fabricId, NodeId nodeId, String aclName) {
+    public void removeAcl(Uuid tenantId, String fabricId, NodeId nodeId, String aclName) {
         VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: removeAcl: vcMgr is null: tenantId={}", tenantId.getValue());

@@ -16,15 +16,16 @@ def rpc_create_vcontainer_data(tenantId, vfabricId):
     }
 
 
-def rpc_create_vcontainer_data2(tenantId, vfabricId):
+def rpc_create_vcontainer_multifabric(tenantId, vfabricIds):
+    vfabrics = list()
+    for vfabricId in vfabricIds:
+        vfabrics.append({"vfabric-id" : vfabricId})
+           
     return {
       "input" : {
            "tenant-id":tenantId,
            "vcontainer-config": {
-               "vfabric": [
-                   { "vfabric-id" : vfabricId },
-                   { "vfabric-id" : vfabricId+"1" }
-                ]
+               "vfabric": vfabrics
            }
        }
     }

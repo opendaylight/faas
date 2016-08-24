@@ -449,7 +449,7 @@ public class UlnMappingEngine {
             this.renderExternalGW(tenantId, uln, lr);
 
             if (!lr.hasServiceBeenRenderedOnFabric(fabricId)) {
-                this.renderLogicalRouter(tenantId, fabricId, uln, lr);
+                this.renderLogicalRouter(tenantId, fabricId.getValue(), uln, lr);
                 fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lr.getRenderedRouters());
             }
 
@@ -530,7 +530,7 @@ public class UlnMappingEngine {
 
         if (leftLr == null || rightLr == null) return;
         //set up connection
-        Map<NodeId,RenderedRouter> combinedMap = new HashMap<>();
+        Map<String,RenderedRouter> combinedMap = new HashMap<>();
         combinedMap.putAll(leftLr.getRenderedRouters());
         combinedMap.putAll(rightLr.getRenderedRouters());
         fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, combinedMap);
@@ -558,16 +558,16 @@ public class UlnMappingEngine {
         uln.getEdgeStore().get(edge.getUuid()).setGroupACLName(aclName);
 
 
-        List<NodeId> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(leftLr);
-        for (NodeId fabricId : fabrics) {
+        List<String> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(leftLr);
+        for (String fabricId : fabrics) {
             for (LogicalSwitchMappingInfo lsw : llsws) {
                 RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
                 fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
             }
         }
 
-        List<NodeId> fabrics2 = uln.findAllFabricsOfRenderedLswsFromLr(rightLr);
-        for (NodeId fabricId : fabrics2) {
+        List<String> fabrics2 = uln.findAllFabricsOfRenderedLswsFromLr(rightLr);
+        for (String fabricId : fabrics2) {
             for (LogicalSwitchMappingInfo lsw : rlsws) {
                 RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
                 fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
@@ -701,14 +701,14 @@ public class UlnMappingEngine {
                 return ;
             }
 
-            Map<NodeId, RenderedSwitch> renderedLSWs = info.getLsw().getRenderedSwitches();
+            Map<String, RenderedSwitch> renderedLSWs = info.getLsw().getRenderedSwitches();
 
             /*
              * One ULN can have only one rendered LR (Bug 5146). If LR is
              * already rendered, then use it. If not, then render this LR as the
              * first and only LR to render.
              */
-            for (Map.Entry<NodeId, RenderedSwitch> entry : renderedLSWs.entrySet()) {
+            for (Map.Entry<String, RenderedSwitch> entry : renderedLSWs.entrySet()) {
                 if (!info.getLr().hasServiceBeenRenderedOnFabric(entry.getKey())) {
                     this.renderLogicalRouter(tenantId, entry.getKey(), uln, info.getLr());
                 }
@@ -716,7 +716,7 @@ public class UlnMappingEngine {
             fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, info.getLr().getRenderedRouters());
 
 
-            Map<NodeId, RenderedRouter> renderedRouters = info.getLr().getRenderedRouters();
+            Map<String, RenderedRouter> renderedRouters = info.getLr().getRenderedRouters();
 
             IpAddress gatewayIp = info.getSubnet().getSubnet().getVirtualRouterIp();
             if (gatewayIp == null) {
@@ -732,7 +732,7 @@ public class UlnMappingEngine {
                 return;
             }
 
-            for (Map.Entry<NodeId, RenderedRouter> entry : renderedRouters.entrySet()) {
+            for (Map.Entry<String, RenderedRouter> entry : renderedRouters.entrySet()) {
                 LOG.debug("FABMGR: doEdgeCreate: edgeId={}, lrDevId={}, lswDevId={}, gateway={}, ipPrefix={}",
                         edge.getUuid().getValue(),
                         entry.getValue().getRouterID(),
@@ -744,7 +744,7 @@ public class UlnMappingEngine {
                         info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID(),
                         this.renderLrLswEdge(
                                 tenantId,
-                                entry.getKey(),
+                                new NodeId(entry.getKey()),
                                 uln,
                                 entry.getValue().getRouterID(),
                                 info.getLsw().getRenderedSwitchOnFabric(entry.getKey()).getSwitchID(),
@@ -820,15 +820,15 @@ public class UlnMappingEngine {
 
         Uuid portId = portList.get(0);
         LogicalSwitchMappingInfo lsw = uln.findLswFromPortId(portId);
-        Map <NodeId, List<NodeId>> flsws = new HashMap<>();
+        Map <String, List<NodeId>> flsws = new HashMap<>();
         if (lsw != null) { // port on a logical switch.
             if (!lsw.hasServiceBeenRendered()) {
                 LOG.debug("FABMGR: doSecurityRuleGroupsCreate: lsw not rendered: {}",
                         lsw.getLsw().getUuid().getValue());
             } else {
-                Map<NodeId, RenderedSwitch> renderedSwitches = lsw.getRenderedSwitches();
-                for (Map.Entry<NodeId, RenderedSwitch> entry : renderedSwitches.entrySet()) {
-                    this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, entry.getValue().getSwitchID(), ruleGroups);
+                Map<String, RenderedSwitch> renderedSwitches = lsw.getRenderedSwitches();
+                for (Map.Entry<String, RenderedSwitch> entry : renderedSwitches.entrySet()) {
+                    this.renderSecurityRuleGroups(tenantId, new NodeId(entry.getKey()), uln, entry.getValue().getSwitchID(), ruleGroups);
                 }
             }
             uln.addSecurityRuleGroupsToLsw(lsw.getLsw(), ruleGroups);
@@ -856,13 +856,13 @@ public class UlnMappingEngine {
                      * Due to Bug 5191, we have to apply ACL to both EPGs. So,
                      * we cannot render ACL until both LSWs are rendered.
                      */
-                    for (Map.Entry<NodeId, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
+                    for (Map.Entry<String, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
                         flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(lr, entry.getKey()));
                     }
                     uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
-                    for (Map.Entry<NodeId, List<NodeId>> entry : flsws.entrySet()) {
+                    for (Map.Entry<String, List<NodeId>> entry : flsws.entrySet()) {
                         for (NodeId swid : entry.getValue()) {
-                            this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, swid, ruleGroups);
+                            this.renderSecurityRuleGroups(tenantId, new NodeId(entry.getKey()), uln, swid, ruleGroups);
                         }
                     }
 
@@ -871,13 +871,13 @@ public class UlnMappingEngine {
                         PortMappingInfo left = uln.findLeftPortOnEdge(theEdge.getEdge());
                         uln.findRightPortOnEdge(theEdge.getEdge());
                         LogicalRouterMappingInfo theOtherLr = uln.findLrFromPortId(left.getPort().getUuid());
-                        for (Map.Entry<NodeId, RenderedRouter> entry : theOtherLr.getRenderedRouters().entrySet()) {
+                        for (Map.Entry<String, RenderedRouter> entry : theOtherLr.getRenderedRouters().entrySet()) {
                             flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(theOtherLr, entry.getKey()));
                         }
                         uln.addSecurityRuleGroupsToLr(theOtherLr.getLr(), ruleGroups);
-                        for (Map.Entry<NodeId, List<NodeId>> entry : flsws.entrySet()) {
+                        for (Map.Entry<String, List<NodeId>> entry : flsws.entrySet()) {
                             for (NodeId swid : entry.getValue()) {
-                                this.renderSecurityRuleGroups(tenantId, entry.getKey(), uln, swid, ruleGroups);
+                                this.renderSecurityRuleGroups(tenantId, new NodeId(entry.getKey()), uln, swid, ruleGroups);
                             }
                         }
                     }
@@ -950,8 +950,8 @@ public class UlnMappingEngine {
         String aclName = this.createAclForGroupComm(subnets,lr.getLr().getName().getValue());
         lr.setGroupAclName(aclName);
 
-        List<NodeId> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(lr);
-        for (NodeId fId : fabrics) {
+        List<String> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(lr);
+        for (String fId : fabrics) {
             for (LogicalSwitchMappingInfo lsw : lsws) {
                 RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fId);
                 fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fId, rsw.getSwitchID(), aclName);
@@ -960,7 +960,7 @@ public class UlnMappingEngine {
     }
 
     private NodeId renderLogicalRouter(
-            Uuid tenantId, NodeId fabricId,
+            Uuid tenantId, String fabricId,
             UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr) {
 
         NodeId rr ;
@@ -1231,8 +1231,8 @@ public class UlnMappingEngine {
             } else if (!lrInfo.hasServiceBeenRendered()) {
                 LOG.debug("FABMGR: processPendingUlnRequests: doLogicalRouterCreate: {}",
                         lrInfo.getLr().getUuid().getValue());
-                List<NodeId> rlrs = uln.findAllFabricsOfRenderedLswsFromLr(lrInfo);
-                for (NodeId fabricId : rlrs) {
+                List<String> rlrs = uln.findAllFabricsOfRenderedLswsFromLr(lrInfo);
+                for (String fabricId : rlrs) {
                     this.renderLogicalRouter(tenantId, fabricId, uln, lrInfo);
                 }
                 fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, lrInfo.getRenderedRouters());
@@ -1394,7 +1394,7 @@ public class UlnMappingEngine {
                 return;
             }
 
-            for (Map.Entry<NodeId, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
+            for (Map.Entry<String, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
                 /*
                  * We are now ready to remove ACL. After ACL is removed, The
                  * LSW can also be removed
@@ -1413,8 +1413,8 @@ public class UlnMappingEngine {
                     return;
                 }
 
-                Map<NodeId, RenderedRouter> rlrs  = lr.getRenderedRouters();
-                for (Map.Entry<NodeId, RenderedRouter> entry : rlrs.entrySet()) {
+                Map<String, RenderedRouter> rlrs  = lr.getRenderedRouters();
+                for (Map.Entry<String, RenderedRouter> entry : rlrs.entrySet()) {
                     /*
                      * We are now ready to remove ACL. After ACL is removed, The
                      * LSW can also be removed
@@ -1430,7 +1430,7 @@ public class UlnMappingEngine {
         }
     }
 
-    private void removeSecurityRuleGroupsFromFabric(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId nodeId,
+    private void removeSecurityRuleGroupsFromFabric(Uuid tenantId, String fabricId, UserLogicalNetworkCache uln, NodeId nodeId,
             SecurityRuleGroups ruleGroups) {
         SecurityRuleGroupsMappingInfo ruleGroupsInfo = uln.findSecurityRuleGroupsFromRuleGroupsId(ruleGroups.getUuid());
         if (ruleGroupsInfo == null) {
@@ -1460,7 +1460,7 @@ public class UlnMappingEngine {
         }
     }
 
-    private void removeAclFromFabric(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId nodeId, String aclName) {
+    private void removeAclFromFabric(Uuid tenantId, String fabricId, UserLogicalNetworkCache uln, NodeId nodeId, String aclName) {
         fmgr.removeAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, nodeId, aclName);
 
         this.removeAclFromDatastore(aclName);
@@ -1478,7 +1478,7 @@ public class UlnMappingEngine {
     }
 
     void removeACLforInterLrComm(Uuid tenantId, UserLogicalNetworkCache uln, LogicalRouterMappingInfo lr, String aclname) {
-        for (Map.Entry<NodeId, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
+        for (Map.Entry<String, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
             for (NodeId rsw :uln.findLswRenderedDeviceIdFromLr(lr, entry.getKey())) {
                 fmgr.removeAcl(UlnUtil.convertToYangUuid(tenantId), entry.getKey(), rsw, aclname);
             }
@@ -1538,7 +1538,7 @@ public class UlnMappingEngine {
                     lr = uln.findLrFromItsPort(rightPort.getPort());
                     if (lr != null) {
                         uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
-                        for (Map.Entry<NodeId, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
+                        for (Map.Entry<String, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
                             fmgr.removeAcl(
                                     UlnUtil.convertToYangUuid(tenantId),
                                     entry.getKey(),
@@ -1560,8 +1560,8 @@ public class UlnMappingEngine {
                     uln.removeLrLswEdgeFromLsw(lsw.getLsw(), edge);
                     lr = uln.findLrFromItsPort(leftPort.getPort());
                     if (lr != null) {
-                        Map<NodeId, RenderedRouter> lrDevIds = lr.getRenderedRouters();
-                        for (Map.Entry<NodeId, RenderedRouter> entry : lrDevIds.entrySet()) {
+                        Map<String, RenderedRouter> lrDevIds = lr.getRenderedRouters();
+                        for (Map.Entry<String, RenderedRouter> entry : lrDevIds.entrySet()) {
                             IpAddress gatewayIp = lr.getGatewayIpAddr();
                             if (gatewayIp == null) {
                                 LOG.error("FABMGR: doEdgeCreate: gatewayIp is null. edgeId={}, lrId={}",
@@ -1577,7 +1577,7 @@ public class UlnMappingEngine {
                         }
 
                         uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
-                        for (Map.Entry<NodeId, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
+                        for (Map.Entry<String, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
                             fmgr.removeAcl(
                                     UlnUtil.convertToYangUuid(tenantId),
                                     entry.getKey(),
@@ -1601,7 +1601,7 @@ public class UlnMappingEngine {
         }
     }
 
-    private void removeLrLswEdgeFromFabric(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId lrDevId,
+    private void removeLrLswEdgeFromFabric(Uuid tenantId, String fabricId, UserLogicalNetworkCache uln, NodeId lrDevId,
             IpAddress gatewayIp) {
         fmgr.removeLrLswGateway(UlnUtil.convertToYangUuid(tenantId), fabricId, lrDevId, gatewayIp);
     }
@@ -1686,14 +1686,14 @@ public class UlnMappingEngine {
          * logical ports on the LSW, but they can be removed together with
          * this LSW). So we can go ahead to remove this LSW.
          */
-        for (Map.Entry<NodeId, RenderedSwitch> entry: lswInfo.getRenderedSwitches().entrySet()) {
+        for (Map.Entry<String, RenderedSwitch> entry: lswInfo.getRenderedSwitches().entrySet()) {
             this.removeLswFromFabric(tenantId, entry.getKey(), uln, entry.getValue().getSwitchID());
         }
 
         uln.removeLswFromCache(lsw);
     }
 
-    private void removeLswFromFabric(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId lswDevId) {
+    private void removeLswFromFabric(Uuid tenantId, String fabricId, UserLogicalNetworkCache uln, NodeId lswDevId) {
         fmgr.removeLneLayer2(UlnUtil.convertToYangUuid(tenantId), fabricId, lswDevId);
     }
 
@@ -1726,7 +1726,7 @@ public class UlnMappingEngine {
          * logical ports on the LR, but they can be removed together with
          * this LR). So we can go ahead to remove this LR.
          */
-        for (Map.Entry<NodeId, RenderedRouter> entry : lrInfo.getRenderedRouters().entrySet()) {
+        for (Map.Entry<String, RenderedRouter> entry : lrInfo.getRenderedRouters().entrySet()) {
             this.removeLrFromFabric(tenantId, entry.getKey(),uln, entry.getValue().getRouterID());
         }
 
@@ -1734,13 +1734,13 @@ public class UlnMappingEngine {
 
     }
 
-    private void removeLrFromFabric(Uuid tenantId, NodeId fabricId, UserLogicalNetworkCache uln, NodeId lrDevId) {
+    private void removeLrFromFabric(Uuid tenantId, String fabricId, UserLogicalNetworkCache uln, NodeId lrDevId) {
         fmgr.removeLneLayer3(UlnUtil.convertToYangUuid(tenantId), fabricId, lrDevId);
     }
 
     private void renderSecurityRule(Uuid tenantId, NodeId fabricId,UserLogicalNetworkCache uln, NodeId nodeId,
             SecurityRuleGroupsMappingInfo ruleGroupsMappingInfo, String aclName) {
-        fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId,  nodeId, aclName);
+        fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId.getValue(),  nodeId, aclName);
         ruleGroupsMappingInfo.addRenderedAclName(aclName);
     }
 

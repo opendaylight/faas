@@ -20,7 +20,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 public final class LogicalSwitchMappingInfo {
 
     private final LogicalSwitch lsw;
-    private final Map<NodeId, RenderedSwitch> renderedSwitches;
+    private final Map<String, RenderedSwitch> renderedSwitches;
     private final Map<RenderedLinkKey<RenderedSwitch>, RenderedLayer2Link> renderedL2Links;
     private boolean isToBeDeleted;
     private final Set<Uuid> securityRuleGroupsList;
@@ -39,7 +39,7 @@ public final class LogicalSwitchMappingInfo {
     }
 
     public void addRenderedSwitch(RenderedSwitch renderedSW) {
-        this.renderedSwitches.put(renderedSW.getFabricId(),renderedSW);
+        this.renderedSwitches.put(renderedSW.getFabricId().getValue(), renderedSW);
     }
 
     public void addRenderedLink(RenderedLinkKey key, RenderedLayer2Link renderedLink) {
@@ -51,7 +51,7 @@ public final class LogicalSwitchMappingInfo {
         return renderedL2Links;
     }
 
-    public Map<NodeId, RenderedSwitch> getRenderedSwitches() {
+    public Map<String, RenderedSwitch> getRenderedSwitches() {
         return this.renderedSwitches;
     }
 
@@ -61,6 +61,10 @@ public final class LogicalSwitchMappingInfo {
     }
 
     public RenderedSwitch getRenderedSwitchOnFabric(NodeId fabricID) {
+        return renderedSwitches.get(fabricID.getValue());
+    }
+
+    public RenderedSwitch getRenderedSwitchOnFabric(String fabricID) {
         return renderedSwitches.get(fabricID);
     }
 
@@ -70,7 +74,7 @@ public final class LogicalSwitchMappingInfo {
 
 
     public boolean hasServiceBeenRenderedOnFabric(NodeId fabricID) {
-        return renderedSwitches.containsKey(fabricID);
+        return renderedSwitches.containsKey(fabricID.getValue());
     }
 
 
