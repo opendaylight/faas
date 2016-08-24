@@ -9,8 +9,13 @@ package org.opendaylight.faas.fabric.utils;
 
 import com.google.common.net.InetAddresses;
 
+import java.util.Arrays;
+import java.util.Map.Entry;
+
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IetfInetUtil;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 
 public class IpAddressUtils {
@@ -60,7 +65,7 @@ public class IpAddressUtils {
 
     public static long getDefaultMask(String ipv4Address) {
         long ipLong = (InetAddresses.coerceToInteger(InetAddresses.forString(ipv4Address))) & 0xFFFFFFFFL;
-        if (ipLong < 2147483647L) {    // 0.0.0.0 - 127.255.255.255
+        if (ipLong < 2147483647L) { // 0.0.0.0 - 127.255.255.255
             return 8;
         }
         if (ipLong < 3221225471L) { // 128.0.0.0 - 191.255.255.255
@@ -70,5 +75,46 @@ public class IpAddressUtils {
             return 24;
         }
         return 32;// other
+    }
+
+    public static Ipv4Prefix canonicalizeIpPrefixToNetAddress(Ipv4Prefix oldIpv4Prefix) {
+
+        Entry<Ipv4Address, Integer> ipv4PrefixEntry = IetfInetUtil.INSTANCE.splitIpv4Prefix(oldIpv4Prefix);
+
+        byte[] addressValue = IetfInetUtil.INSTANCE.ipv4AddressBytes(ipv4PrefixEntry.getKey());
+
+        int prefixLengthValue = ipv4PrefixEntry.getValue();
+
+        byte[] result = new byte[addressValue.length];
+
+        if (prefixLengthValue == 0) {
+            for (int i = 0; i < 4; i++) {
+                result[i] = 0;
+            }
+
+            return IetfInetUtil.INSTANCE.ipv4PrefixFor(result, prefixLengthValue);
+        }
+
+        result = Arrays.copyOf(addressValue, addressValue.length);
+
+        // Set all bytes after the end of the prefix to 0
+        int lastByteIndex = (prefixLengthValue - 1) / Byte.SIZE;
+        for (int i = lastByteIndex; i < 4; i++) {
+            result[i] = 0;
+        }
+
+        byte lastByte = addressValue[lastByteIndex];
+        byte mask = 0;
+        byte msb = (byte) 0x80;
+        int lastBit = (prefixLengthValue - 1) % Byte.SIZE;
+        for (int i = 0; i < Byte.SIZE; i++) {
+            if (i <= lastBit) {
+                mask |= (msb >> i);
+            }
+        }
+
+        result[lastByteIndex] = (byte) (lastByte & mask);
+
+        return IetfInetUtil.INSTANCE.ipv4PrefixFor(result, prefixLengthValue);
     }
 }
