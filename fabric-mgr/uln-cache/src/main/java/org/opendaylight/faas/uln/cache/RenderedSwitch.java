@@ -8,8 +8,12 @@
 
 package org.opendaylight.faas.uln.cache;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TpId;
@@ -24,6 +28,7 @@ public final class RenderedSwitch {
     private final NodeId fabricId;
     private final NodeId switchId;
     private Map<TpId, TpId> portMappings;
+    private final Set<Uuid> epLocations;
 
     /**
      * Constructor.
@@ -37,6 +42,7 @@ public final class RenderedSwitch {
         this.fabricId = fabricId;
         this.switchId = switchId;
         portMappings = new HashMap();
+        epLocations = new HashSet<Uuid>();
     }
 
     public Map<TpId, TpId> getPortMappings() {
@@ -53,6 +59,18 @@ public final class RenderedSwitch {
 
     public NodeId getSwitchID() {
         return switchId;
+    }
+
+    public void addEpLocation(Uuid ep) {
+        this.epLocations.add(ep);
+    }
+
+    public void rmEpLocation(Uuid ep) {
+        this.epLocations.remove(ep);
+    }
+
+    public Set<Uuid> getEpLocations() {
+        return Collections.unmodifiableSet(epLocations);
     }
 
     /**

@@ -34,6 +34,11 @@
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
+      <artifactId>fabric</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.faas</groupId>
       <artifactId>base</artifactId>
       <version>${project.version}</version>
     </dependency>

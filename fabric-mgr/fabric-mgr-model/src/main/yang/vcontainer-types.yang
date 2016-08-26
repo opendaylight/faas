@@ -314,6 +314,9 @@ module vcontainer-types {
     	leaf vrf-id {
     		type string;
     	}
+        leaf outgoint-interface {
+            type string;
+        }
     }
 
     grouping vf-lsw-attributes {

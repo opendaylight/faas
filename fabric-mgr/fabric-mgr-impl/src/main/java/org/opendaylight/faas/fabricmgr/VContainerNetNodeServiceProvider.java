@@ -188,7 +188,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
         FabricId fabricId = new FabricId(input.getVfabricId());
         lrInputBuilder.setFabricId(fabricId);
-        lrInputBuilder.setName(lrName);
+        //lrInputBuilder.setName(lrName);
 
 
         LOG.debug("FABMGR: createLneLayer3: lrName={}, fabricId={}", lrName, fabricId.getValue());
@@ -328,8 +328,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
 
             SimpleNextHopBuilder shb = new SimpleNextHopBuilder();
             shb.setNextHop(rt.getNexthopIp().getIpv4Address());
-            //TODO TODO
-            //shb.setOutgoingInterface() ?
+            shb.setOutgoingInterface(new TpId(rt.getOutgointInterface()));
             rb.setNextHopOptions(shb.build());
             rl.add(rb.build());
         }
@@ -468,6 +467,40 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         } catch (Exception e) {
             LOG.error("FABMGR: ERROR: unregisterEndpoint: unregisterEndpoint RPC failed.", e);
         }
+    }
+
+    /**
+     * Create a gateway for a logical swtich on a given router.
+     * @param fId - fabric identifier.
+     * @param lrId - logical router identifier.
+     * @param lswId - logical switch identifier.
+     * @param gatewayIpAddr - the gateway Ip address
+     * @param ipPrefix - network prefix.
+     * @return the mac address of the gateway
+     */
+    public MacAddress createGateway(NodeId fId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+            IpPrefix ipPrefix) {
+        CreateGatewayInputBuilder inputBuilder = new CreateGatewayInputBuilder();
+        FabricId fabricId = new FabricId(fId);
+        inputBuilder.setFabricId(fabricId);
+        inputBuilder.setLogicalRouter(new NodeId(lrId));
+        inputBuilder.setLogicalSwitch(new NodeId(lswId));
+        inputBuilder.setIpAddress(new IpAddress(gatewayIpAddr));
+        inputBuilder.setNetwork(new IpPrefix(ipPrefix));
+
+        Future<RpcResult<CreateGatewayOutput>> result = this.fabServiceService.createGateway(inputBuilder.build());
+        try {
+            RpcResult<CreateGatewayOutput> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: createLrLswGateway: createGateway RPC success");
+                CreateGatewayOutput o = output.getResult();
+                return o.getPortLayer().getLayer3Info().getMac();
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: createLrLswGateway: createGateway RPC failed.", e);
+        }
+
+        return null;
     }
 
     /**
