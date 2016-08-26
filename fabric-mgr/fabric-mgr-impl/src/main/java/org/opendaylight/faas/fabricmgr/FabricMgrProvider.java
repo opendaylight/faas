@@ -8,7 +8,6 @@
 package org.opendaylight.faas.fabricmgr;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -26,6 +25,7 @@ import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.NotificationService;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
+import org.opendaylight.faas.fabric.utils.InterfaceManager;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.uln.cache.LogicalRouterMappingInfo;
 import org.opendaylight.faas.uln.cache.LogicalSwitchMappingInfo;
@@ -41,6 +41,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
@@ -69,6 +70,8 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Link;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
+import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -728,7 +731,7 @@ public class FabricMgrProvider implements AutoCloseable {
      */
     private List<IpAddress> getAllHostIPs(UserLogicalNetworkCache uln, RenderedRouter lr)
     {
-        List<IpAddress> iplist = new ArrayList();
+        List<IpAddress> iplist = new ArrayList<IpAddress>();
         for(Map.Entry<org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid, LogicalSwitchMappingInfo> entry : uln.getLswStore().entrySet())
         {
             RenderedSwitch rswitch = entry.getValue().getRenderedSwitchOnFabric(lr.getFabricId());
@@ -736,14 +739,22 @@ public class FabricMgrProvider implements AutoCloseable {
                 continue;
             }
 
-            for (Map.Entry<TpId, TpId> entry2 :  rswitch.getPortMappings().entrySet())
-            {
-                PortMappingInfo pmi = uln.getPortStore().get(entry2.getKey());
+            for (Uuid eploc : rswitch.getEpLocations()) {
+                PortMappingInfo pmi = uln.getPortStore().get(new org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid(eploc.getValue()));
                 for (PrivateIps ip : pmi.getPort().getPrivateIps())
                 {
                     iplist.add(ip.getIpAddress());
                 }
             }
+
+//            for (Map.Entry<TpId, TpId> entry2 :  rswitch.getPortMappings().entrySet())
+//            {
+//                PortMappingInfo pmi = uln.getPortStore().get(entry2.getKey());
+//                for (PrivateIps ip : pmi.getPort().getPrivateIps())
+//                {
+//                    iplist.add(ip.getIpAddress());
+//                }
+//            }
         }
 
         if(lr.isExternal()) {
@@ -856,7 +867,7 @@ public class FabricMgrProvider implements AutoCloseable {
                     l.getSource().getSourceNode(),
                     destLr);
 
-            RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(srcrr, destrr);
+            RenderedLinkKey<String> key = new RenderedLinkKey<>(srcrr.getRouterID().getValue(), destrr.getRouterID().getValue());
             if (uln.getRenderedrLinks().containsKey(key)) {
                 LOG.debug("From {" + srcrr.toString() + " } to {" + destrr.toString() + " } already connected!!");
                 continue;
@@ -873,9 +884,15 @@ public class FabricMgrProvider implements AutoCloseable {
 
         for (RenderReadyL3Link task : tasks) {
             RenderedLinkKey<String> key = new RenderedLinkKey<>(task.getRouterA().getRouterID().getValue(), task.getRouterB().getRouterID().getValue());
+
             if (uln.getRenderedrLinks().containsKey(key)) {
                 continue;
             }
+
+            NodeId lfabricId = task.getL().getSource().getSourceNode();
+            NodeId rfabricId = task.getL().getDestination().getDestNode();
+            TpId lfTpId = task.getL().getSource().getSourceTp();
+            TpId rfTpId = task.getL().getDestination().getDestTp();
 
             CreateLneLayer2InputBuilder builder = new CreateLneLayer2InputBuilder();
             //builder.setSegmentId(xxx)); //let FaaS to determine
@@ -899,23 +916,20 @@ public class FabricMgrProvider implements AutoCloseable {
                     newLswId,
                     this.ulnStore.get(fTenantID));
 
-            TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(task.getL().getSource().getSourceNode(),slsw, AccessType.Vlan, task.getTag());
-            TpId tpIdf = task.getL().getSource().getSourceTp();
-            this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(task.getL().getSource().getSourceNode()), tpIdf,  slsw, tpId);
+            TpId tpId = this.netNodeServiceProvider.createLogicalPortOnLsw(lfabricId, slsw, AccessType.Vlan, task.getTag());
+            this.netNodeServiceProvider.portBindingLogicalToFabric(new FabricId(lfabricId), lfTpId,  slsw, tpId);
 
-
-            RenderedSwitch slswR = new RenderedSwitch(
-                    task.getL().getSource().getSourceNode(),
-                    tenantID,
-                    slsw);
+            RenderedSwitch slswR = new RenderedSwitch(task.getL().getSource().getSourceNode(), tenantID, slsw);
 
             IpAddress[] gwpair = this.allocateReservedGatewayIP();
 
-            Uuid srcGWPort = this.createLrLswGateway(tenantID,
+            MacAddress smac = this.createGateway(tenantID,
                     task.getL().getSource().getSourceNode(),
                     task.getRouterA().getRouterID(),
                     slsw, gwpair[0],
                     this.alloateReservedGatewayPrefix());
+
+            /* right */
 
             builder.setVfabricId(new FabricId(task.getL().getDestination().getDestNode()));
 
@@ -942,19 +956,56 @@ public class FabricMgrProvider implements AutoCloseable {
 
             RenderedSwitch dlswR = new RenderedSwitch(task.getL().getDestination().getDestNode(), tenantID, dlsw);
 
-            Uuid destGWPort = this.createLrLswGateway(tenantID,
+            MacAddress dmac = this.createGateway(tenantID,
                     task.getL().getDestination().getDestNode(),
                     task.getRouterB().getRouterID(),
                     dlsw, gwpair[1],
                     this.alloateReservedGatewayPrefix());
 
-            RenderedLayer2Link l2link = new RenderedLayer2Link(slswR,  dlswR, task.getTag(), tpIdf, tpId, tpIdf2, tpId2);
+            // register right gw as an endpoint to left fabric.
+            InstanceIdentifier<TerminationPoint> locIid = InterfaceManager.convFabricPort2DevicePort(
+                    FabMgrDatastoreDependency.getDataProvider(), new FabricId(lfabricId), lfTpId);
+            this.netNodeServiceProvider.registerEndpoint(
+                    tenantID,
+                    lfabricId,
+                    null,
+                    null,
+                    gwpair[1],
+                    locIid.firstKeyOf(Node.class).getNodeId().getValue(),
+                    locIid.firstKeyOf(TerminationPoint.class).getTpId().getValue(),
+                    dmac,
+                    slsw,
+                    tpId);
+
+            // register left gw as an endpoint to right fabric.
+            InstanceIdentifier<TerminationPoint> locIid2 = InterfaceManager.convFabricPort2DevicePort(
+                    FabMgrDatastoreDependency.getDataProvider(), new FabricId(rfabricId), rfTpId);
+            this.netNodeServiceProvider.registerEndpoint(
+                    tenantID,
+                    rfabricId,
+                    null,
+                    null,
+                    gwpair[0],
+                    locIid2.firstKeyOf(Node.class).getNodeId().getValue(),
+                    locIid2.firstKeyOf(TerminationPoint.class).getTpId().getValue(),
+                    smac,
+                    dlsw,
+                    tpId2);
+
+            RenderedLayer2Link l2link = new RenderedLayer2Link(slswR,  dlswR, task.getTag(), lfTpId, tpId, rfTpId, tpId2);
 //            RenderedLayer3Link l3link = new RenderedLayer3Link(task.getRouterA(), task.getRouterB(), slswR, dlswR,
 //                    srcGWPort,this.getGatewayIP(fTenantID,slsw), destGWPort, this.getGatewayIP(fTenantID,dlsw), l2link);
             RenderedLayer3Link l3link = new RenderedLayer3Link(task.getRouterA(), task.getRouterB(), slswR, dlswR,
-                    srcGWPort,gwpair[0], destGWPort, gwpair[1], l2link);
+                    null,gwpair[0], null, gwpair[1], l2link);
 
             uln.addRenderedrLink(key, l3link);
+            {
+                RenderedLinkKey<String> reverseKey = new RenderedLinkKey<>(task.getRouterB().getRouterID().getValue(), task.getRouterA().getRouterID().getValue());
+                RenderedLayer2Link reversel2link = new RenderedLayer2Link(dlswR,  slswR, task.getTag(), rfTpId, tpId2, lfTpId, tpId);
+                RenderedLayer3Link reversel3link = new RenderedLayer3Link(task.getRouterB(), task.getRouterA(), dlswR, slswR,
+                        null,gwpair[1], null, gwpair[0], reversel2link);
+                uln.addRenderedrLink(reverseKey, reversel3link);
+            }
         }
 
     }
@@ -977,7 +1028,7 @@ public class FabricMgrProvider implements AutoCloseable {
                 UpdateLneLayer3RoutingtableInputBuilder rtinput = new UpdateLneLayer3RoutingtableInputBuilder();
                 rtinput.setLneId(new VcLneId(lrs.getRouterID()));
                 rtinput.setTenantId(new TenantId(tenantID));
-                rtinput.setVfabricId(lrd.getFabricId());
+                rtinput.setVfabricId(lrs.getFabricId());
 
                 List<org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.netnode.rev151010.update.lne.layer3.routingtable.input.Routingtable> rtl = new ArrayList<>();
                 rtinput.setRoutingtable(rtl);
@@ -997,10 +1048,13 @@ public class FabricMgrProvider implements AutoCloseable {
                     // the link 0 's destination would be next Hop's rendered router.
                     // we need to get the gateway IP addess leading to the next hop.
 
-                    RenderedRouter nextHop = maps.get(ls.get(0).getDestination());
-                    RenderedLinkKey<RenderedRouter> key = new RenderedLinkKey<>(lrs, nextHop);
-                    IpAddress nextHopIp =  uln.getRenderedrLinks().get(key).getSrcGWIP();
+                    RenderedRouter nextHop = maps.get(ls.get(0).getDestination().getDestNode().getValue());
+                    RenderedLinkKey<String> key = new RenderedLinkKey<>(lrs.getRouterID().getValue(), lrd.getRouterID().getValue());
+
+                    IpAddress nextHopIp =  uln.getRenderedrLinks().get(key).getDestGWIP();
                     rtbuilder.setNexthopIp(nextHopIp);
+
+                    rtbuilder.setOutgointInterface(new String(uln.getRenderedrLinks().get(key).getSrcGWIP().getValue()));
 
                     rtl.add(rtbuilder.build());
                 }
@@ -1154,6 +1208,22 @@ public class FabricMgrProvider implements AutoCloseable {
         }
 
         return  this.netNodeServiceProvider.createLrLswGateway(vfabricId, lrId, lswId, gatewayIpAddr, ipPrefix);
+    }
+
+    public MacAddress createGateway(Uuid tenantId, NodeId vfabricId, NodeId lrId, NodeId lswId, IpAddress gatewayIpAddr,
+            IpPrefix ipPrefix) {
+        VContainerConfigMgr vcMgr = this.vcConfigDataMgrList.get(tenantId);
+        if (vcMgr == null) {
+            LOG.error("FABMGR: ERROR: createLrLswGateway: vcMgr is null: tenantId={}", tenantId.getValue());
+            return null; // ----->
+        }
+
+        if (!vcMgr.getLdNodeConfigDataMgr().isVFabricAvailable(vfabricId)) {
+            LOG.error("FABMGR: ERROR: createLrLswGateway: vfabricId is null: {}", tenantId.getValue());
+            return null; // ---->
+        }
+
+        return  this.netNodeServiceProvider.createGateway(vfabricId, lrId, lswId, gatewayIpAddr, ipPrefix);
     }
 
     public void removeLrLswGateway(Uuid tenantId, String fabricId,  NodeId lrId, IpAddress gatewayIpAddr) {

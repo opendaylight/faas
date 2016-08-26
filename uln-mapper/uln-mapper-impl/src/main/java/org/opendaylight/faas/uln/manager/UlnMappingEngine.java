@@ -419,8 +419,10 @@ public class UlnMappingEngine {
         this.renderEpRegistration(tenantId, fabricId, uln, epLocation, lsw.getRenderedSwitchOnFabric(fabricId).getSwitchID(),
                 lswPort.getRenderedLogicalPortIdOnFabric(fabricId),
                 endpoint);
+
         uln.setLswIdOnEpLocation(epLocation, lsw.getLsw().getUuid());
         uln.setLswPortIdOnEpLocation(epLocation, lswPort.getPort().getUuid());
+        lsw.getRenderedSwitchOnFabric(fabricId).addEpLocation(UlnUtil.convertToYangUuid(epLocation.getPort()));
         uln.markEdgeAsRendered(epEdge.getEdge());
         uln.markPortAsRendered(subnetPort.getPort());
         uln.markPortAsRendered(subnetPort2.getPort());

@@ -502,7 +502,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         final String uuid = UUID.randomUUID().toString();
 
-        final NodeId newNodeId = new NodeId(name);
+        final NodeId newNodeId = new NodeId(name == null ? uuid : name);
         final InstanceIdentifier<Node> newRouterIId = MdSalUtils.createNodeIId(fabricId.getValue(), newNodeId);
 
         NodeBuilder nodeBuilder = new NodeBuilder();
