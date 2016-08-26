@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.apache.commons.net.util.SubnetUtils;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers.Openflow13Provider;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
@@ -38,8 +39,9 @@ import com.google.common.collect.Lists;
 public class PipelineL3Routing extends AbstractServiceInstance {
     // private static final Logger LOG =
     // LoggerFactory.getLogger(PipelineL3Routing.class);
-    private static final Integer L3_ROUTING_PRIORITY = 2048;
-    private static final Integer STATIC_ROUTING_PRIORITY = 2049;
+    //private static final Integer L3_ROUTING_PRIORITY = 2048;
+    //private static final Integer STATIC_ROUTING_PRIORITY = 2049;
+    private static final Integer BASE_ROUTING_PRIORITY = 2000;
 
     public final static long REG_VALUE_IS_STATIC_ROUTING = 0x60L;
 
@@ -85,7 +87,7 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         flowBuilder.setBarrier(true);
         flowBuilder.setTableId(this.getTable());
         flowBuilder.setKey(key);
-        flowBuilder.setPriority(L3_ROUTING_PRIORITY);
+        flowBuilder.setPriority(BASE_ROUTING_PRIORITY + mask);
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
@@ -168,7 +170,10 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         flowBuilder.setBarrier(true);
         flowBuilder.setTableId(this.getTable());
         flowBuilder.setKey(key);
-        flowBuilder.setPriority(STATIC_ROUTING_PRIORITY);
+
+        int mask = IpAddressUtils.getMask(destIpv4Prefix);
+        flowBuilder.setPriority(BASE_ROUTING_PRIORITY+mask);
+
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
@@ -242,7 +247,9 @@ public class PipelineL3Routing extends AbstractServiceInstance {
         flowBuilder.setBarrier(true);
         flowBuilder.setTableId(this.getTable());
         flowBuilder.setKey(key);
-        flowBuilder.setPriority(STATIC_ROUTING_PRIORITY);
+
+        int mask = IpAddressUtils.getMask(destIpv4Prefix);
+        flowBuilder.setPriority(BASE_ROUTING_PRIORITY+mask);
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
