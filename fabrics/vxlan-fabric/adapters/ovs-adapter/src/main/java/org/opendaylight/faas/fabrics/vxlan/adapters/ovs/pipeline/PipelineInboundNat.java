@@ -98,8 +98,6 @@ public class PipelineInboundNat extends AbstractServiceInstance {
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));
             instructions.add(ib.build());
-            LOG.warn("yaoziyang in programFloatingIpToFixedIp(): 5");
-
 
             // Next service GOTO Instructions Need to be appended to the List
             ib = this.getMutablePipelineInstructionBuilder();

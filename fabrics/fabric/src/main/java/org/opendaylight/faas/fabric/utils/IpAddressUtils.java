@@ -46,6 +46,21 @@ public class IpAddressUtils {
         return Integer.parseInt(buf.toString());
     }
 
+    public static int getMask(Ipv4Prefix ipv4Prefix) {
+        StringBuilder buf = new StringBuilder();
+        boolean foundSlash = false;
+        for (char x : ipv4Prefix.getValue().toCharArray()) {
+            if (!foundSlash && x == '/') {
+                foundSlash = true;
+                continue;
+            }
+            if (foundSlash) {
+                buf.append(x);
+            }
+        }
+        return Integer.parseInt(buf.toString());
+    }
+
     public static IpPrefix createGwPrefix(IpAddress ipAddress, IpPrefix network) {
         StringBuilder buf = new StringBuilder();
         buf.append(ipAddress.getValue());

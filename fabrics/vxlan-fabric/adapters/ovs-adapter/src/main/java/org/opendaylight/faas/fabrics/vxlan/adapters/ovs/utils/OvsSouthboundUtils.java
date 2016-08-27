@@ -176,8 +176,6 @@ public class OvsSouthboundUtils {
     // Add Vxlan Tunnel port
 
     public static boolean addVxlanTunnelPort(Node node, DataBroker databroker) {
-        // yzy: read tunnelBridgeName from where??
-        // String tunnelBridgeName = getIntegrationBridgeName();
         String tunnelBridgeName = getBridgeName(node);
         String tunnelType = "vxlan";
         String portName = generateTpName(tunnelBridgeName, tunnelType);
@@ -410,9 +408,7 @@ public class OvsSouthboundUtils {
 
         if (hostRouteIId != null) {
             HostRoute hostRoute = MdsalUtils.read(LogicalDatastoreType.OPERATIONAL, hostRouteIId, databroker);
-            LOG.warn("yaoziyang: hostRoute.getDestVtep()={}, destVtepIp={}", hostRoute.getDestVtep(), destVtepIp);
             if (hostRoute.getDestVtep().equals(destVtepIp)) {
-                LOG.warn("yaoziyang: true");
                 return true;
             }
         }
