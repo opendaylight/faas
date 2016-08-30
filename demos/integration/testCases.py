@@ -14,6 +14,7 @@ import tenant_2EPG_SFC
 import tenant_3EPG_SFC
 import tenant_3EPG_demo
 import tenant_3EPG_multifabric
+import tenant_3EPG_multifabric_mn
 
 #
 # Manifested constants
@@ -176,7 +177,38 @@ def registerEndpointLocation_multifabric(desc):
   if nodeId4 == constants.ERROR_STR:
     return constants.ERROR_STR
 
-  for inputData in tenant_3EPG_multifabric.get_endpoint_location_data(nc_id1a, nc_id1b, nc_id2a, nc_id2b, nc_id3a, nc_id3b, nc_id4a, nc_id4b, nc_id4c,nodeId1, nodeId2, nodeId3, nodeId4):
+  nodeId5 = util.getOvsdbNodeIdByName("sw2")
+  if nodeId5 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  for inputData in tenant_3EPG_multifabric.get_endpoint_location_data(nc_id1a, nc_id1b, nc_id2a, nc_id2b, nc_id3a, nc_id3b, nc_id4a, nc_id4b, nc_id4c,nodeId1, nodeId2, nodeId3, nodeId4, nodeId5):
+    result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name)
+
+  return result
+
+def registerEndpointLocation_multifabric_mn(desc):
+
+  nodeId1 = util.getOvsdbNodeIdByName("sw11")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId2 = util.getOvsdbNodeIdByName("sw12")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId3 = util.getOvsdbNodeIdByName("sw13")
+  if nodeId1 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId4 = util.getOvsdbNodeIdByName("sw21")
+  if nodeId4 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  nodeId5 = util.getOvsdbNodeIdByName("sw2")
+  if nodeId5 == constants.ERROR_STR:
+    return constants.ERROR_STR
+
+  for inputData in tenant_3EPG_multifabric_mn.get_endpoint_location_data(nodeId1, nodeId2, nodeId3, nodeId4, nodeId5):
     result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name)
 
   return result
@@ -235,6 +267,7 @@ testCases_ga = {'0': (printTestCase, 'Print test case table'),
    'vc053': (registerEndpointLocation_3epg_sfc, 'Register endpoint locations for 3EPG-Layer3-ULN with SFC'),
    'vc054': (registerEndpointLocation_3epg_sfc_acl, 'Register 6 endpoints locations for 3EPG-Layer3-ULN with SFC'),
    'vc055': (registerEndpointLocation_multifabric, 'Register 9 endpoints locations for 3EPG-Layer3-ULN with SFC on multi-fabric'),
+   'vc056': (registerEndpointLocation_multifabric_mn, 'Register 9 endpoints locations for 3EPG-Layer3-ULN with SFC on multi-fabric (Mininet)'),
    'vc064': (epMigrationDemo, 'EP Migration from h35-3 on sw1 to h35-4 on sw6'),
 }
 
@@ -291,6 +324,10 @@ testCases2_ga = {
             inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
             tenant_3EPG_multifabric.get_tenant_data(inputsCommon.tenant1Id_gc),
             'Create 3-EPG tenant of Layer 3 ULN with SFC and ACL and 6 endpoints'),
+  'vc036': (put_c, 
+            inputsGBP.get_tenant_uri(inputsCommon.tenant1Id_gc), 
+            tenant_3EPG_multifabric_mn.get_tenant_data(inputsCommon.tenant1Id_gc),
+            'Create 3-EPG tenant of Layer 3 ULN with SFC and ACL and 6 endpoints'),
   'vc04': (post_data_array_c, 
            inputsGBP.get_endpoint_uri(), 
            inputsGBP.get_endpoint_data_layer3(inputsCommon.tenant1Id_gc),
@@ -314,6 +351,18 @@ testCases2_ga = {
   'vc045': (post_data_array_c, 
            inputsGBP.get_endpoint_uri(), 
            tenant_3EPG_multifabric.get_endpoint_data(inputsCommon.tenant1Id_gc),
+           'Register 9 endpoints for 3EPG-Layer3-ULN with SFC and ACL on multi-fabric'),
+#  'vc0451': (post_data_array_c, 
+#           inputsGBP.get_l3prefix_endpoint_uri(), 
+#           tenant_3EPG_multifabric.get_l3prefix_endpoint_data(inputsCommon.tenant1Id_gc),
+#           'Register 9 endpoints for 3EPG-Layer3-ULN with SFC and ACL on multi-fabric'),
+  'vc046': (post_data_array_c, 
+           inputsGBP.get_endpoint_uri(), 
+           tenant_3EPG_multifabric_mn.get_endpoint_data(inputsCommon.tenant1Id_gc),
+           'Register 9 endpoints for 3EPG-Layer3-ULN with SFC and ACL on multi-fabric'),
+  'vc0461': (post_data_array_c, 
+           inputsGBP.get_l3prefix_endpoint_uri(), 
+           tenant_3EPG_multifabric_mn.get_l3prefix_endpoint_data(inputsCommon.tenant1Id_gc),
            'Register 9 endpoints for 3EPG-Layer3-ULN with SFC and ACL on multi-fabric'),
   'vc051': (post_data_array_c, 
            inputsGBP.get_endpoint_location_uri(),
