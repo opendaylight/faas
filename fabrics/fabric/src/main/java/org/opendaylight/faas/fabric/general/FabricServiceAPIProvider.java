@@ -856,17 +856,21 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
                 .child(LrAttribute.class)
                 .child(Routes.class);
 
-        WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
-        trans.delete(LogicalDatastoreType.OPERATIONAL,routesIId);
+        ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
+        if (MdSalUtils.syncReadOper(trans, routesIId).isPresent()) {
+            trans.delete(LogicalDatastoreType.OPERATIONAL,routesIId);
 
-        return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+            return Futures.transform(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyRouteCleared(routesIId.firstIdentifierOf(Node.class));
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
-        }, executor);
+                @Override
+                public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
+                    fabricObj.notifyRouteCleared(routesIId.firstIdentifierOf(Node.class));
+                    return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+                }
+            }, executor);
+        } else {
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+        }
     }
 
     @Override

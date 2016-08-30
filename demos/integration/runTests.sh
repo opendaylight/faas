@@ -83,7 +83,28 @@ runGbpFaasMultiFabricDemo()
   python testCases.py -t vc045
   sleep 4
   python testCases.py -t vc055
+  
+  read -n1 -r -p "Ready to register external endpoints. Press any key to continue..." key
+  #python testCases.py -t vc0451
 }
+
+runGbpFaasMultiFabricMininetDemo()
+{
+  read -n1 -r -p "Ready to create vcontainer. Press any key to continue..." key
+  python testCases.py -t vc023
+
+  read -n1 -r -p "Ready to create Group Based Policy. Press any key to continue..." key
+  python testCases.py -t vc036
+
+  read -n1 -r -p "Ready to register endpoints. Press any key to continue..." key
+  python testCases.py -t vc046
+  sleep 4
+  python testCases.py -t vc056
+  
+  read -n1 -r -p "Ready to register external endpoints. Press any key to continue..." key
+  #python testCases.py -t vc0461
+}
+
 
 showHelp()
 {  
@@ -111,6 +132,9 @@ main()
         elif [[ $OPTARG == '3' ]]
         then
           runGbpFaasMultiFabricDemo
+        elif [[ $OPTARG == '4' ]]
+        then
+          runGbpFaasMultiFabricMininetDemo
         fi
         exit 0
         ;;

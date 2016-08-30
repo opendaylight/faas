@@ -387,6 +387,9 @@ def get_endpoint_data8(tenantId):
 def get_endpoint_uri():
     return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/endpoint:register-endpoint"
 
+def get_l3prefix_endpoint_uri():
+    return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/endpoint:register-l3-prefix-endpoint"
+
 def get_unreg_endpoint_uri():
     return "http://"+inputsCommon.odlIpAddr_gc+"/restconf/operations/endpoint:unregister-endpoint"
 
