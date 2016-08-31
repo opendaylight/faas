@@ -307,8 +307,9 @@ public class UlnMappingEngine {
             TerminationPoint tp = opt.get();
             FabricPortAug aug = tp.getAugmentation(FabricPortAug.class);
             if (aug != null && aug.getPortRef() != null && aug.getPortRef().getValue().firstKeyOf(Node.class) != null) {
-                LOG.error("Invalid FabricPortAugumentation!");
                 return aug.getPortRef().getValue().firstKeyOf(Node.class).getNodeId();
+            } else {
+                LOG.error("Invalid FabricPortAugumentation!, NodeId = {}, NodeConnectorId = {}", nid.getValue(), cid.getValue() );
             }
         }
 
@@ -1947,7 +1948,7 @@ public class UlnMappingEngine {
              * to handle the case more gracefully than disruptively -- if the function
              * aborts here and returns null, SFC provider will generate exceptions.
              */
-            LOG.error("FABMGR: ERROR: createAceFromSecurityRuleEntry: actions is null or empty");
+            LOG.warn("FABMGR: ERROR: createAceFromSecurityRuleEntry: actions is null or empty");
             PermitBuilder permitBuilder = new PermitBuilder();
             permitBuilder.setPermit(true);
             actionsBuilder.setPacketHandling(permitBuilder.build());

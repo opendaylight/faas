@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.Constants;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
@@ -132,6 +133,49 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         }
     }
 
+    public void programArpPacketAllow(Long dpid, boolean isWriteFlow) {
+        String nodeName = OPENFLOW + dpid;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        flowBuilder.setMatch(
+                OfMatchUtils.createEtherTypeMatch(matchBuilder, new EtherType(Constants.ARP_ETHERTYPE)).build());
+
+        String flowId = "Acl_ArpPacketAllow_" + getTable();
+
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setBarrier(true);
+        flowBuilder.setTableId(this.getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setPriority(ACL_MATCH_PRIORITY);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (isWriteFlow) {
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+            List<Instruction> instructions = Lists.newArrayList();
+
+            ib = this.getMutablePipelineInstructionBuilder();
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
+            instructions.add(ib.build());
+
+            // Add InstructionBuilder to the Instruction(s)Builder List
+            isb.setInstruction(instructions);
+
+            // Add InstructionsBuilder to FlowBuilder
+            flowBuilder.setInstructions(isb.build());
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+    }
+
     // For Traffic from GPE Tunnel, allow it go to next table by default
     public void programGpeTunnelInEntry(Long dpid, Long segmentationId, Long gpeTunnelOfPort, boolean isWriteFlow) {
         String nodeName = OPENFLOW + dpid;
@@ -156,7 +200,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
             List<Action> actionList = Lists.newArrayList();
             ActionBuilder ab = new ActionBuilder();
 
-            //pop_nsh
+            // pop_nsh
             ab.setAction(OfActionUtils.nxPopNshAction());
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
@@ -407,20 +451,20 @@ public class PipelineAclHandler extends AbstractServiceInstance {
                     redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
-                    //push_nsh
+                    // push_nsh
                     redirectActionBuilder.setAction(OfActionUtils.nxPushNshAction());
                     redirectActionBuilder.setOrder(redirectActionList.size());
                     redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
-                    //load mdtype
-                    redirectActionBuilder.setAction(OfActionUtils.nxLoadNshMdtypeAction(Short.valueOf((short)0x1)));
+                    // load mdtype
+                    redirectActionBuilder.setAction(OfActionUtils.nxLoadNshMdtypeAction(Short.valueOf((short) 0x1)));
                     redirectActionBuilder.setOrder(redirectActionList.size());
                     redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
 
-                    //load nsh np
-                    redirectActionBuilder.setAction(OfActionUtils.nxLoadNshNpAction(Short.valueOf((short)0x3)));
+                    // load nsh np
+                    redirectActionBuilder.setAction(OfActionUtils.nxLoadNshNpAction(Short.valueOf((short) 0x3)));
                     redirectActionBuilder.setOrder(redirectActionList.size());
                     redirectActionBuilder.setKey(new ActionKey(redirectActionList.size()));
                     redirectActionList.add(redirectActionBuilder.build());
