@@ -22,6 +22,7 @@ import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineOutboun
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineTrafficClassifier;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.MdsalUtils;
+import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.AccessLists;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.Ipv4Acl;
@@ -184,6 +185,11 @@ public class Openflow13Provider {
 
     public void updateTrafficBehavior(Long dpid, TrafficBehavior trafficBehavior, boolean writeFlow) {
         aclHandler.programTrafficBehaviorRule(dpid, trafficBehavior, writeFlow);
+
+        if (trafficBehavior == TrafficBehavior.PolicyDriven) {
+            //let Arp packet goto next table
+            aclHandler.programArpPacketAllow(dpid, writeFlow);
+        }
     }
 
     public void updateBridgeDomainAclsInDevice(Long dpid, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {

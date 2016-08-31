@@ -64,7 +64,7 @@ class FabricTopo( Topo ):
         self.addLink(switch12, host36_5, 365)
 
         host37_2 = self.addHost('h37_2', mac='00:00:00:00:37:02', ip='10.0.37.2/24', defaultRoute='via 10.0.37.1')
-        host37_3 = self.addHost('h37_3', mac='00:00:00:00:37:02', ip='10.0.37.3/24', defaultRoute='via 10.0.37.1')
+        host37_3 = self.addHost('h37_3', mac='00:00:00:00:37:03', ip='10.0.37.3/24', defaultRoute='via 10.0.37.1')
 
         switch13 = self.addSwitch('sw13')
         self.addLink(switch13, host37_2, 372)
