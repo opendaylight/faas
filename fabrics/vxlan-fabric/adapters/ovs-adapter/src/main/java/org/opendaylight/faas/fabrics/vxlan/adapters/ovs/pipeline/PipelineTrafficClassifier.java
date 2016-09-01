@@ -42,23 +42,27 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
     public final static long REG_VALUE_FROM_REMOTE = 0x2L;
     public final static long REG_VALUE_FROM_VLAN = 0x3L;
 
+    public final static long REG2_DEFAULT_PERMIT_VNI = 0x0L;
+
     public static final Class<? extends NxmNxReg> REG_FIELD = NxmNxReg0.class;
     public static final Class<? extends NxmNxReg> REG_SRC_TUN_ID = NxmNxReg2.class;
 
     public PipelineTrafficClassifier(DataBroker dataBroker) {
         super(Service.TRAFFIC_CLASSIFIER, dataBroker);
-        //PipelineOrchestrator.setServiceRegistry(Service.TRAFFIC_CLASSIFIER, this);
+        // PipelineOrchestrator.setServiceRegistry(Service.TRAFFIC_CLASSIFIER,
+        // this);
     }
 
     /*
-     * (Table:  PipelineTrafficClassifier) Egress VM Traffic
-     * Match:   VM Source Ethernet Addr , OpenFlow InPort
-     * Actions: Set TunnelID ,Load NXM_NX_REG0 to identify the local VM traffic, GOTO Next Table
-     * Flow example:
-     *      table=TRAFFIC_CLASSIFIER,in_port=2,dl_src=00:00:00:00:00:01 \
-     *      actions=set_field:5->tun_id,load:0x1->NXM_NX_REG0,goto_table=<next-table>"
+     * (Table: PipelineTrafficClassifier) Egress VM Traffic Match: VM Source
+     * Ethernet Addr , OpenFlow InPort Actions: Set TunnelID ,Load NXM_NX_REG0
+     * to identify the local VM traffic, GOTO Next Table Flow example:
+     * table=TRAFFIC_CLASSIFIER,in_port=2,dl_src=00:00:00:00:00:01 \
+     * actions=set_field:5->tun_id,load:0x1->NXM_NX_REG0,goto_table=<next-table>
+     * "
      */
-    public void programLocalInPort(Long dpid, Long segmentationId, Long vlanId, Long inPort, String attachedMac, boolean isWriteFlow) {
+    public void programLocalInPort(Long dpid, Long segmentationId, Long vlanId, Long inPort, String attachedMac,
+            boolean isWriteFlow) {
         String nodeName = OPENFLOW + dpid;
 
         MatchBuilder matchBuilder = new MatchBuilder();
@@ -69,10 +73,11 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         flowBuilder.setMatch(OfMatchUtils.createEthSrcMatch(matchBuilder, attachedMac).build());
         flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
         if (vlanId != null) {
-            flowBuilder.setMatch(OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
+            flowBuilder.setMatch(
+                    OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
         }
 
-        String flowId = "LocalMac_"+segmentationId+"_"+inPort+"_"+attachedMac;
+        String flowId = "LocalMac_" + segmentationId + "_" + inPort + "_" + attachedMac;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -105,19 +110,25 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
                 ab.setOrder(actionList.size());
                 ab.setKey(new ActionKey(actionList.size()));
                 actionList.add(ab.build());
-            }
-            else {
+
+                ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+                        BigInteger.valueOf(REG2_DEFAULT_PERMIT_VNI)));
+                ab.setOrder(actionList.size());
+                ab.setKey(new ActionKey(actionList.size()));
+                actionList.add(ab.build());
+            } else {
                 ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
                         BigInteger.valueOf(REG_VALUE_FROM_LOCAL)));
                 ab.setOrder(actionList.size());
                 ab.setKey(new ActionKey(actionList.size()));
                 actionList.add(ab.build());
+
+                ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+                        BigInteger.valueOf(segmentationId.longValue())));
+                ab.setOrder(actionList.size());
+                ab.setKey(new ActionKey(actionList.size()));
+                actionList.add(ab.build());
             }
-            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
-                    BigInteger.valueOf(segmentationId.longValue())));
-            ab.setOrder(actionList.size());
-            ab.setKey(new ActionKey(actionList.size()));
-            actionList.add(ab.build());
 
             ib.setOrder(instructions.size());
             ib.setKey(new InstructionKey(instructions.size()));
@@ -142,12 +153,9 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
     }
 
     /*
-     * (Table:  PipelineTrafficClassifier) Drop Traffic
-     * Match:   OpenFlow InPort
-     * Actions: Drop
-     * Flow example:
-     *      table=TRAFFIC_CLASSIFIER,in_port=2 \
-     *      actions=drop"
+     * (Table: PipelineTrafficClassifier) Drop Traffic Match: OpenFlow InPort
+     * Actions: Drop Flow example: table=TRAFFIC_CLASSIFIER,in_port=2 \
+     * actions=drop"
      */
     public void programDropSrcIface(Long dpid, Long inPort, boolean isWriteFlow) {
 
@@ -181,7 +189,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             flowBuilder.setInstructions(isb.build());
         }
 
-        String flowId = "DropFilter_"+inPort;
+        String flowId = "DropFilter_" + inPort;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -201,15 +209,13 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
     }
 
     /*
-     * (Table:  PipelineTrafficClassifier) Input Traffic from TunnelPort
-     * Match:   TunnelID , OpenFlow InPort
-     * Actions: Load NXM_NX_REG0 to identify the Remote traffic from TunnelPort, GOTO Next Table
-     * Flow example:
-     *      table=TRAFFIC_CLASSIFIER, tun_id=0x5, in_port=2, \
-     *      actions=load:0x2->NXM_NX_REG0,goto_table=<next-table>"
+     * (Table: PipelineTrafficClassifier) Input Traffic from TunnelPort Match:
+     * TunnelID , OpenFlow InPort Actions: Load NXM_NX_REG0 to identify the
+     * Remote traffic from TunnelPort, GOTO Next Table Flow example:
+     * table=TRAFFIC_CLASSIFIER, tun_id=0x5, in_port=2, \
+     * actions=load:0x2->NXM_NX_REG0,goto_table=<next-table>"
      */
-    public void programTunnelIn(Long dpid, Long segmentationId,
-            Long ofPort, boolean isWriteFlow) {
+    public void programTunnelIn(Long dpid, Long segmentationId, Long ofPort, boolean isWriteFlow) {
 
         String nodeName = OPENFLOW + dpid;
 
@@ -239,7 +245,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             actionList.add(ab.build());
 
             ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
-                    tunnelId));
+                    BigInteger.valueOf(REG2_DEFAULT_PERMIT_VNI)));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
@@ -266,7 +272,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
             flowBuilder.setInstructions(isb.build());
         }
 
-        String flowId = "TunnelIn_"+segmentationId+"_"+ofPort;
+        String flowId = "TunnelIn_" + segmentationId + "_" + ofPort;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -296,7 +302,7 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
         flowBuilder.setMatch(OfMatchUtils.createInPortMatch(matchBuilder, dpid, inPort).build());
         flowBuilder.setMatch(OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(vlanId.intValue()), true).build());
 
-        String flowId = "VlanIn_"+vlanId+"_"+inPort+"_"+segmentationId;
+        String flowId = "VlanIn_" + vlanId + "_" + inPort + "_" + segmentationId;
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
         FlowKey key = new FlowKey(new FlowId(flowId));
@@ -326,6 +332,12 @@ public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
             ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_FIELD).build(),
                     BigInteger.valueOf(REG_VALUE_FROM_VLAN)));
+            ab.setOrder(actionList.size());
+            ab.setKey(new ActionKey(actionList.size()));
+            actionList.add(ab.build());
+
+            ab.setAction(OfActionUtils.nxLoadRegAction(new DstNxRegCaseBuilder().setNxReg(REG_SRC_TUN_ID).build(),
+                    BigInteger.valueOf(REG2_DEFAULT_PERMIT_VNI)));
             ab.setOrder(actionList.size());
             ab.setKey(new ActionKey(actionList.size()));
             actionList.add(ab.build());
