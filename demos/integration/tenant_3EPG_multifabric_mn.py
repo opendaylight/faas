@@ -396,6 +396,7 @@ def get_endpoint_data(tenantId):
                 "l3-context": "l3-context-vrf-red"
             }
         ], 
+        "nat-address" :"192.168.1.2",
         "faas-port-ref-id": "165b3a20-adc7-11e5-bf7f-feff819cdc9f",
         "tenant": tenantId
     }

@@ -35,6 +35,8 @@ public class DeviceContext {
 
     private TrafficBehavior trafficBehavior = TrafficBehavior.Normal;
 
+    private boolean aclRedirectCapability = false;
+
     // bdif id to AdapterBdIf map
     Map<String, AdapterBdIf> bdifCache = Maps.newHashMap();
 
@@ -123,6 +125,14 @@ public class DeviceContext {
 
     public TrafficBehavior getTrafficBehavior() {
         return trafficBehavior;
+    }
+
+    public boolean isAclRedirectCapability() {
+        return aclRedirectCapability;
+    }
+
+    public void setAclRedirectCapability(boolean aclRedirectCapability) {
+        this.aclRedirectCapability = aclRedirectCapability;
     }
 
 }

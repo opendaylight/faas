@@ -73,7 +73,8 @@ def rpc_compose_fabric_data(behavior):
            "name": "first fabric",
            "type":"VXLAN",
            "options":{
-               "traffic-behavior":behavior
+               "traffic-behavior":behavior,
+               "capability-supported" : ['ip-mapping', 'acl-redirect']
            },
            "device-nodes" : devNodes
        }

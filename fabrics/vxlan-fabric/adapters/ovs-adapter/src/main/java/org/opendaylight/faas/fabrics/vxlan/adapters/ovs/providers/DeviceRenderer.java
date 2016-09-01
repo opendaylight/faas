@@ -46,6 +46,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.Options;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.AccessType;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.ServiceCapabilities;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.IpMapping;
@@ -150,8 +151,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         ribRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, routeIID, this,
                 DataChangeScope.BASE);
 
-        InstanceIdentifier<IpMappingEntry> ipMappingIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
-                .child(Bdif.class).child(PortFunction.class).child(IpMappingEntry.class);
+        InstanceIdentifier<IpMappingEntry> ipMappingIID = iid.augmentation(FabricCapableDevice.class)
+                .child(Config.class).child(Bdif.class).child(PortFunction.class).child(IpMappingEntry.class);
         ipMappingListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, ipMappingIID, this,
                 DataChangeScope.BASE);
 
@@ -172,8 +173,19 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                     Options opt = result.get();
                     TrafficBehavior behavior = opt.getTrafficBehavior();
                     ctx.setTrafficBehavior(behavior == null ? TrafficBehavior.Normal : behavior);
+
+                    List<ServiceCapabilities> supportedCapabilities = opt.getCapabilitySupported();
+                    for (ServiceCapabilities capability : supportedCapabilities) {
+                        if (capability.equals(ServiceCapabilities.AclRedirect)) {
+                            ctx.setAclRedirectCapability(true);
+                            break;
+                        } else {
+                            ctx.setAclRedirectCapability(false);
+                        }
+                    }
                 } else {
                     ctx.setTrafficBehavior(TrafficBehavior.Normal);
+                    ctx.setAclRedirectCapability(false);
                 }
 
                 // Set Traffic Behavior in Pipeline table 90, Acl table
@@ -462,7 +474,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 if (newRec.getAccessType() == AccessType.Vlan) {
                     vlanId = newRec.getAccessTag();
                 }
-                openflow13Provider.updateLocalHostRouteInDevice(dpid, ofPort, gpeTunnelOfPort, vlanId, newRec, true);
+                openflow13Provider.updateLocalHostRouteInDevice(dpid, ctx.isAclRedirectCapability(), ofPort,
+                        gpeTunnelOfPort, vlanId, newRec, true);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -474,7 +487,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
 
             if (tunnelOfPort != null) {
-                openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec, true);
+                openflow13Provider.updateRemoteHostRouteInDevice(dpid, ctx.isAclRedirectCapability(), tunnelOfPort,
+                        gpeTunnelOfPort, newRec, true);
             }
         }
     }
@@ -498,7 +512,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
                 if (newRec.getAccessType() == AccessType.Vlan) {
                     vlanId = newRec.getAccessTag();
                 }
-                openflow13Provider.updateLocalHostRouteInDevice(dpid, ofPort, gpeTunnelOfPort, vlanId, newRec, false);
+                openflow13Provider.updateLocalHostRouteInDevice(dpid, ctx.isAclRedirectCapability(), ofPort,
+                        gpeTunnelOfPort, vlanId, newRec, false);
             }
         } else {
             Long tunnelOfPort = ctx.getVtep_ofPort();
@@ -509,7 +524,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
 
             if (tunnelOfPort != null) {
-                openflow13Provider.updateRemoteHostRouteInDevice(dpid, tunnelOfPort, gpeTunnelOfPort, newRec, false);
+                openflow13Provider.updateRemoteHostRouteInDevice(dpid, ctx.isAclRedirectCapability(), tunnelOfPort,
+                        gpeTunnelOfPort, newRec, false);
             }
         }
     }
@@ -563,7 +579,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         if (gpeTunnelOfPort != null) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
             openflow13Provider.updateBridgeDomainInDevice(dpid, gpeTunnelOfPort, segmentationId, true);
-            openflow13Provider.updateSfcTunnelInDevice(dpid, gpeTunnelOfPort, segmentationId, true);
+            openflow13Provider.updateSfcTunnelInDevice(dpid, ctx.isAclRedirectCapability(), gpeTunnelOfPort,
+                    segmentationId, true);
         }
 
     }
@@ -589,7 +606,8 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
         if (gpeTunnelOfPort != null) {
             ctx.setGpe_vtep_ofPort(gpeTunnelOfPort);
             openflow13Provider.updateBridgeDomainInDevice(dpid, gpeTunnelOfPort, segmentationId, false);
-            openflow13Provider.updateSfcTunnelInDevice(dpid, gpeTunnelOfPort, segmentationId, false);
+            openflow13Provider.updateSfcTunnelInDevice(dpid, ctx.isAclRedirectCapability(), gpeTunnelOfPort,
+                    segmentationId, false);
         }
 
     }
@@ -706,7 +724,6 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             }
         }
     }
-
 
     private void onRouteCreate(InstanceIdentifier<Route> iid, Route newRec) {
         Long dpid = ctx.getDpid();

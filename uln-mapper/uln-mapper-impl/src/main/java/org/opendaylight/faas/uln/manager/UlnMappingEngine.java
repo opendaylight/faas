@@ -859,25 +859,33 @@ public class UlnMappingEngine {
                      * Due to Bug 5191, we have to apply ACL to both EPGs. So,
                      * we cannot render ACL until both LSWs are rendered.
                      */
-                    for (Map.Entry<String, RenderedRouter> entry : lr.getRenderedRouters().entrySet()) {
-                        flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(lr, entry.getKey()));
-                    }
-                    uln.addSecurityRuleGroupsToLr(lr.getLr(), ruleGroups);
-                    for (Map.Entry<String, List<NodeId>> entry : flsws.entrySet()) {
-                        for (NodeId swid : entry.getValue()) {
-                            this.renderSecurityRuleGroups(tenantId, new NodeId(entry.getKey()), uln, swid, ruleGroups);
-                        }
-                    }
+
 
                     if (this.applyAclToBothEpgs) {
-                        flsws.clear();
                         PortMappingInfo left = uln.findLeftPortOnEdge(theEdge.getEdge());
-                        uln.findRightPortOnEdge(theEdge.getEdge());
-                        LogicalRouterMappingInfo theOtherLr = uln.findLrFromPortId(left.getPort().getUuid());
-                        for (Map.Entry<String, RenderedRouter> entry : theOtherLr.getRenderedRouters().entrySet()) {
-                            flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(theOtherLr, entry.getKey()));
+                        PortMappingInfo right = uln.findRightPortOnEdge(theEdge.getEdge());
+                        LogicalRouterMappingInfo leftLr = uln.findLrFromPortId(left.getPort().getUuid());
+                        LogicalRouterMappingInfo rightLr = uln.findLrFromPortId(right.getPort().getUuid());
+
+                        if (!leftLr.hasServiceBeenRendered() || !rightLr.hasServiceBeenRendered()) {
+                            return;
                         }
-                        uln.addSecurityRuleGroupsToLr(theOtherLr.getLr(), ruleGroups);
+
+                        for (Map.Entry<String, RenderedRouter> entry : leftLr.getRenderedRouters().entrySet()) {
+                            flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(leftLr, entry.getKey()));
+                        }
+                        uln.addSecurityRuleGroupsToLr(leftLr.getLr(), ruleGroups);
+                        for (Map.Entry<String, List<NodeId>> entry : flsws.entrySet()) {
+                            for (NodeId swid : entry.getValue()) {
+                                this.renderSecurityRuleGroups(tenantId, new NodeId(entry.getKey()), uln, swid, ruleGroups);
+                            }
+                        }
+
+                        flsws.clear();
+                        for (Map.Entry<String, RenderedRouter> entry : rightLr.getRenderedRouters().entrySet()) {
+                            flsws.put(entry.getKey(), uln.findLswRenderedDeviceIdFromLr(rightLr, entry.getKey()));
+                        }
+                        uln.addSecurityRuleGroupsToLr(rightLr.getLr(), ruleGroups);
                         for (Map.Entry<String, List<NodeId>> entry : flsws.entrySet()) {
                             for (NodeId swid : entry.getValue()) {
                                 this.renderSecurityRuleGroups(tenantId, new NodeId(entry.getKey()), uln, swid, ruleGroups);
@@ -903,7 +911,12 @@ public class UlnMappingEngine {
         for (Uuid p : lr.getPort())
         {
             PortMappingInfo pi = uln.getPortStore().get(p);
-            pubips.addAll(pi.getPort().getPublicIps());
+            //pubips.addAll(pi.getPort().getPublicIps());
+            if (pi.getPort().getPrivateIps() != null) {
+                for (PrivateIps addr : pi.getPort().getPrivateIps()) {
+                    pubips.add(addr.getIpAddress());
+                }
+            }
         }
 
         //TODO - for now Only provide the first available Public IP address
@@ -925,6 +938,10 @@ public class UlnMappingEngine {
            Random rand = new Random();
            int accessTag = rand.nextInt(EXT_ACCESS_TAG_RANGE) + EXT_ACCESS_TAG_START;
            IpAddress pubip = this.getPubIP(lr.getLr(), uln);
+           if (pubip == null) {
+               System.out.println(lr.getLr().getUuid());
+               return;
+           }
 
            this.fmgr.setupExternalGW(
                    UlnUtil.convertToYangUuid(tenantId),
