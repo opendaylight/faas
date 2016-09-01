@@ -88,7 +88,8 @@ def rpc_compose_fabric_data1(name, behavior):
            "name": name,
            "type":"VXLAN",
            "options":{
-               "traffic-behavior":behavior
+               "traffic-behavior":behavior,
+               "capability-supported" : ['ip-mapping']
            },
            "device-nodes" : [
              {
@@ -110,7 +111,8 @@ def rpc_compose_fabric_data2(name, behavior):
            "name": name,
            "type":"VXLAN",
            "options":{
-               "traffic-behavior":behavior
+               "traffic-behavior":behavior,
+               "capability-supported" : ['ip-mapping']
            },
            "device-nodes" : [
              {

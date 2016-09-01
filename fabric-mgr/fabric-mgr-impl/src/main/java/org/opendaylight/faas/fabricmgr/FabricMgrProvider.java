@@ -975,7 +975,9 @@ public class FabricMgrProvider implements AutoCloseable {
                     locIid.firstKeyOf(TerminationPoint.class).getTpId().getValue(),
                     dmac,
                     slsw,
-                    tpId);
+                    tpId,
+                    AccessType.Vlan,
+                    task.getTag());
 
             // register left gw as an endpoint to right fabric.
             InstanceIdentifier<TerminationPoint> locIid2 = InterfaceManager.convFabricPort2DevicePort(
@@ -990,7 +992,9 @@ public class FabricMgrProvider implements AutoCloseable {
                     locIid2.firstKeyOf(TerminationPoint.class).getTpId().getValue(),
                     smac,
                     dlsw,
-                    tpId2);
+                    tpId2,
+                    AccessType.Vlan,
+                    task.getTag());
 
             RenderedLayer2Link l2link = new RenderedLayer2Link(slswR,  dlswR, task.getTag(), lfTpId, tpId, rfTpId, tpId2);
 //            RenderedLayer3Link l3link = new RenderedLayer3Link(task.getRouterA(), task.getRouterB(), slswR, dlswR,

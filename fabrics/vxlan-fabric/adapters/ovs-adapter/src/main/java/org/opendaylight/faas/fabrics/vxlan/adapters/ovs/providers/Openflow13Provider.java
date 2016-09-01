@@ -22,7 +22,6 @@ import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineOutboun
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline.PipelineTrafficClassifier;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.MdsalUtils;
-import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.AccessLists;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.access.control.list.rev160218.Ipv4Acl;
@@ -93,7 +92,7 @@ public class Openflow13Provider {
     }
 
     // The host route is located in this Device
-    public void updateLocalHostRouteInDevice(Long dpid, Long ofPort, Long gpeTunnelOfPort, Long vlanId,
+    public void updateLocalHostRouteInDevice(Long dpid, boolean isAclRedirectCapability, Long ofPort, Long gpeTunnelOfPort, Long vlanId,
             HostRoute hostRoute, boolean writeFlow) {
         Long segmentationId = hostRoute.getVni();
         String macAddress = hostRoute.getMac().getValue();
@@ -115,14 +114,15 @@ public class Openflow13Provider {
         if (gpeTunnelOfPort != null) {
             IpAddress dstTunIp = hostRoute.getDestVtep();
 
-            l2Forwarding.programSfcTunnelOut(dpid, segmentationId, gpeTunnelOfPort, macAddress, dstTunIp, writeFlow);
+            if (isAclRedirectCapability)
+                l2Forwarding.programSfcTunnelOut(dpid, segmentationId, gpeTunnelOfPort, macAddress, dstTunIp, writeFlow);
         }
 
     }
 
     // The host route is located in The remove Device, add some flows in this
     // device for the remote host route
-    public void updateRemoteHostRouteInDevice(Long dpid, Long tunnelOfPort, Long gpeTunnelOfPort, HostRoute hostRoute,
+    public void updateRemoteHostRouteInDevice(Long dpid, boolean isAclRedirectCapability, Long tunnelOfPort, Long gpeTunnelOfPort, HostRoute hostRoute,
             boolean writeFlow) {
         Long segmentationId = hostRoute.getVni();
         String macAddress = hostRoute.getMac().getValue();
@@ -136,7 +136,8 @@ public class Openflow13Provider {
                 OfMatchUtils.iPv4PrefixFromIPv4Address(ipAddress.getIpv4Address().getValue()), macAddress, writeFlow);
 
         if (gpeTunnelOfPort != null) {
-            l2Forwarding.programSfcTunnelOut(dpid, segmentationId, gpeTunnelOfPort, macAddress, dstTunIp, writeFlow);
+            if (isAclRedirectCapability)
+                l2Forwarding.programSfcTunnelOut(dpid, segmentationId, gpeTunnelOfPort, macAddress, dstTunIp, writeFlow);
         }
 
         l2Forwarding.programTunnelOut(dpid, segmentationId, tunnelOfPort, macAddress, dstTunIp, writeFlow);
@@ -147,8 +148,10 @@ public class Openflow13Provider {
         trafficClassifier.programTunnelIn(dpid, segmentationId, tunnelOfPort, writeFlow);
     }
 
-    public void updateSfcTunnelInDevice(Long dpid, Long gpeTunnelOfPort, Long segmentationId, boolean writeFlow) {
-        aclHandler.programGpeTunnelInEntry(dpid, segmentationId, gpeTunnelOfPort, writeFlow);
+    public void updateSfcTunnelInDevice(Long dpid, boolean isAclRedirectCapability, Long gpeTunnelOfPort,
+            Long segmentationId, boolean writeFlow) {
+        if (isAclRedirectCapability)
+            aclHandler.programGpeTunnelInEntry(dpid, segmentationId, gpeTunnelOfPort, writeFlow);
     }
 
     public void updateBdifInDevice(Long dpid, List<AdapterBdIf> bdIfs, AdapterBdIf newBdIf, boolean writeFlow) {
@@ -186,16 +189,18 @@ public class Openflow13Provider {
     public void updateTrafficBehavior(Long dpid, TrafficBehavior trafficBehavior, boolean writeFlow) {
         aclHandler.programTrafficBehaviorRule(dpid, trafficBehavior, writeFlow);
 
+        aclHandler.programDefaultPermitVni(dpid, writeFlow);
+
         if (trafficBehavior == TrafficBehavior.PolicyDriven) {
-            //let Arp packet goto next table
+            // let Arp packet goto next table
             aclHandler.programArpPacketAllow(dpid, writeFlow);
         }
     }
 
     public void updateBridgeDomainAclsInDevice(Long dpid, Long segmentationId, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
-        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.builder(AccessLists.class).child(Acl.class,
-                new AclKey(ietfAclName, Ipv4Acl.class)).build();
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.builder(AccessLists.class)
+                .child(Acl.class, new AclKey(ietfAclName, Ipv4Acl.class)).build();
         Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)
             return;
@@ -205,8 +210,8 @@ public class Openflow13Provider {
 
     public void updateBridgePortAclsInDevice(Long dpid, Long bridgePort, FabricAcl fabricAcl, boolean writeFlow) {
         String ietfAclName = fabricAcl.getFabricAclName();
-        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.builder(AccessLists.class).child(Acl.class,
-                new AclKey(ietfAclName, Ipv4Acl.class)).build();
+        InstanceIdentifier<Acl> aclIID = InstanceIdentifier.builder(AccessLists.class)
+                .child(Acl.class, new AclKey(ietfAclName, Ipv4Acl.class)).build();
 
         Acl acl = MdsalUtils.read(LogicalDatastoreType.CONFIGURATION, aclIID, databroker);
         if (acl == null)
@@ -246,8 +251,8 @@ public class Openflow13Provider {
         l2Forwarding.programNexthopTunnelOut(dpid, tunnelOfPort, dstTunIpAddress, writeFlow);
     }
 
-    public void updateIpMappingInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress, IpMappingEntry ipMapping,
-            boolean writeFlow) {
+    public void updateIpMappingInDevice(Long dpid, Long floatingSegmentId, String gwMacAddress,
+            IpMappingEntry ipMapping, boolean writeFlow) {
         String floatingIp = ipMapping.getExternalIp().getValue();
         String fixedIp = ipMapping.getInternalIp().getValue();
 

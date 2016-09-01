@@ -28,6 +28,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.RegisterEndpointOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.UnregisterEndpointInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.endpoint.attributes.LogicalLocationBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
@@ -309,7 +310,8 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         ClearStaticRouteInputBuilder cbuilder = new ClearStaticRouteInputBuilder();
         cbuilder.setNodeId(input.getLneId());
         cbuilder.setFabricId(new FabricId(input.getVfabricId()));
-        this.fabServiceService.clearStaticRoute(cbuilder.build());
+        // if clear static route every time. there will be exception in openflowplugin
+        //this.fabServiceService.clearStaticRoute(cbuilder.build());
 
         //Secondly add the complete the routing table.
         AddStaticRouteInputBuilder builder = new AddStaticRouteInputBuilder();
@@ -423,6 +425,62 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         epInputBuilder.setLocation(FabMgrYangDataUtil.getPhyLocation(
                 new TopologyId("ovsdb:1"), //TODO . hardcode is really bad!
                 nodeIDStr, connIDStr));
+        epInputBuilder.setMacAddress(mac);
+        epInputBuilder.setOwnFabric(fabricId);
+
+        LogicalLocationBuilder llb = new LogicalLocationBuilder();
+        llb.setNodeId(lswId);
+        llb.setTpId(lswLogicalPortId);
+
+        epInputBuilder.setLogicalLocation(llb.build());
+
+        RegisterEndpointInputBuilder inputBuilder = new RegisterEndpointInputBuilder(epInputBuilder.build());
+
+        Future<RpcResult<RegisterEndpointOutput>> result = this.epService.registerEndpoint(inputBuilder.build());
+        try {
+            RpcResult<RegisterEndpointOutput> output = result.get();
+            if (output.isSuccessful()) {
+                LOG.debug("FABMGR: registerEndpoint: registerEndpoint RPC success");
+                RegisterEndpointOutput epOutput = output.getResult();
+                epId = epOutput.getEndpointId();
+            }
+        } catch (Exception e) {
+            LOG.error("FABMGR: ERROR: registerEndpoint: registerEndpoint RPC failed.", e);
+        }
+
+        return epId;
+    }
+
+    public Uuid registerEndpoint(
+            Uuid tenantId,
+            NodeId fId,
+            Uuid epUuid,
+            IpAddress gwIP,
+            IpAddress epIP,
+            String nodeIDStr,
+            String connIDStr,
+            MacAddress mac,
+            NodeId lswId,
+            TpId lswLogicalPortId,
+            AccessType accType,
+            long accSeg) {
+
+        Uuid epId = null;
+
+        RegisterEndpointInputBuilder epInputBuilder = new RegisterEndpointInputBuilder();
+        epInputBuilder.setEndpointUuid(epUuid);
+        FabricId fabricId = new FabricId(fId);
+        epInputBuilder.setFabricId(fabricId);
+        epInputBuilder.setGateway(gwIP);
+        epInputBuilder.setIpAddress(epIP);
+        LocationBuilder phyLoc = new LocationBuilder(FabMgrYangDataUtil.getPhyLocation(
+                new TopologyId("ovsdb:1"), //TODO . hardcode is really bad!
+                nodeIDStr, connIDStr));
+        phyLoc.setAccessType(accType);
+        phyLoc.setAccessSegment(accSeg);
+
+        epInputBuilder.setLocation(phyLoc.build());
+
         epInputBuilder.setMacAddress(mac);
         epInputBuilder.setOwnFabric(fabricId);
 

@@ -62,6 +62,7 @@ public class PipelineAclHandler extends AbstractServiceInstance {
 
     private static final Integer ACL_MATCH_PRIORITY = 60000;
     private static final Integer GPE_TUNNEL_IN_PRIORITY = 61001;
+    private static final Integer DEFAULT_PERMIT_VNI_PRIORITY = 61002;
     private static final Integer TRAFFIC_BEHAVIOR_RULE_PRIORITY = 1;
 
     public static final short PROTOCOL_ICMP = 1;
@@ -131,6 +132,56 @@ public class PipelineAclHandler extends AbstractServiceInstance {
         } else {
             removeFlow(flowBuilder, nodeBuilder);
         }
+    }
+
+    public void programDefaultPermitVni(Long dpid, boolean isWriteFlow) {
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+        if (dpid == null) {
+            return;
+        }
+        String nodeName = OPENFLOW + dpid;
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+
+        // Create the OF Actions and Instructions
+        InstructionsBuilder isb = new InstructionsBuilder();
+
+        // Instructions List Stores Individual Instructions
+        List<Instruction> instructions = Lists.newArrayList();
+
+        // Call the InstructionBuilder Methods Containing Actions
+        InstructionBuilder ib = new InstructionBuilder();
+
+        OfMatchUtils.addNxRegMatch(matchBuilder, new OfMatchUtils.RegMatch(PipelineTrafficClassifier.REG_SRC_TUN_ID,
+                PipelineTrafficClassifier.REG2_DEFAULT_PERMIT_VNI));
+
+        ib = getMutablePipelineInstructionBuilder();
+        ib.setOrder(instructions.size());
+        ib.setKey(new InstructionKey(instructions.size()));
+        instructions.add(ib.build());
+
+        flowBuilder.setMatch(matchBuilder.build());
+        flowBuilder.setInstructions(isb.setInstruction(instructions).build());
+
+        String flowId = "Acl_DefaultPermitVni_" + getTable();
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setBarrier(true);
+        flowBuilder.setTableId(this.getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setPriority(DEFAULT_PERMIT_VNI_PRIORITY);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+
+        if (isWriteFlow) {
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+
     }
 
     public void programArpPacketAllow(Long dpid, boolean isWriteFlow) {

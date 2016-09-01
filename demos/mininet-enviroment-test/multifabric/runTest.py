@@ -97,6 +97,10 @@ def rpc_compose_fabric_data1():
       "input" : {
            "name": "first fabric",
            "type":"VXLAN",
+           "options":{
+               "traffic-behavior":"normal",
+               "capability-supported" : ['ip-mapping']
+           },
            "device-nodes" : [
              {
                 "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s11']","vtep-ip":"192.168.20.111"
@@ -114,6 +118,10 @@ def rpc_compose_fabric_data2():
       "input" : {
            "name": "second fabric",
            "type":"VXLAN",
+           "options":{
+               "traffic-behavior":"normal",
+               "capability-supported" : ['ip-mapping']
+           },
            "device-nodes" : [
              {
                 "device-ref":"/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='" + NODE_ID_OVSDB + "/bridge/s21']","vtep-ip":"192.168.20.121"
