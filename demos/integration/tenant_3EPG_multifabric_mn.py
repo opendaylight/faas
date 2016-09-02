@@ -225,17 +225,17 @@ def get_tenant_data(tenantId):
 #              {"id" : "internet-group"}
 #            ],
             "endpoint-group": [
-              { "id": "internet-group",
-                "name": "internet-group",
-                "consumer-named-selector": [
-                  {
-                  "name": "webservers-clients-icmp-http-contract",
-                  "contract": [
-                    "webToAppContract"
-                    ]
-                  }
-                ]
-              },
+#              { "id": "internet-group",
+#                "name": "internet-group",
+#                "consumer-named-selector": [
+#                  {
+#                  "name": "webservers-clients-icmp-http-contract",
+#                  "contract": [
+#                    "webToAppContract"
+#                    ]
+#                  }
+#                ]
+#              },
               {
                 "id": "web",
                 "consumer-named-selector": [
@@ -528,23 +528,24 @@ def get_endpoint_data(tenantId):
         "faas-port-ref-id": "397962d5-1a05-47df-aa8b-af57604fd4e0",
         "tenant": tenantId
     }
-  },
-  {
-    "input": {
-        "endpoint-group": "internet-group",
-        "network-containment" : "subnet-192.168.1.0/24",
-        "l2-context": "bridge-external",
-        "mac-address": "80:38:bC:A1:33:c8",
-        "l3-address": [
-            {
-                "ip-address": "192.168.1.254",
-                "l3-context": "l3-context-vrf-red"
-            }
-        ],
-        "faas-port-ref-id": "bb72befb-d1c4-4a10-808b-d10b5cf3ae39",
-        "tenant": tenantId
-    }
   }
+#,
+#  {
+#    "input": {
+#        "endpoint-group": "internet-group",
+#        "network-containment" : "subnet-192.168.1.0/24",
+#        "l2-context": "bridge-external",
+#        "mac-address": "80:38:bC:A1:33:c8",
+#        "l3-address": [
+#            {
+#                "ip-address": "192.168.1.254",
+#                "l3-context": "l3-context-vrf-red"
+#            }
+#        ],
+#        "faas-port-ref-id": "bb72befb-d1c4-4a10-808b-d10b5cf3ae39",
+#        "tenant": tenantId
+#    }
+# }
   ]
 
 def get_endpoint_location_data(nodeId1, nodeId2, nodeId3, nodeId4, nodeId5):

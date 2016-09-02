@@ -539,43 +539,43 @@ public class UlnMappingEngine {
         fmgr.connectAllDVRs(UlnUtil.convertToYangUuid(tenantId), uln, combinedMap);
 
         //ACL
-        List<EdgeMappingInfo> edges = uln.findLrLswEdge(leftLr);
-        for (EdgeMappingInfo edge2 : edges) {
-            PortMappingInfo port = uln.findLswPortOnEdge(edge2);
-            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
-            llsws.add(lsw);
-            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
-            subnets.add(subnet.getSubnet());
-        }
-
-        List<EdgeMappingInfo> edges2 = uln.findLrLswEdge(rightLr);
-        for (EdgeMappingInfo edge2 : edges2) {
-            PortMappingInfo port = uln.findLswPortOnEdge(edge2);
-            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
-            rlsws.add(lsw);
-            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
-            subnets.add(subnet.getSubnet());
-        }
-
-        String aclName = this.createAclForGroupComm(subnets, leftLr.getLr().getName() + "-" + leftLr.getLr().getName());
-        uln.getEdgeStore().get(edge.getUuid()).setGroupACLName(aclName);
-
-
-        List<String> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(leftLr);
-        for (String fabricId : fabrics) {
-            for (LogicalSwitchMappingInfo lsw : llsws) {
-                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
-                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
-            }
-        }
-
-        List<String> fabrics2 = uln.findAllFabricsOfRenderedLswsFromLr(rightLr);
-        for (String fabricId : fabrics2) {
-            for (LogicalSwitchMappingInfo lsw : rlsws) {
-                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
-                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
-            }
-        }
+//        List<EdgeMappingInfo> edges = uln.findLrLswEdge(leftLr);
+//        for (EdgeMappingInfo edge2 : edges) {
+//            PortMappingInfo port = uln.findLswPortOnEdge(edge2);
+//            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
+//            llsws.add(lsw);
+//            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
+//            subnets.add(subnet.getSubnet());
+//        }
+//
+//        List<EdgeMappingInfo> edges2 = uln.findLrLswEdge(rightLr);
+//        for (EdgeMappingInfo edge2 : edges2) {
+//            PortMappingInfo port = uln.findLswPortOnEdge(edge2);
+//            LogicalSwitchMappingInfo lsw = uln.findLswFromItsPort(port.getPort());
+//            rlsws.add(lsw);
+//            SubnetMappingInfo subnet = uln.findSubnetFromLsw(lsw);
+//            subnets.add(subnet.getSubnet());
+//        }
+//
+//        String aclName = this.createAclForGroupComm(subnets, leftLr.getLr().getName().getValue() + "-" + rightLr.getLr().getName().getValue());
+//        uln.getEdgeStore().get(edge.getUuid()).setGroupACLName(aclName);
+//
+//
+//        List<String> fabrics = uln.findAllFabricsOfRenderedLswsFromLr(leftLr);
+//        for (String fabricId : fabrics) {
+//            for (LogicalSwitchMappingInfo lsw : llsws) {
+//                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
+//                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
+//            }
+//        }
+//
+//        List<String> fabrics2 = uln.findAllFabricsOfRenderedLswsFromLr(rightLr);
+//        for (String fabricId : fabrics2) {
+//            for (LogicalSwitchMappingInfo lsw : rlsws) {
+//                RenderedSwitch rsw = lsw.getRenderedSwitchOnFabric(fabricId);
+//                fmgr.createAcl(UlnUtil.convertToYangUuid(tenantId), fabricId, rsw.getSwitchID(), aclName);
+//            }
+//        }
 
         //routing table
         fmgr.updateRoutes(UlnUtil.convertToYangUuid(tenantId), uln, combinedMap);
@@ -1801,7 +1801,8 @@ public class UlnMappingEngine {
     }
 
     private String createAclForGroupComm(List<Subnet> subnets, String groupName) {
-        String aclName = "lracl" + groupName; //TODO, this is not right :(
+        String aclName = "lracl-" + groupName; //TODO, this is not right :(
+
         /*
          * create Access List with entries and IID, then write transaction to data store
          */
