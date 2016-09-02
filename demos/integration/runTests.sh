@@ -102,7 +102,7 @@ runGbpFaasMultiFabricMininetDemo()
   python testCases.py -t vc056
   
   read -n1 -r -p "Ready to register external endpoints. Press any key to continue..." key
-  python testCases.py -t vc0461
+  #python testCases.py -t vc0461
 }
 
 
