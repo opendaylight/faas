@@ -166,7 +166,8 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         tpOnRouter = new TpId(String.valueOf(gwIp.getValue()));
         if (tpOnRouter != null) {
             link = findGWLink(trans, fabricId, tpOnRouter, routerId);
-            trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLinkIId(fabricId, link.getLinkId()));
+            if (link != null)
+                trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLinkIId(fabricId, link.getLinkId()));
         }
         if (link != null) {
             lswId = link.getDestination().getDestNode();
@@ -200,9 +201,11 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         try {
             Optional<Link> optional = readFuture.get();
-            Link link = optional.get();
-
-            return link;
+            if (optional.isPresent()) {
+                return optional.get();
+            } else {
+                return null;
+            }
 
         } catch (InterruptedException | ExecutionException e) {
             LOG.error("", e);

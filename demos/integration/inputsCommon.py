@@ -15,7 +15,7 @@ vlanVFabric2Id_gc = 'tenant2vfabric2'
 vvVFabricId_gc = 'vFabricVv1'
 vvVFabricId2_gc = 'vFabricVv2'
 
-tenant1Id_gc = 'f5c7d344-d1c7-4208-8531-2c2693657e12'
+tenant1Id_gc = 'f5c7d344-d1c7-4208-8531-2c2693657e11'
 tenant2Id_gc = 'f5c7d345-d1c7-4209-8532-2c2693657e13'
 tenant3Id_gc = 'f5c7d346-d1c7-4209-8533-2c2693657e14'
 vvTenantId_gc = 'f5c7d347-d1c7-4209-8533-2c2693657e15'
@@ -25,3 +25,7 @@ serviceProfile2Id_gc = '3979a05d-b85f-4c15-8c05-d67366852bbd'
 serviceProfile3Id_gc = '3979a05d-b85f-4c15-8c05-d67366852bbe'
 serviceProfile4Id_gc = '3979a05d-b85f-4c15-8c05-d67366852bbf'
 
+#-------------------------
+tenant1Id_gc = "7762ca2b-e8a4-4895-bf16-4dda8330997e"
+#-------------------------
+tenant1Id_gc = "c0e20575-8c01-4d27-b721-2b18dc00e872"
