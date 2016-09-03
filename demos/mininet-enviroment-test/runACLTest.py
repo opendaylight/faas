@@ -74,7 +74,7 @@ def get_acl_data():
         "acl": [
             {
             "acl-name":"acl-icmp-deny",
-            "acl-type":"",
+            "acl-type":"ipv4-acl",
             "access-list-entries":{
                 "ace" :[
                     {
@@ -98,7 +98,7 @@ def get_acl_data():
             },
             {
             "acl-name":"acl-udp-permit",
-            "acl-type":"",
+            "acl-type":"ipv4-acl",
             "access-list-entries":{
                 "ace" :[
                     {
@@ -122,7 +122,7 @@ def get_acl_data():
             },
             {
             "acl-name":"acl-eth-deny",
-            "acl-type":"",
+            "acl-type":"ipv4-acl",
             "access-list-entries":{
                 "ace" :[
                     {
@@ -138,7 +138,7 @@ def get_acl_data():
             },
             {
             "acl-name":"acl-tcp-deny",
-            "acl-type":"",
+            "acl-type":"ipv4-acl",
             "access-list-entries":{
                 "ace" :[
                     {

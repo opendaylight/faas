@@ -6,6 +6,7 @@ from subprocess import call
 import time
 import sys
 import os
+import uuid
 
 
 DEFAULT_PORT='8181'
@@ -14,6 +15,7 @@ USERNAME='admin'
 PASSWORD='admin'
 
 ENDPOINT_OPER_URI='/restconf/operational/fabric-endpoint:endpoints'
+FAASTOPO_OPER_URI='/restconf/operational/network-topology:network-topology/topology/faas:fabrics'
 
 def get(host, port, uri):
     url = 'http://' + host + ":" + port + uri
@@ -35,7 +37,7 @@ def put(host, port, uri, data, debug=False):
     r = requests.put(url, data=json.dumps(data), headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
     if debug == True:
         print r.text
-    r.raise_for_status()
+
 
 def delete(host, port, uri, debug=False):
     '''Perform a DELETE rest operation, using the URL and data provided'''
@@ -47,9 +49,11 @@ def delete(host, port, uri, debug=False):
     if debug == True:
         print "DELETE %s" % url
     r = requests.delete(url, headers=headers, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-    if debug == True:
-        print r.text
-    r.raise_for_status()
+
+    if r.status_code != 404:
+        if debug == True:
+            print r.text
+        r.raise_for_status()
 
 def post(host, port, uri, data, debug=False):
     '''Perform a POST rest operation, using the URL and data provided'''
@@ -90,16 +94,10 @@ def get_endpoint_uri():
 def rpc_decompose_fabric_uri():
     return "/restconf/operations/fabric:decompose-fabric"
 
-def rpc_decompose_fabric_data1():
+def rpc_decompose_fabric_data(fabricid):
     return {
       "input" : {
-           "fabric-id": "fabric:1"
-       }
-    }
-def rpc_decompose_fabric_data2():
-    return {
-      "input" : {
-           "fabric-id": "fabric:2"
+           "fabric-id": fabricid
        }
     }
 
@@ -126,9 +124,14 @@ if __name__ == "__main__":
     if controller == None:
         sys.exit("No controller set.")
 
+    l2_eps = list()
+    l3_eps = list()
     resp=get(controller,DEFAULT_PORT,'/restconf/operational/endpoint:endpoints')
-    l2_eps=resp['endpoints']['endpoint']
-    l3_eps=resp['endpoints']['endpoint-l3']
+    if resp.has_key('endpoints'):
+        if resp['endpoints'].has_key('endpoint'):
+            l2_eps=resp['endpoints']['endpoint']
+        if resp['endpoints'].has_key('endpoint-l3'):
+            l3_eps=resp['endpoints']['endpoint-l3']
 
     tenants = list()
     resp=get(controller,DEFAULT_PORT,'/restconf/config/policy:tenants')
@@ -165,8 +168,16 @@ if __name__ == "__main__":
     time.sleep(1)
 
     print "decompose fabric"
-    post(controller, DEFAULT_PORT, rpc_decompose_fabric_uri(), rpc_decompose_fabric_data1(), True)
-    post(controller, DEFAULT_PORT, rpc_decompose_fabric_uri(), rpc_decompose_fabric_data2(), True)
+    fabriclist = list()
+    fabricResp = get(controller, DEFAULT_PORT, FAASTOPO_OPER_URI)
+    if fabricResp.has_key("topology"):
+        fabric_topo = fabricResp["topology"]
+        for topo_item in fabric_topo:
+            if topo_item.has_key("node"):
+                for topo_node in topo_item["node"]:
+                    fabriclist.append(topo_node["node-id"]) 
+    for fabricid in fabriclist:
+        post(controller, DEFAULT_PORT, rpc_decompose_fabric_uri(), rpc_decompose_fabric_data(fabricid), True)
 
     print "delete acl"
     delete(controller, DEFAULT_PORT, "/restconf/config/ietf-access-control-list:access-lists/", True)
@@ -176,3 +187,8 @@ if __name__ == "__main__":
 
     print "delete fabric number"
     delete(controller, DEFAULT_PORT, "/restconf/config/fabric-impl:fabrics-setting/", True)
+
+    print "generate a new tenant"
+    newTenantId = str(uuid.uuid4())
+    os.system("echo '#-------------------------' >> inputsCommon.py")
+    os.system("echo 'tenant1Id_gc = \"%s\"' >> inputsCommon.py" % newTenantId)

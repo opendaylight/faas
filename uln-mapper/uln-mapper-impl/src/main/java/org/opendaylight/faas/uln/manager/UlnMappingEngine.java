@@ -1598,11 +1598,12 @@ public class UlnMappingEngine {
 
                         uln.removeLrLswEdgeFromLr(lr.getLr(), edge);
                         for (Map.Entry<String, RenderedSwitch> entry : lsw.getRenderedSwitches().entrySet()) {
-                            fmgr.removeAcl(
-                                    UlnUtil.convertToYangUuid(tenantId),
-                                    entry.getKey(),
-                                    entry.getValue().getSwitchID(),
-                                    lr.getGroupAclName());
+                            if (lr.getGroupAclName() != null)
+                                fmgr.removeAcl(
+                                        UlnUtil.convertToYangUuid(tenantId),
+                                        entry.getKey(),
+                                        entry.getValue().getSwitchID(),
+                                        lr.getGroupAclName());
                         }
 
                     } else {
@@ -1661,7 +1662,11 @@ public class UlnMappingEngine {
          */
         uln.removePortFromLsw(lsw.getLsw(), lswPort.getPort());
 
-        this.removeEpRegistrationFromFabric(tenantId, new NodeId(epInfo.getEpLocation().getNodeId().getValue()), uln, lsw.getRenderedSwitchOnFabric(new NodeId(epInfo.getEpLocation().getNodeId().getValue())).getSwitchID(), epInfo.getRenderedDeviceId());
+        NodeId fabricId = getFabricIdFromLocation(epLocation.getNodeId(), epLocation.getNodeConnectorId());
+
+        if (fabricId != null) {
+            this.removeEpRegistrationFromFabric(tenantId, new NodeId(fabricId), uln, lsw.getRenderedSwitchOnFabric(new NodeId(fabricId)).getSwitchID(), epInfo.getRenderedDeviceId());
+        }
 
         uln.removeEpLocationFromCache(epLocation);
     }
