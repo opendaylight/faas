@@ -204,12 +204,11 @@ def rpc_add_function_data(fabricId, extIp, interIp):
     }
 
 def get_acl_uri():
-    return "/restconf/config/ietf-access-control-list:access-lists/"
+    return "/restconf/config/ietf-access-control-list:access-lists/acl/ietf-access-control-list:ipv4-acl/acl-icmp-allow"
 
 def get_acl_data():
     return {
-    "ietf-access-control-list:access-lists": {
-        "acl": [
+        "ietf-access-control-list:acl": [
             {
             "acl-name":"acl-icmp-allow",
             "acl-type":"ipv4-acl",
@@ -233,7 +232,6 @@ def get_acl_data():
                 ]}
             }
             ]
-        }
     }
 
 def rpc_add_acl_uri():
