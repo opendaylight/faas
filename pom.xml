@@ -10,7 +10,7 @@
   <parent>
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>commons.parent</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.0.4-Beryllium-SR4</version>
     <relativePath>commons/parent</relativePath>
   </parent>
 
