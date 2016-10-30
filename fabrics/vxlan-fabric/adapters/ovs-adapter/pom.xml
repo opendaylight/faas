@@ -12,18 +12,18 @@
   <parent>
     <groupId>org.opendaylight.controller</groupId>
     <artifactId>config-parent</artifactId>
-    <version>0.5.1-SNAPSHOT</version>
+    <version>0.5.1-Boron-SR1</version>
     <relativePath />
   </parent>
   
   <groupId>org.opendaylight.faas</groupId>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.1-Boron-SR1</version>
   <artifactId>vxlan-fabric-ovs-adapter</artifactId>
   <packaging>bundle</packaging>
 
   <properties>
-    <openflowjava-nicira.version>0.3.1-SNAPSHOT</openflowjava-nicira.version>
-    <openflowplugin.version>0.3.1-SNAPSHOT</openflowplugin.version>
+    <openflowjava-nicira.version>0.3.1-Boron-SR1</openflowjava-nicira.version>
+    <openflowplugin.version>0.3.1-Boron-SR1</openflowplugin.version>
   </properties>
 
   <dependencies>
@@ -58,7 +58,7 @@
     <dependency>
       <groupId>org.opendaylight.ovsdb</groupId>
       <artifactId>southbound-api</artifactId>
-      <version>1.3.1-SNAPSHOT</version>
+      <version>1.3.1-Boron-SR1</version>
     </dependency>
     <dependency>
       <groupId>commons-net</groupId>
@@ -67,17 +67,17 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
-      <version>1.1.1-SNAPSHOT</version>
+      <version>1.1.1-Boron-SR1</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-model</artifactId>
-      <version>1.1.1-SNAPSHOT</version>
+      <version>1.1.1-Boron-SR1</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-model</artifactId>
-      <version>1.1.1-SNAPSHOT</version>
+      <version>1.1.1-Boron-SR1</version>
     </dependency>
   </dependencies>
 

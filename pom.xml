@@ -10,12 +10,12 @@
   <parent>
     <groupId>org.opendaylight.odlparent</groupId>
     <artifactId>odlparent-lite</artifactId>
-    <version>1.7.1-SNAPSHOT</version>
+    <version>1.7.1-Boron-SR1</version>
     <relativePath/>
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.1-Boron-SR1</version>
   <artifactId>faas.project</artifactId>
   <packaging>pom</packaging>
   <name>faas</name> <!-- Used by Sonar to set project name -->

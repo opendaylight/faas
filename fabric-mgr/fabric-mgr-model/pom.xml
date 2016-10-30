@@ -12,12 +12,12 @@
   <parent>
     <groupId>org.opendaylight.mdsal</groupId>
     <artifactId>binding-parent</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.9.1-Boron-SR1</version>
     <relativePath/>
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.1-Boron-SR1</version>
   <artifactId>fabric-mgr-model</artifactId>
   <packaging>bundle</packaging>
 
