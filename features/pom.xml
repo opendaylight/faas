@@ -30,7 +30,7 @@
     <restconf.version>1.5.0-SNAPSHOT</restconf.version>
     <openflowplugin.version>0.4.0-SNAPSHOT</openflowplugin.version>
     <ovsdb.southbound.version>1.4.0-SNAPSHOT</ovsdb.southbound.version>
-    <sfc.version>0.4.0-SNAPSHOT</sfc.version>
+    <sfc.version>0.5.0-SNAPSHOT</sfc.version>
     <inventory.model.version>1.5.0-SNAPSHOT</inventory.model.version>
     <karaf.empty.version>${odl.version}</karaf.empty.version>
     <config.configfile.directory>etc/opendaylight/karaf</config.configfile.directory>
