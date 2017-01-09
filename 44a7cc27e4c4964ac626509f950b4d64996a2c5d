@@ -1,0 +1,8 @@
+Verified+1: jenkins-releng <jenkins-releng@opendaylight.org>
+Code-Review+2: Ziyang Yao <yaoziyang_hw@163.com>
+Code-Review+1: xingjun chu <xingjun.chu@huawei.com>
+Submitted-by: xingjun chu <xingjun.chu@huawei.com>
+Submitted-at: Mon, 09 Jan 2017 20:51:56 +0000
+Reviewed-on: https://git.opendaylight.org/gerrit/45159
+Project: faas
+Branch: refs/heads/stable/boron
