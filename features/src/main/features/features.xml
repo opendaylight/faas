@@ -37,7 +37,6 @@
 
     <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jung-graph-impl/{{VERSION}}</bundle>
     <bundle>wrap:mvn:net.sf.jung/jung-algorithms/{{VERSION}}</bundle>
-    <bundle>mvn:com.google.guava/guava/{{VERSION}}</bundle>
     <bundle>mvn:org.opendaylight.faas/base/{{VERSION}}</bundle>
   </feature>
 
