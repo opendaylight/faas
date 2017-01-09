@@ -181,7 +181,7 @@ def registerEndpointLocation_multifabric(desc):
   if nodeId5 == constants.ERROR_STR:
     return constants.ERROR_STR
 
-  for inputData in tenant_3EPG_multifabric.get_endpoint_location_data(nc_id1a, nc_id1b, nc_id2a, nc_id2b, nc_id3a, nc_id3b, nc_id4a, nc_id4b, nc_id4c,nodeId1, nodeId2, nodeId3, nodeId4, nodeId5):
+  for inputData in tenant_3EPG_multifabric.get_endpoint_location_data(nc_id1a, nc_id1b, nc_id2a, nc_id2b, nc_id3a, nc_id3b, nc_id4a, nc_id4b, nc_id4c,nodeId1, nodeId2, nodeId3, nodeId4):
     result = util.runRequestPOST(inputsGBP.get_endpoint_location_uri(), json.dumps(inputData), sys._getframe().f_code.co_name)
 
   return result
