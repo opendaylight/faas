@@ -81,7 +81,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         }
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
@@ -128,7 +128,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<RegisterEndpointOutput>> apply(Void input) throws Exception {
@@ -170,7 +170,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
