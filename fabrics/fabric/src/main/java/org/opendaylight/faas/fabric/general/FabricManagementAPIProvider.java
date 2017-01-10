@@ -140,7 +140,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         CheckedFuture<Optional<Node>,ReadFailedException> readFuture =
                 rt.read(LogicalDatastoreType.OPERATIONAL, fabricpath);
 
-        return Futures.transform(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>() {
+        return Futures.transformAsync(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
@@ -248,7 +248,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<ComposeFabricOutput>> apply(Void submitResult) throws Exception {
@@ -447,7 +447,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @SuppressWarnings("unchecked")
             @Override
@@ -498,7 +498,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @SuppressWarnings("unchecked")
             @Override
@@ -528,7 +528,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
@@ -563,7 +563,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {

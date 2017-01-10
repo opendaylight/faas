@@ -155,7 +155,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
