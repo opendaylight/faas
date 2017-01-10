@@ -50,6 +50,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetAllFabricsOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetAllFabricsOutputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetPortsFromFabricInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.GetPortsFromFabricOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.RmLinkFromFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.RmNodeFromFabricInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.fabric.attributes.DeviceLinks;
@@ -140,27 +142,23 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
         CheckedFuture<Optional<Node>,ReadFailedException> readFuture =
                 rt.read(LogicalDatastoreType.OPERATIONAL, fabricpath);
 
-        return Futures.transform(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>() {
+        return Futures.transform(readFuture, (AsyncFunction<Optional<Node>, RpcResult<Void>>) optional -> {
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
+		    if (optional.isPresent()) {
+		        Node fabric = optional.get();
+		        FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricDeleted(fabric);
 
-                if (optional.isPresent()) {
-                    Node fabric = optional.get();
-                    FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricDeleted(fabric);
+		        WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+		        wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
+		        wt.delete(LogicalDatastoreType.CONFIGURATION, fabricpath);
+		        wt.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()));
+		        MdSalUtils.wrapperSubmit(wt, executor);
 
-                    WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-                    wt.delete(LogicalDatastoreType.OPERATIONAL, fabricpath);
-                    wt.delete(LogicalDatastoreType.CONFIGURATION, fabricpath);
-                    wt.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createTopoIId(fabricId.getValue()));
-                    MdSalUtils.wrapperSubmit(wt, executor);
+		        FabricInstanceCache.INSTANCE.removeFabric(fabricId);
+		    }
 
-                    FabricInstanceCache.INSTANCE.removeFabric(fabricId);
-                }
-
-                return Futures.immediateFuture(result);
-            }
-        });
+		    return Futures.immediateFuture(result);
+		});
     }
 
     @Override
@@ -179,7 +177,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
             public void onSuccess(Optional<Topology> result) {
                 if (result.isPresent()) {
                     List<Node> nodes = result.get().getNode();
-                    List<FabricId> fabricIds = new ArrayList<FabricId>();
+                    List<FabricId> fabricIds = new ArrayList<>();
                     if (nodes != null) {
                         for (Node node : nodes) {
                             FabricNode fnode = node.getAugmentation(FabricNode.class);
@@ -248,18 +246,14 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<ComposeFabricOutput>>() {
+        return Futures.transform(future, (AsyncFunction<Void, RpcResult<ComposeFabricOutput>>) submitResult -> {
+		    RpcResultBuilder<ComposeFabricOutput> resultBuilder = RpcResultBuilder.<ComposeFabricOutput>success();
+		    ComposeFabricOutputBuilder outputBuilder = new ComposeFabricOutputBuilder();
+		    outputBuilder.setFabricId(fabricId);
 
-            @Override
-            public ListenableFuture<RpcResult<ComposeFabricOutput>> apply(Void submitResult) throws Exception {
-                RpcResultBuilder<ComposeFabricOutput> resultBuilder = RpcResultBuilder.<ComposeFabricOutput>success();
-                ComposeFabricOutputBuilder outputBuilder = new ComposeFabricOutputBuilder();
-                outputBuilder.setFabricId(fabricId);
-
-                FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricCreated(fabricNode);
-                return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
-            }
-        });
+		    FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricCreated(fabricNode);
+		    return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
+		});
     }
 
     private String checkFabricOptions(final ComposeFabricInputBuilder input) {
@@ -528,13 +522,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                return Futures.immediateFuture(result);
-            }
-        });
+        return Futures.transform(future, (AsyncFunction<Void, RpcResult<Void>>) submitResult -> Futures.immediateFuture(result));
     }
 
     @Override
@@ -563,12 +551,12 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transform(future, (AsyncFunction<Void, RpcResult<Void>>) submitResult -> Futures.immediateFuture(result));
+    }
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                return Futures.immediateFuture(result);
-            }
-        });
+    @Override
+    public Future<RpcResult<GetPortsFromFabricOutput>> getPortsFromFabric(GetPortsFromFabricInput input) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
