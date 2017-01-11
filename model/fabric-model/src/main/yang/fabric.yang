@@ -80,7 +80,36 @@ module fabric {
         }
     }
 
+    grouping port-attributes {
+        leaf port-ref {
+            type fabrictype:tp-ref;
+        }
+        leaf port-type {
+            type enumeration {
+                enum ETH;
+                enum SERIAL;
+            }
+        }
+        leaf bandwith {
+            type enumeration {
+                enum 1G;
+                enum 10G;
+                enum 40G;
+                enum 100G;
+                enum 10M;
+                enum 100M;
+                enum 1M;
+            }
+        }
+    }
+
     grouping fabric-attributes {
+        
+        leaf parent {
+            type string;
+            description "The name of the fabric directly contains current fabric";
+        }
+        
         leaf name {
             type string;
         }
@@ -89,6 +118,17 @@ module fabric {
             type fabrictype:underlayer-network-type;
             description "The type of physical network that implements this fabric.
                         Examples are vlan, and trill.";
+        }
+
+        container vni-capacity {
+            description "number of vnis the fabric has";
+            leaf min {
+                type int32;
+            }
+
+            leaf max {
+                type int32;
+            }
         }
 
         leaf description {
@@ -108,6 +148,13 @@ module fabric {
             key link-ref;
             uses link-attributes;
         }
+
+        list device-ports {
+            key port-ref;
+            uses port-attributes;
+        }
+
+
 
     }
 
