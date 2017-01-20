@@ -38,11 +38,11 @@ import com.google.common.collect.Lists;
 
 public class PipelineTrafficClassifier extends AbstractServiceInstance {
 
-    public final static long REG_VALUE_FROM_LOCAL = 0x1L;
-    public final static long REG_VALUE_FROM_REMOTE = 0x2L;
-    public final static long REG_VALUE_FROM_VLAN = 0x3L;
+    public static final long REG_VALUE_FROM_LOCAL = 0x1L;
+    public static final long REG_VALUE_FROM_REMOTE = 0x2L;
+    public static final long REG_VALUE_FROM_VLAN = 0x3L;
 
-    public final static long REG2_DEFAULT_PERMIT_VNI = 0x0L;
+    public static final long REG2_DEFAULT_PERMIT_VNI = 0x0L;
 
     public static final Class<? extends NxmNxReg> REG_FIELD = NxmNxReg0.class;
     public static final Class<? extends NxmNxReg> REG_SRC_TUN_ID = NxmNxReg2.class;

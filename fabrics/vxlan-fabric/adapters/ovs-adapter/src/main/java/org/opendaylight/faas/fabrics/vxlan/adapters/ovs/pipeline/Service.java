@@ -7,6 +7,9 @@
  */
 package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.pipeline;
 
+/**
+ * Service - defines the pipeline tables a packet travels.
+ */
 public enum Service {
 
     TRAFFIC_CLASSIFIER ((short) 0, "Traffic Classifier"),
@@ -21,8 +24,6 @@ public enum Service {
 
     private short table;
     private String description;
-
-
 
     private Service (short table, String description)  {
         this.table = table;

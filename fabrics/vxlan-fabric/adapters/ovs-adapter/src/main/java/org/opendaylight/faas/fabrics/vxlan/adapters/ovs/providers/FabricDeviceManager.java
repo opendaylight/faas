@@ -13,10 +13,9 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +23,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
+import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker.DataChangeScope;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
@@ -79,7 +81,7 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, DataChangeListener, AutoCloseable {
+public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, DataTreeChangeListener<OvsdbBridgeAugmentation>, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricDeviceManager.class);
 
@@ -101,7 +103,8 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         rpcRegistration = rpcRegistry.addRoutedRpcImplementation(FabricVxlanDeviceAdapterService.class, this);
 
-        databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, targetPath, this, DataChangeScope.BASE);
+        databroker.registerDataTreeChangeListener(
+                new DataTreeIdentifier<>(LogicalDatastoreType.OPERATIONAL, targetPath), this);
     }
 
     public DataBroker getDatabroker() {
@@ -155,14 +158,10 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transform(future, (AsyncFunction<Void, RpcResult<Void>>) input1 -> {
+            renderers.put(deviceIId, new DeviceRenderer(executor, databroker, deviceIId, bridgeNode, fabricId));
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
-                renderers.put(deviceIId, new DeviceRenderer(executor, databroker, deviceIId, bridgeNode, fabricId));
-
-                return Futures.immediateFuture(result);
-            }
+            return Futures.immediateFuture(result);
         }, executor);
 
     }
@@ -211,31 +210,22 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
     }
 
     @Override
-    public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        Map<InstanceIdentifier<?>, DataObject> newBridges = change.getCreatedData();
+    public void onDataTreeChanged(Collection<DataTreeModification<OvsdbBridgeAugmentation>> changes) {
+            for (DataTreeModification<OvsdbBridgeAugmentation> change: changes) {
+                DataObjectModification<OvsdbBridgeAugmentation> rootNode = change.getRootNode();
+                if(rootNode.getModificationType() == DataObjectModification.ModificationType.WRITE) {
+                    InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = change.getRootPath().getRootIdentifier();
+                    InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
+                    this.rpcRegistration.registerPath(FabricCapableDeviceContext.class, targetIId);
 
-        if (newBridges != null) {
-            for (InstanceIdentifier<?> nodeIId : newBridges.keySet()) {
-                @SuppressWarnings("unchecked")
-                InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
-                InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
-                this.rpcRegistration.registerPath(FabricCapableDeviceContext.class, targetIId);
+                    setupDeviceAttribute(bridgeIId, rootNode.getDataAfter());
+                }
+                if(rootNode.getModificationType() == DataObjectModification.ModificationType.DELETE) {
+                    InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId = change.getRootPath().getRootIdentifier();
+                    InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
 
-                OvsdbBridgeAugmentation ovsdbData = (OvsdbBridgeAugmentation) newBridges.get(bridgeIId);
-                setupDeviceAttribute(bridgeIId, ovsdbData);
-            }
-        }
-
-        Set<InstanceIdentifier<?>> deletedBridges = change.getRemovedPaths();
-        if (deletedBridges != null) {
-            for (InstanceIdentifier<?> nodeIId : deletedBridges) {
-                @SuppressWarnings("unchecked")
-                InstanceIdentifier<OvsdbBridgeAugmentation> bridgeIId =
-                        (InstanceIdentifier<OvsdbBridgeAugmentation>) nodeIId;
-                InstanceIdentifier<Node> targetIId = bridgeIId.firstIdentifierOf(Node.class);
-
-                this.rpcRegistration.unregisterPath(FabricCapableDeviceContext.class, targetIId);
-            }
+                    this.rpcRegistration.unregisterPath(FabricCapableDeviceContext.class, targetIId);
+                }
         }
     }
 
