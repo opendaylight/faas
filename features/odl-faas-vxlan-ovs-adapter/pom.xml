@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.opendaylight.odlparent</groupId>
+        <artifactId>single-feature-parent</artifactId>
+        <version>1.8.0-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>org.opendaylight.faas</groupId>
+    <artifactId>odl-faas-vxlan-ovs-adapter</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
+    <packaging>feature</packaging>
+
+    <name>OpenDaylight :: faaS :: ovs adapter</name>
+    
+    <dependencies>
+        <dependency>
+        <groupId>org.opendaylight.openflowplugin</groupId>
+        <artifactId>odl-openflowplugin-flow-services</artifactId>
+        <version>0.4.0-SNAPSHOT</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>org.opendaylight.openflowplugin</groupId>
+        <artifactId>odl-openflowplugin-nxm-extensions</artifactId>
+        <version>0.4.0-SNAPSHOT</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>org.opendaylight.ovsdb</groupId>
+        <artifactId>odl-ovsdb-southbound-impl</artifactId>
+        <version>1.4.0-SNAPSHOT</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>odl-faas-base</artifactId>
+        <version>${project.version}</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>odl-faas-vxlan-fabric</artifactId>
+        <version>${project.version}</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>commons-net</groupId>
+        <artifactId>commons-net</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>org.opendaylight.faas</groupId>
+        <artifactId>vxlan-fabric-ovs-adapter</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+</dependencies>
+
+</project>
