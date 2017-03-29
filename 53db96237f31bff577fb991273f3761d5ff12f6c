@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fafc7978_89541155",
+        "filename": "features/odl-faas-fabric/pom.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 4540
+      },
+      "writtenOn": "2017-03-29T16:25:03Z",
+      "side": 1,
+      "message": "This should be odl-mdsal-models.",
+      "revId": "53db96237f31bff577fb991273f3761d5ff12f6c",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fafc7978_a94915b9",
+        "filename": "features/odl-faas-fabricmgr/pom.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 4540
+      },
+      "writtenOn": "2017-03-29T16:25:03Z",
+      "side": 1,
+      "message": "This should be odl-mdsal-models.",
+      "revId": "53db96237f31bff577fb991273f3761d5ff12f6c",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fafc7978_e97cbded",
+        "filename": "features/odl-faas-uln-mapper/pom.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 4540
+      },
+      "writtenOn": "2017-03-29T16:25:03Z",
+      "side": 1,
+      "message": "This should be odl-mdsal-models (as in the original features.xml).",
+      "revId": "53db96237f31bff577fb991273f3761d5ff12f6c",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fafc7978_896d3135",
+        "filename": "features/odl-faas-uln-mapper/pom.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 4540
+      },
+      "writtenOn": "2017-03-29T16:25:03Z",
+      "side": 1,
+      "message": "This should be odl-sfc-provider (and you\u0027ll need to wait for the SFC patch to be merged).",
+      "revId": "53db96237f31bff577fb991273f3761d5ff12f6c",
+      "serverId": "7fc14799-209e-464c-9743-7a06c2c21a81",
+      "unresolved": false
+    }
+  ]
+}
