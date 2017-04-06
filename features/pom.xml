@@ -1,269 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+      xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <parent>
+      <groupId>org.opendaylight.odlparent</groupId>
+      <artifactId>odlparent-lite</artifactId>
+      <version>1.8.0-SNAPSHOT</version>
+      <relativePath/>
+   </parent>
+   <groupId>org.opendaylight.faas</groupId>
+   <artifactId>features-aggregator</artifactId>
+   <version>1.2.0-SNAPSHOT</version>
+   <packaging>pom</packaging>
 
-<!-- Copyright (c) 2015 Huawei Technologies Co. Ltd. and others. All rights reserved.
-  This program and the accompanying materials are made available under the
-  terms of the Eclipse Public License v1.0 which accompanies this distribution,
-  and is available at http://www.eclipse.org/legal/epl-v10.html -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-
-  <parent>
-    <groupId>org.opendaylight.odlparent</groupId>
-    <artifactId>features-parent</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
-    <relativePath />
-  </parent>
-
-  <groupId>org.opendaylight.faas</groupId>
-  <artifactId>features-faas</artifactId>
-  <version>1.2.0-SNAPSHOT</version>
-  <packaging>jar</packaging>
-
-  <properties>
-    <odl.version>1.8.0-SNAPSHOT</odl.version>
-    <mdsal.version>2.2.0-SNAPSHOT</mdsal.version>
-    <mdsal.model.version>0.10.0-SNAPSHOT</mdsal.model.version>
-    <controller.mdsal.version>1.5.0-SNAPSHOT</controller.mdsal.version>
-    <features.file>features.xml</features.file>
-    <branding.version>1.2.0-SNAPSHOT</branding.version>
-    <restconf.version>1.5.0-SNAPSHOT</restconf.version>
-    <openflowplugin.version>0.4.0-SNAPSHOT</openflowplugin.version>
-    <ovsdb.southbound.version>1.4.0-SNAPSHOT</ovsdb.southbound.version>
-    <sfc.version>0.5.0-SNAPSHOT</sfc.version>
-    <inventory.model.version>1.5.0-SNAPSHOT</inventory.model.version>
-    <karaf.empty.version>${odl.version}</karaf.empty.version>
-    <config.configfile.directory>etc/opendaylight/karaf</config.configfile.directory>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-     <!-- FAAS -->
-      <dependency>
-        <groupId>org.opendaylight.faas</groupId>
-        <artifactId>faas-artifacts</artifactId>
-        <version>${project.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- Controller infrastructure -->
-      <dependency>
-        <groupId>org.opendaylight.mdsal</groupId>
-        <artifactId>mdsal-artifacts</artifactId>
-        <version>${mdsal.version}</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
-     <dependency>
-        <groupId>org.opendaylight.mdsal.model</groupId>
-        <artifactId>mdsal-model-artifacts</artifactId>
-        <version>${mdsal.model.version}</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
-      <dependency>
-        <groupId>org.opendaylight.controller</groupId>
-        <artifactId>mdsal-artifacts</artifactId>
-        <version>${controller.mdsal.version}</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <!-- Controller infrastructure -->
-    <dependency>
-      <groupId>org.opendaylight.mdsal</groupId>
-      <artifactId>features-mdsal</artifactId>
-      <classifier>features</classifier>
-      <type>xml</type>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>features-mdsal</artifactId>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.mdsal.model</groupId>
-      <artifactId>features-mdsal-model</artifactId>
-      <classifier>features</classifier>
-      <type>xml</type>
-      <scope>runtime</scope>
-    </dependency>
-
-    <!-- configuration dependencies -->
-
-    <!-- SFC -->
-    <dependency>
-      <groupId>org.opendaylight.sfc</groupId>
-      <artifactId>features-sfc</artifactId>
-      <version>${sfc.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-      <scope>runtime</scope>
-    </dependency>
-
-    <!-- Netconf -->
-    <dependency>
-      <groupId>org.opendaylight.netconf</groupId>
-      <artifactId>features-restconf</artifactId>
-      <version>${restconf.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-
-    <!-- Openflow plugin -->
-    <dependency>
-      <groupId>org.opendaylight.openflowplugin</groupId>
-      <artifactId>features-openflowplugin-extension</artifactId>
-      <version>${openflowplugin.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-
-    <!-- OVSDB -->
-    <dependency>
-      <groupId>org.opendaylight.ovsdb</groupId>
-      <artifactId>southbound-features</artifactId>
-      <version>${ovsdb.southbound.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-
-    <!-- Openflow plugin -->
-    <dependency>
-      <groupId>org.opendaylight.openflowplugin</groupId>
-      <artifactId>features-openflowplugin</artifactId>
-      <version>${openflowplugin.version}</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-    </dependency>
-
-    <!-- dependency for opendaylight-karaf-empty for use by testing -->
-    <dependency>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>opendaylight-karaf-empty</artifactId>
-      <version>${karaf.empty.version}</version>
-      <type>zip</type>
-    </dependency>
-
-    <!-- FAAS feature bundles -->
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>base</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-model</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric-model</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vlan-fabric-model</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vlan-fabric</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric-ovs-adapter</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric</artifactId>
-      <type>xml</type>
-      <classifier>config</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vlan-fabric</artifactId>
-      <type>xml</type>
-      <classifier>config</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric</artifactId>
-      <type>xml</type>
-      <classifier>config</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>vxlan-fabric-ovs-adapter</artifactId>
-      <type>xml</type>
-      <classifier>config</classifier>
-    </dependency>
-
-    <!-- uln-mapper feature -->
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>uln-mapper-impl</artifactId>
-      <version>${project.version}</version>
-      <type>xml</type>
-      <classifier>config</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>uln-mapper-impl</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <!-- fabric-mgr feature -->
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-mgr-model</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-mgr-impl</artifactId>
-      <type>xml</type>
-      <classifier>config</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>fabric-mgr-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>uln-mapper-model</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.opendaylight.faas</groupId>
-      <artifactId>uln-cache</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <!-- Feature dependencies -->
-    <dependency>
-      <groupId>org.apache.servicemix.bundles</groupId>
-      <artifactId>org.apache.servicemix.bundles.snmp4j</artifactId>
-      <version>2.1.0_1</version>
-    </dependency>
-    <dependency>
-      <groupId>colt</groupId>
-      <artifactId>colt</artifactId>
-      <version>1.2.0</version>
-    </dependency>
-    <dependency>
-      <groupId>concurrent</groupId>
-      <artifactId>concurrent</artifactId>
-      <version>1.3.4</version>
-    </dependency>
-  </dependencies>
+   <modules>
+      <module>features-faas</module>
+      <module>features4-faas</module>
+      <module>odl-faas-base</module>
+      <module>odl-faas-all</module>
+      <module>odl-faas-fabric</module>
+      <module>odl-faas-vlan-fabric</module>
+      <module>odl-faas-vxlan-fabric</module>
+      <module>odl-faas-vxlan-ovs-adapter</module>
+      <module>odl-faas-fabricmgr</module>
+      <module>odl-faas-uln-mapper</module>
+   </modules>
 </project>

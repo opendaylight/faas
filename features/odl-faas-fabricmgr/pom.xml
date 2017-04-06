@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.opendaylight.odlparent</groupId>
+        <artifactId>single-feature-parent</artifactId>
+        <version>1.8.0-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>org.opendaylight.faas</groupId>
+    <artifactId>odl-faas-fabricmgr</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
+    <packaging>feature</packaging>
+
+    <name>OpenDaylight :: faaS :: fabric manager</name>
+
+    <dependencies>
+    <dependency>
+        <groupId>org.opendaylight.mdsal.model</groupId>
+        <artifactId>odl-mdsal-models</artifactId>
+        <version>0.10.0-SNAPSHOT</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+    <dependency>
+         <groupId>org.opendaylight.controller</groupId>
+         <artifactId>odl-mdsal-broker</artifactId>
+         <version>1.5.0-SNAPSHOT</version>
+         <type>xml</type>
+         <classifier>features</classifier>
+     </dependency>
+
+    <dependency>
+          <groupId>org.opendaylight.mdsal</groupId>
+          <artifactId>odl-mdsal-binding-runtime</artifactId>
+          <version>2.2.0-SNAPSHOT</version>
+          <type>xml</type>
+          <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>odl-faas-base</artifactId>
+        <version>${project.version}</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>odl-faas-vxlan-fabric</artifactId>
+        <version>${project.version}</version>
+        <type>xml</type>
+        <classifier>features</classifier>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>fabric-model</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.opendaylight.controller.model</groupId>
+        <artifactId>model-inventory</artifactId>
+        <version>1.5.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>uln-mapper-model</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>uln-cache</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>fabric-mgr-model</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>fabric-mgr-impl</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+</dependencies>
+
+</project>
