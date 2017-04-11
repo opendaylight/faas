@@ -12,18 +12,18 @@
   <parent>
     <groupId>org.opendaylight.controller</groupId>
     <artifactId>config-parent</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
     <relativePath />
   </parent>
   
   <groupId>org.opendaylight.faas</groupId>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.3.0-SNAPSHOT</version>
   <artifactId>vxlan-fabric-ovs-adapter</artifactId>
   <packaging>bundle</packaging>
 
   <properties>
-    <openflowjava-nicira.version>0.4.0-SNAPSHOT</openflowjava-nicira.version>
-    <openflowplugin.version>0.4.0-SNAPSHOT</openflowplugin.version>
+    <openflowjava-nicira.version>0.5.0-SNAPSHOT</openflowjava-nicira.version>
+    <openflowplugin.version>0.5.0-SNAPSHOT</openflowplugin.version>
   </properties>
 
   <dependencies>
@@ -58,7 +58,7 @@
     <dependency>
       <groupId>org.opendaylight.ovsdb</groupId>
       <artifactId>southbound-api</artifactId>
-      <version>1.4.0-SNAPSHOT</version>
+      <version>1.5.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>commons-net</groupId>
@@ -67,17 +67,17 @@
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric</artifactId>
-      <version>1.2.0-SNAPSHOT</version>
+      <version>1.3.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>fabric-model</artifactId>
-      <version>1.2.0-SNAPSHOT</version>
+      <version>1.3.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>vxlan-fabric-model</artifactId>
-      <version>1.2.0-SNAPSHOT</version>
+      <version>1.3.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
