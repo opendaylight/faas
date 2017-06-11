@@ -11,7 +11,7 @@
   <parent>
     <groupId>org.opendaylight.odlparent</groupId>
     <artifactId>features-parent</artifactId>
-    <version>1.9.0-SNAPSHOT</version>
+    <version>1.8.0-Carbon</version>
     <relativePath />
   </parent>
 
@@ -21,7 +21,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <odl.version>1.9.0-SNAPSHOT</odl.version>
     <mdsal.version>2.3.0-SNAPSHOT</mdsal.version>
     <mdsal.model.version>0.11.0-SNAPSHOT</mdsal.model.version>
     <controller.mdsal.version>1.6.0-SNAPSHOT</controller.mdsal.version>
@@ -32,7 +31,6 @@
     <ovsdb.southbound.version>1.5.0-SNAPSHOT</ovsdb.southbound.version>
     <sfc.version>0.6.0-SNAPSHOT</sfc.version>
     <inventory.model.version>1.6.0-SNAPSHOT</inventory.model.version>
-    <karaf.empty.version>${odl.version}</karaf.empty.version>
     <config.configfile.directory>etc/opendaylight/karaf</config.configfile.directory>
   </properties>
 
@@ -145,9 +143,9 @@
 
     <!-- dependency for opendaylight-karaf-empty for use by testing -->
     <dependency>
-      <groupId>org.opendaylight.controller</groupId>
+      <groupId>org.opendaylight.odlparent</groupId>
       <artifactId>opendaylight-karaf-empty</artifactId>
-      <version>${karaf.empty.version}</version>
+      <version>1.8.0-Carbon</version>
       <type>zip</type>
     </dependency>
 
