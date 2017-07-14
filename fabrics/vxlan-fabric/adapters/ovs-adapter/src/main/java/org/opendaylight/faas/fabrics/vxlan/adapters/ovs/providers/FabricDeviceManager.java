@@ -10,7 +10,6 @@ package org.opendaylight.faas.fabrics.vxlan.adapters.ovs.providers;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -85,7 +84,7 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricDeviceManager.class);
 
-    private ListeningExecutorService executor;
+    private final ListeningExecutorService executor;
     private final DataBroker databroker;
 
     private final Map<InstanceIdentifier<Node>, DeviceRenderer> renderers = Maps.newHashMap();
@@ -158,10 +157,10 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transform(future, (AsyncFunction<Void, RpcResult<Void>>) input1 -> {
+        return Futures.transform(future,  input1 -> {
             renderers.put(deviceIId, new DeviceRenderer(executor, databroker, deviceIId, bridgeNode, fabricId));
 
-            return Futures.immediateFuture(result);
+            return result;
         }, executor);
 
     }

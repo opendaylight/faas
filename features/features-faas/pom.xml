@@ -98,7 +98,7 @@
     <!-- SFC -->
     <dependency>
       <groupId>org.opendaylight.sfc</groupId>
-      <artifactId>features-sfc</artifactId>
+      <artifactId>features4-sfc</artifactId>
       <version>${sfc.version}</version>
       <classifier>features</classifier>
       <type>xml</type>

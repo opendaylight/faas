@@ -81,13 +81,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         }
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
-                return Futures.immediateFuture(result);
-            }
-        }, executor);
+        return Futures.transformAsync(future, (AsyncFunction<Void, RpcResult<Void>>) input1 -> Futures.immediateFuture(result), executor);
     }
 
     @Override
@@ -128,7 +122,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<RegisterEndpointOutput>> apply(Void input) throws Exception {
@@ -170,13 +164,7 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void input) throws Exception {
-                return Futures.immediateFuture(result);
-            }
-        }, executor);
+        return Futures.transformAsync(future, (AsyncFunction<Void, RpcResult<Void>>) input1 -> Futures.immediateFuture(result), executor);
     }
 
     public void start() {

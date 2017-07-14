@@ -96,7 +96,7 @@ public class FabricResourceAPIProvider implements AutoCloseable, FabricResources
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<AddFabricLinkOutput>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<AddFabricLinkOutput>>() {
 
             @Override
             public ListenableFuture<RpcResult<AddFabricLinkOutput>> apply(Void submitResult) throws Exception {
@@ -127,7 +127,7 @@ public class FabricResourceAPIProvider implements AutoCloseable, FabricResources
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transform(future, new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
 
             @Override
             public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
