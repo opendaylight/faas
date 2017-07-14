@@ -11,13 +11,13 @@
   <parent>
     <groupId>org.opendaylight.odlparent</groupId>
     <artifactId>karaf-parent</artifactId>
-    <version>1.8.1-SNAPSHOT</version>
+    <version>1.8.2-SNAPSHOT</version>
     <relativePath />
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
   <artifactId>faas-karaf</artifactId>
-  <version>1.2.1-SNAPSHOT</version>
+  <version>1.2.2-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <prerequisites>
