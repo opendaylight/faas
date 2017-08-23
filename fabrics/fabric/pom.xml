@@ -11,9 +11,9 @@
 
 
   <parent>
-    <groupId>org.opendaylight.controller</groupId>
-    <artifactId>config-parent</artifactId>
-    <version>0.8.0-SNAPSHOT</version>
+    <groupId>org.opendaylight.mdsal</groupId>
+    <artifactId>binding-parent</artifactId>
+    <version>0.12.0-SNAPSHOT</version>
     <relativePath />
   </parent>
 
@@ -21,6 +21,18 @@
   <artifactId>fabric</artifactId>
   <version>1.4.0-SNAPSHOT</version>
   <packaging>bundle</packaging>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.opendaylight.controller</groupId>
+        <artifactId>mdsal-artifacts</artifactId>
+        <version>1.7.0-SNAPSHOT</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
       <dependency>
@@ -32,6 +44,11 @@
       <groupId>org.apache.servicemix.bundles</groupId>
       <artifactId>org.apache.servicemix.bundles.jung-graph-impl</artifactId>
       <version>2.0.1_2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>sal-binding-api</artifactId>
     </dependency>
 
     <dependency>
@@ -61,11 +78,9 @@
                     <instructions>
                         <Export-Package>org.opendaylight.faas.fabric.general.*,
                         org.opendaylight.faas.fabric.utils.*,
-                        org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.impl.rev150930,
                         org.opendaylight.controller.config.yang.config.fabric.impl
                         </Export-Package>
                         <Bundle-Version>${project.version}</Bundle-Version>
-                        <Import-Package>*</Import-Package>
                     </instructions>
                 </configuration>
            </plugin>

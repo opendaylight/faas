@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:odl="http://opendaylight.org/xmlns/blueprint/v1.0.0">
+
+  <reference id="dataBroker" interface="org.opendaylight.controller.md.sal.binding.api.DataBroker"/>
+  <reference id="rpcProviderRegistry" interface="org.opendaylight.controller.sal.binding.api.RpcProviderRegistry"/>
+  <reference id="fabricRendererRegistry" interface="org.opendaylight.faas.fabric.general.FabricRendererRegistry"/>
+
+  <odl:clustered-app-config id="vlanFabricConfig"
+      binding-class="org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.vlan.impl.rev160615.VlanFabricConfig">
+    <odl:default-config><![CDATA[
+      <vlan-fabric-config xmlns="urn:opendaylight:params:xml:ns:yang:controller:config:fabric:vlan:impl">
+        <gateway-mac>
+          <mac-address>80:38:bC:a1:33:c7</mac-address>
+        </gateway-mac>
+      </vlan-fabric-config>
+    ]]></odl:default-config>
+  </odl:clustered-app-config>
+
+  <bean id="vlanFabricProvider" class="org.opendaylight.faas.fabric.vlan.VlanFabricProvider"
+      init-method = "init" destroy-method="close">
+    <argument ref="dataBroker"/>
+    <argument ref="rpcProviderRegistry"/>
+    <argument ref="fabricRendererRegistry"/>
+    <argument>
+      <bean factory-ref="vlanFabricConfig" factory-method="getGatewayMac"/>
+    </argument>
+  </bean>
+
+</blueprint>

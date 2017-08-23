@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:odl="http://opendaylight.org/xmlns/blueprint/v1.0.0">
+
+  <reference id="dataBroker" interface="org.opendaylight.controller.md.sal.binding.api.DataBroker"/>
+
+  <bean id="fabMgrDatastoreUtil" class="org.opendaylight.faas.fabricmgr.FabMgrDatastoreUtil">
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="vContainerMgr" class="org.opendaylight.faas.fabricmgr.VContainerMgr">
+    <argument ref="fabMgrDatastoreUtil"/>
+  </bean>
+
+  <odl:rpc-implementation ref="vContainerMgr"/>
+
+  <odl:rpc-service id="fabricEndpointService"
+      interface="org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService"/>
+
+  <odl:rpc-service id="fabricServiceService"
+      interface="org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.services.rev150930.FabricServiceService"/>
+
+  <odl:rpc-service id="fabricService"
+      interface="org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricService"/>
+
+  <bean id="vContainerNetNodeServiceProvider" class="org.opendaylight.faas.fabricmgr.VContainerNetNodeServiceProvider">
+    <argument ref="vContainerMgr"/>
+    <argument ref="fabricEndpointService"/>
+    <argument ref="fabricServiceService"/>
+    <argument ref="fabricService"/>
+  </bean>
+
+  <odl:rpc-implementation ref="vContainerNetNodeServiceProvider"/>
+
+  <bean id="fabricMgrProvider" class="org.opendaylight.faas.fabricmgr.FabricMgrProvider">
+    <argument ref="vContainerMgr"/>
+    <argument ref="vContainerNetNodeServiceProvider"/>
+    <argument ref="fabMgrDatastoreUtil"/>
+  </bean>
+</blueprint>
