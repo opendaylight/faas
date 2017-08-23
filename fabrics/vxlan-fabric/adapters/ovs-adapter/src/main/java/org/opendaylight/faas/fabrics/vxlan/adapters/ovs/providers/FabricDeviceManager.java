@@ -17,18 +17,14 @@ import com.google.common.util.concurrent.MoreExecutors;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker.DataChangeScope;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RoutedRpcRegistration;
@@ -73,7 +69,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPoint;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
-import org.opendaylight.yangtools.yang.binding.DataObject;
+import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
@@ -86,24 +82,31 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
 
     private final ListeningExecutorService executor;
     private final DataBroker databroker;
+    private final RpcProviderRegistry rpcRegistry;
 
     private final Map<InstanceIdentifier<Node>, DeviceRenderer> renderers = Maps.newHashMap();
 
-    private final RoutedRpcRegistration<FabricVxlanDeviceAdapterService> rpcRegistration;
+    private ListenerRegistration<FabricDeviceManager> listenerRegistration;
 
     final InstanceIdentifier<OvsdbBridgeAugmentation> targetPath = InstanceIdentifier.create(NetworkTopology.class)
             .child(Topology.class).child(Node.class).augmentation(OvsdbBridgeAugmentation.class);
 
-    public FabricDeviceManager(final DataBroker databroker,
-            final RpcProviderRegistry rpcRegistry) {
+    private RoutedRpcRegistration<FabricVxlanDeviceAdapterService> rpcRegistration;
+
+    public FabricDeviceManager(final DataBroker databroker, final RpcProviderRegistry rpcRegistry) {
         this.databroker = databroker;
+        this.rpcRegistry = rpcRegistry;
         executor = MoreExecutors.listeningDecorator(
                 Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+    }
 
+    public void init() {
         rpcRegistration = rpcRegistry.addRoutedRpcImplementation(FabricVxlanDeviceAdapterService.class, this);
 
-        databroker.registerDataTreeChangeListener(
+        listenerRegistration = databroker.registerDataTreeChangeListener(
                 new DataTreeIdentifier<>(LogicalDatastoreType.OPERATIONAL, targetPath), this);
+
+        LOG.info("FabricDeviceManager initialized");
     }
 
     public DataBroker getDatabroker() {
@@ -271,6 +274,10 @@ public class FabricDeviceManager implements FabricVxlanDeviceAdapterService, Dat
     public void close() throws Exception {
         if (rpcRegistration != null) {
             rpcRegistration.close();
+        }
+
+        if (listenerRegistration != null) {
+            listenerRegistration.close();
         }
     }
 

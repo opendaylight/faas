@@ -8,11 +8,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
- 
+
   <parent>
-      <groupId>org.opendaylight.controller</groupId>
-      <artifactId>config-parent</artifactId>
-      <version>0.8.0-SNAPSHOT</version>
+      <groupId>org.opendaylight.mdsal</groupId>
+      <artifactId>binding-parent</artifactId>
+      <version>0.12.0-SNAPSHOT</version>
       <relativePath />
   </parent>
 
@@ -20,6 +20,18 @@
   <artifactId>uln-mapper-impl</artifactId>
   <version>1.4.0-SNAPSHOT</version>
   <packaging>bundle</packaging>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.opendaylight.controller</groupId>
+        <artifactId>mdsal-artifacts</artifactId>
+        <version>1.7.0-SNAPSHOT</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>
@@ -30,7 +42,6 @@
         <configuration>
             <instructions>
                 <Export-Package>
-                   org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.*,
                    org.opendaylight.faas.uln.datastore.api.*
                 </Export-Package>
                 <Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
@@ -41,6 +52,10 @@
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>org.opendaylight.controller</groupId>
+      <artifactId>sal-binding-api</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.opendaylight.faas</groupId>
       <artifactId>uln-mapper-model</artifactId>

@@ -12,6 +12,7 @@ target-ide
 .classpath
 .project
 .settings/
+.checkstyle
 MANIFEST.MF
 xtend-gen
 yang-gen-config

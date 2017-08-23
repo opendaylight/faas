@@ -10,14 +10,10 @@ package org.opendaylight.faas.fabricmgr;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
@@ -87,54 +83,28 @@ import org.slf4j.LoggerFactory;
  * VContainerNetNodeServiceProvider implements RPC stub for FaaS Services.
  *
  */
-public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNodeService {
+public class VContainerNetNodeServiceProvider implements VcNetNodeService {
 
     private static final Logger LOG = LoggerFactory.getLogger(VContainerNetNodeServiceProvider.class);
 
-    private RpcRegistration<VcNetNodeService> rpcRegistration;
-    private final ExecutorService threadPool;
-    private FabricEndpointService epService;
-    private FabricServiceService fabServiceService;
-    private FabricService fabService;
+    private final VContainerMgr containerMgr;
+    private final FabricEndpointService epService;
+    private final FabricServiceService fabServiceService;
+    private final FabricService fabService;
 
-    /**
-     * Constructor.
-     * @param executor - thread pool to run the tasks to program the devices.
-     */
-    public VContainerNetNodeServiceProvider(ExecutorService executor) {
-        this.threadPool = executor;
+    public VContainerNetNodeServiceProvider(VContainerMgr containerMgr, FabricEndpointService epService,
+            FabricServiceService fabServiceService, FabricService fabService) {
+        this.containerMgr = containerMgr;
+        this.epService = epService;
+        this.fabServiceService = fabServiceService;
+        this.fabService = fabService;
     }
-
-    /**
-     * Injects services.
-     */
-    public void initialize() {
-        this.rpcRegistration =
-                FabMgrDatastoreDependency.getRpcRegistry().addRpcImplementation(VcNetNodeService.class, this);
-        this.epService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricEndpointService.class);
-        this.fabServiceService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricServiceService.class);
-        this.fabService = FabMgrDatastoreDependency.getRpcRegistry().getRpcService(FabricService.class);
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (this.rpcRegistration != null) {
-            this.rpcRegistration.close();
-        }
-    }
-
 
     @Override
     public Future<RpcResult<CreateLneLayer2Output>> createLneLayer2(
             CreateLneLayer2Input input) {
-        FabricMgrProvider fmgr = FabricMgrProvider.getInstance();
-        if (fmgr == null) {
-            LOG.error("FABMGR: null FabricMgrProvider");
-            return Futures.immediateFailedFuture(new IllegalArgumentException("fmgr is null!"));
-        }
-
         TenantId tenantId = input.getTenantId();
-        VContainerConfigMgr vcMgr = fmgr.getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+        VContainerConfigMgr vcMgr = containerMgr.getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: createLneLayer2: vcMgr is null: {}", tenantId.getValue());
             return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));
@@ -237,8 +207,7 @@ public class VContainerNetNodeServiceProvider implements AutoCloseable, VcNetNod
         TenantId tenantId = input.getTenantId();
         VcLneId lswId = input.getLneId();
 
-        VContainerConfigMgr vcMgr =
-                FabricMgrProvider.getInstance().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
+        VContainerConfigMgr vcMgr = containerMgr.getVcConfigDataMgr(new Uuid(tenantId.getValue()));
         if (vcMgr == null) {
             LOG.error("FABMGR: ERROR: rmLneLayer2: vcMgr is null: {}", tenantId.getValue());
             return Futures.immediateFailedFuture(new IllegalArgumentException("vcMgr is null"));

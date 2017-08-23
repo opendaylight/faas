@@ -9,15 +9,9 @@ package org.opendaylight.faas.fabric.general;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-
-import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.sal.binding.api.NotificationProviderService;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricListener;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.general.spi.FabricRendererFactory;
@@ -28,17 +22,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.netwo
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
-
-    private FabricManagementAPIProvider manageApi;
-
-    private FabricResourceAPIProvider resourceApi;
-
-    private FabricServiceAPIProvider serviceApi;
-
-    private EndPointRegister epRegister;
-
-    private final ExecutorService executor;
+public class FabricFactory implements FabricRendererRegistry {
 
     private final Map<UnderlayerNetworkType, FabricRendererFactory> registeredFabricImpls = Maps.newHashMap();
 
@@ -57,33 +41,7 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
     };
 
 
-    public FabricFactory( final DataBroker dataProvider,
-            final RpcProviderRegistry rpcRegistry,
-            final NotificationProviderService notificationService) {
-
-        ThreadFactory threadFact = new ThreadFactoryBuilder().setNameFormat("fabric-factory-%d").build();
-        executor = Executors.newSingleThreadExecutor(threadFact);
-
-        manageApi = new FabricManagementAPIProvider(dataProvider, rpcRegistry, executor, this);
-        manageApi.start();
-
-        resourceApi = new FabricResourceAPIProvider(dataProvider, rpcRegistry);
-        resourceApi.start();
-
-        serviceApi = new FabricServiceAPIProvider(dataProvider, rpcRegistry, executor);
-        serviceApi.start();
-
-        epRegister = new EndPointRegister(dataProvider, rpcRegistry, executor);
-        epRegister.start();
-    }
-
-    @Override
-    public void close() throws Exception {
-        manageApi.close();
-        resourceApi.close();
-        serviceApi.close();
-        epRegister.close();
-        executor.shutdown();
+    public FabricFactory() {
     }
 
     @Override
@@ -103,4 +61,7 @@ public class FabricFactory implements AutoCloseable, FabricRendererRegistry {
         return rendererFactory == null ? defaultRendererFactory : rendererFactory;
     }
 
+    public static ExecutorService newExecutorService() {
+        return Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("fabric-factory-%d").build());
+    }
 }

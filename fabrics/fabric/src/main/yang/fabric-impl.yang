@@ -4,61 +4,8 @@ module fabric-impl {
     namespace "urn:opendaylight:params:xml:ns:yang:controller:config:fabric:impl";
     prefix "fabric-impl";
 
-    import config { prefix config; revision-date 2013-04-05; }
-    import opendaylight-md-sal-binding { prefix mdsal; revision-date 2013-10-28; }
-
     revision "2015-09-30" {
         description "initial revision.";
-    }
-
-    identity fabric-renderer-registry {
-        base config:service-type;
-
-        config:java-class "org.opendaylight.faas.fabric.general.FabricRendererRegistry";
-    }
-
-    // This is the definition of the service implementation as a module identity.
-    identity fabric-factory {
-        base config:module-type;
-
-        // Specifies the prefix for generated java classes.
-        config:java-name-prefix FabricFactory;
-
-        config:provided-service fabric-renderer-registry;
-    }
-
-    // Augment the 'configuration' choice node under modules/module.
-    augment "/config:modules/config:module/config:configuration" {
-        case fabric-factory {
-            when "/config:modules/config:module/config:type = 'fabric-factory'";
-
-            container data-broker {
-                uses config:service-ref {
-                    refine type {
-                        mandatory true;
-                        config:required-identity mdsal:binding-async-data-broker;
-                    }
-                }
-            }
-
-            container rpc-registry {
-                uses config:service-ref {
-                    refine type {
-                        mandatory true;
-                        config:required-identity mdsal:binding-rpc-registry;
-                    }
-                }
-            }
-
-            container notification-service {
-                uses config:service-ref {
-                    refine type {
-                        mandatory true;
-                        config:required-identity mdsal:binding-notification-service;
-                    }
-                }
-            }
-        }
     }
 
     container fabrics-setting {
@@ -66,6 +13,5 @@ module fabric-impl {
             type uint32;
             default 1;
         }
-
     }
 }

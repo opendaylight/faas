@@ -11,6 +11,8 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
@@ -24,9 +26,19 @@ public class FabMgrDatastoreUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabMgrDatastoreUtil.class);
 
-    public static <T extends DataObject> Optional<T> readData(final LogicalDatastoreType storeType,
+    private final DataBroker dataBroker;
+
+    public FabMgrDatastoreUtil(DataBroker dataBroker) {
+        this.dataBroker = dataBroker;
+    }
+
+    public DataBroker getDataBroker() {
+        return dataBroker;
+    }
+
+    public <T extends DataObject> Optional<T> readData(final LogicalDatastoreType storeType,
             final InstanceIdentifier<T> path) {
-        final ReadTransaction tx = FabMgrDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+        final ReadTransaction tx = dataBroker.newReadOnlyTransaction();
         CheckedFuture<Optional<T>, ReadFailedException> resultFuture = tx.read(storeType, path);
         try {
             return resultFuture.checkedGet();
@@ -36,9 +48,9 @@ public class FabMgrDatastoreUtil {
         }
     }
 
-    public static <T extends DataObject> void deleteData(final LogicalDatastoreType storeType,
+    public <T extends DataObject> void deleteData(final LogicalDatastoreType storeType,
             final InstanceIdentifier<T> path) {
-        final WriteTransaction tx = FabMgrDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        final WriteTransaction tx = dataBroker.newWriteOnlyTransaction();
         tx.delete(storeType, path);
         Futures.addCallback(tx.submit(), new FutureCallback<Void>() {
 
@@ -53,12 +65,12 @@ public class FabMgrDatastoreUtil {
                         storeType, path, t);
             }
 
-        });
+        }, MoreExecutors.directExecutor());
     }
 
-    public static <T extends DataObject> void putData(final LogicalDatastoreType storeType,
+    public <T extends DataObject> void putData(final LogicalDatastoreType storeType,
             final InstanceIdentifier<T> path, final T data) {
-        final WriteTransaction tx = FabMgrDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        final WriteTransaction tx = dataBroker.newWriteOnlyTransaction();
         tx.put(storeType, path, data, true);
         Futures.addCallback(tx.submit(), new FutureCallback<Void>() {
 
@@ -72,7 +84,7 @@ public class FabMgrDatastoreUtil {
                 LOG.error("FABMGR: ERROR: Can not put data into datastore [store: {}] [path: {}] [exception: {}]",
                         storeType, path, t);
             }
-        });
+        }, MoreExecutors.directExecutor());
 
     }
 }

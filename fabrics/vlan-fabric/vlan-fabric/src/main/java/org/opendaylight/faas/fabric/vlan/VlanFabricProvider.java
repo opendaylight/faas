@@ -10,14 +10,10 @@ package org.opendaylight.faas.fabric.vlan;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-
-import org.opendaylight.controller.config.yang.config.fabric.vlan.impl.GatewayMac;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.NotificationPublishService;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.FabricRendererRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricListener;
@@ -29,6 +25,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.Fabri
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.network.topology.topology.node.FabricAttributeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.UnderlayerNetworkType;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.controller.config.fabric.vlan.impl.rev160615.vlan.fabric.config.GatewayMac;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
@@ -44,34 +41,34 @@ public class VlanFabricProvider implements AutoCloseable, FabricRendererFactory 
 
     private final List<GatewayMac> availableMacs;
 
-    private ListeningExecutorService executor;
+    private final ListeningExecutorService executor = MoreExecutors.listeningDecorator(
+            Executors.newSingleThreadExecutor());
 
     private final Map<InstanceIdentifier<FabricNode>, FabricContext> fabricCtxs = Maps.newHashMap();
 
     public VlanFabricProvider(final DataBroker dataProvider,
                              final RpcProviderRegistry rpcRegistry,
-                             final NotificationPublishService notificationService,
                              final FabricRendererRegistry rendererRegistry,
                              final List<GatewayMac> availableMacs) {
         this.dataBroker = dataProvider;
         this.rpcRegistry = rpcRegistry;
         this.rendererRegistry = rendererRegistry;
         this.availableMacs = availableMacs;
+    }
 
-        executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
-
+    public void init() {
         rendererRegistry.register(UnderlayerNetworkType.VLAN, this);
+        LOG.info("VlanFabricProvider initialized - availableMacs: {}", availableMacs);
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         rendererRegistry.unregister(UnderlayerNetworkType.VLAN);
         executor.shutdown();
         for (FabricContext ctx : fabricCtxs.values()) {
             ctx.close();
         }
     }
-
 
     @Override
     public FabricRenderer composeFabric(InstanceIdentifier<FabricNode> iid, FabricAttributeBuilder fabric,
