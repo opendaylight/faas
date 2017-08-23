@@ -7,20 +7,14 @@
  */
 package org.opendaylight.faas.fabric.general;
 
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import java.util.UUID;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.AddFabricLinkInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.resources.rev160530.AddFabricLinkOutput;
@@ -44,31 +38,14 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FabricResourceAPIProvider implements AutoCloseable, FabricResourcesService {
+public class FabricResourceAPIProvider implements FabricResourcesService {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricResourceAPIProvider.class);
 
     private final DataBroker dataBroker;
-    private final RpcProviderRegistry rpcRegistry;
 
-    private RpcRegistration<FabricResourcesService> rpcRegistration;
-
-
-    public FabricResourceAPIProvider(final DataBroker dataBroker, final RpcProviderRegistry rpcRegistry) {
-
+    public FabricResourceAPIProvider(final DataBroker dataBroker) {
         this.dataBroker = dataBroker;
-        this.rpcRegistry = rpcRegistry;
-    }
-
-    public void start() {
-        rpcRegistration = rpcRegistry.addRpcImplementation(FabricResourcesService.class, this);
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (rpcRegistration != null) {
-            rpcRegistration.close();
-        }
     }
 
     @Override
@@ -96,14 +73,10 @@ public class FabricResourceAPIProvider implements AutoCloseable, FabricResources
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<AddFabricLinkOutput>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<AddFabricLinkOutput>> apply(Void submitResult) throws Exception {
-                RpcResultBuilder<AddFabricLinkOutput> resultBuilder = RpcResultBuilder.<AddFabricLinkOutput>success();
-                AddFabricLinkOutput output = new AddFabricLinkOutputBuilder().setLinkId(lnkId).build();
-                return Futures.immediateFuture(resultBuilder.withResult(output).build());
-            }
+        return Futures.transformAsync(future, submitResult -> {
+            RpcResultBuilder<AddFabricLinkOutput> resultBuilder = RpcResultBuilder.<AddFabricLinkOutput>success();
+            AddFabricLinkOutput output = new AddFabricLinkOutputBuilder().setLinkId(lnkId).build();
+            return Futures.immediateFuture(resultBuilder.withResult(output).build());
         });
     }
 
@@ -127,13 +100,9 @@ public class FabricResourceAPIProvider implements AutoCloseable, FabricResources
 
         CheckedFuture<Void,TransactionCommitFailedException> future = wt.submit();
 
-        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
-                return Futures.immediateFuture(resultBuilder.build());
-            }
+        return Futures.transformAsync(future, submitResult -> {
+            RpcResultBuilder<Void> resultBuilder = RpcResultBuilder.<Void>success();
+            return Futures.immediateFuture(resultBuilder.build());
         });
     }
 }

@@ -1,12 +1,14 @@
 /*
  * Copyright (c) 2015 Huawei Technologies and others. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 package org.opendaylight.faas.uln.datastore.api;
 
+import com.google.common.base.Optional;
+import com.google.common.util.concurrent.CheckedFuture;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,14 +16,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadTransaction;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.common.rev151013.Uuid;
@@ -48,21 +49,24 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-import com.google.common.util.concurrent.CheckedFuture;
-
 public class UlnDatastoreApi {
 
-    private static final Logger LOG = LoggerFactory.getLogger(UlnDatastoreApi.class);
-    private static final LogicalDatastoreType logicalDatastoreType = LogicalDatastoreType.OPERATIONAL;
-    private static final Map<Uuid, RegisterEndpointLocationInput> registerEndpointInputMap = new HashMap<Uuid, RegisterEndpointLocationInput>();
-    private static final Map<Uuid, EndpointLocationBuilderCache> registerEndpointLocationInfoMap = new HashMap<Uuid, EndpointLocationBuilderCache>();
+    private final Logger LOG = LoggerFactory.getLogger(UlnDatastoreApi.class);
+    private final LogicalDatastoreType logicalDatastoreType = LogicalDatastoreType.OPERATIONAL;
+    private final Map<Uuid, RegisterEndpointLocationInput> registerEndpointInputMap = new HashMap<>();
+    private final Map<Uuid, EndpointLocationBuilderCache> registerEndpointLocationInfoMap = new HashMap<>();
+
+    private final DataBroker dataBroker;
+
+    public UlnDatastoreApi(DataBroker dataBroker) {
+        this.dataBroker = dataBroker;
+    }
 
     /*
      * Logical Network and individual elements Read Methods
      */
-    public static TenantLogicalNetwork readTenantLogicalNetworkFromDs(Uuid tenantId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public TenantLogicalNetwork readTenantLogicalNetworkFromDs(Uuid tenantId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<TenantLogicalNetwork> potentialSubnet = readFromDs(UlnIidFactory.tenantLogicalNetworkIid(tenantId), t);
         if (!potentialSubnet.isPresent()) {
             LOG.debug("Tenant {} Logical Network does not exist.", tenantId.getValue());
@@ -71,8 +75,8 @@ public class UlnDatastoreApi {
         return potentialSubnet.get();
     }
 
-    public static TenantLogicalNetwork readTenantsLogicalNetworksFromDs() {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public TenantLogicalNetwork readTenantsLogicalNetworksFromDs() {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<TenantLogicalNetwork> potentialSubnet = readFromDs(UlnIidFactory.tenantsLogicalNetworksIid(), t);
         if (!potentialSubnet.isPresent()) {
             LOG.debug("No Tenants Logical Networks exist in Datastore.");
@@ -81,8 +85,8 @@ public class UlnDatastoreApi {
         return potentialSubnet.get();
     }
 
-    public static Subnet readSubnetFromDs(Uuid tenantId, Uuid subnetId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public Subnet readSubnetFromDs(Uuid tenantId, Uuid subnetId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<Subnet> potentialSubnet = readFromDs(UlnIidFactory.subnetIid(tenantId, subnetId), t);
         if (!potentialSubnet.isPresent()) {
             LOG.debug("Logical Subnet {} does not exist in tenant {}.", subnetId.getValue(), tenantId.getValue());
@@ -91,8 +95,8 @@ public class UlnDatastoreApi {
         return potentialSubnet.get();
     }
 
-    public static LogicalRouter readLogicalRouterFromDs(Uuid tenantId, Uuid routerId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public LogicalRouter readLogicalRouterFromDs(Uuid tenantId, Uuid routerId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<LogicalRouter> potentialRouter = readFromDs(UlnIidFactory.logicalRouterIid(tenantId, routerId), t);
         if (!potentialRouter.isPresent()) {
             LOG.debug("Logical Router {} does not exist in tenant {}.", routerId.getValue(), tenantId.getValue());
@@ -101,8 +105,8 @@ public class UlnDatastoreApi {
         return potentialRouter.get();
     }
 
-    public static LogicalSwitch readLogicalSwitchFromDs(Uuid tenantId, Uuid switchId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public LogicalSwitch readLogicalSwitchFromDs(Uuid tenantId, Uuid switchId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<LogicalSwitch> potentialSwitch = readFromDs(UlnIidFactory.logicalSwitchIid(tenantId, switchId), t);
         if (!potentialSwitch.isPresent()) {
             LOG.debug("Logical Switch {} does not exist in tenant {}.", switchId.getValue(), tenantId.getValue());
@@ -111,8 +115,8 @@ public class UlnDatastoreApi {
         return potentialSwitch.get();
     }
 
-    public static SecurityRuleGroups readSecurityGroupsFromDs(Uuid tenantId, Uuid securityGroupId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public SecurityRuleGroups readSecurityGroupsFromDs(Uuid tenantId, Uuid securityGroupId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<SecurityRuleGroups> potentialSecurityGroup = readFromDs(
                 UlnIidFactory.securityGroupsIid(tenantId, securityGroupId), t);
         if (!potentialSecurityGroup.isPresent()) {
@@ -123,8 +127,8 @@ public class UlnDatastoreApi {
         return potentialSecurityGroup.get();
     }
 
-    public static Port readPortFromDs(Uuid tenantId, Uuid portId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public Port readPortFromDs(Uuid tenantId, Uuid portId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<Port> potentialPort = readFromDs(UlnIidFactory.portIid(tenantId, portId), t);
         if (!potentialPort.isPresent()) {
             LOG.debug("Logical Port {} does not exist in tenant {}.", portId.getValue(), tenantId.getValue());
@@ -133,8 +137,8 @@ public class UlnDatastoreApi {
         return potentialPort.get();
     }
 
-    public static Edge readEdgeFromDs(Uuid tenantId, Uuid edgeId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public Edge readEdgeFromDs(Uuid tenantId, Uuid edgeId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<Edge> potentialEdge = readFromDs(UlnIidFactory.edgeIid(tenantId, edgeId), t);
         if (!potentialEdge.isPresent()) {
             LOG.debug("Logical Edge {} does not exist in tenant {}.", edgeId.getValue(), tenantId.getValue());
@@ -143,8 +147,8 @@ public class UlnDatastoreApi {
         return potentialEdge.get();
     }
 
-    public static EndpointLocation readEndpointLocationFromDs(Uuid tenantId, Uuid endpointLocationId) {
-        ReadTransaction t = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+    public EndpointLocation readEndpointLocationFromDs(Uuid tenantId, Uuid endpointLocationId) {
+        ReadTransaction t = dataBroker.newReadOnlyTransaction();
         Optional<EndpointLocation> potentialEndpointLocation = readFromDs(
                 UlnIidFactory.endpointLocationIid(tenantId, endpointLocationId), t);
         if (!potentialEndpointLocation.isPresent()) {
@@ -158,11 +162,11 @@ public class UlnDatastoreApi {
     /*
      * Logical Network and individual elements Submit Methods
      */
-    public static void submitSubnetToDs(Subnet subnet) {
+    public void submitSubnetToDs(Subnet subnet) {
         submitSubnetToDs(subnet, true);
     }
 
-    private static void submitSubnetToDs(Subnet newSubnet, boolean updateAndMergeRefs) {
+    private void submitSubnetToDs(Subnet newSubnet, boolean updateAndMergeRefs) {
         synchronized (UlnDatastoreApi.class) {
             /*
              * Make sure we don't overwrite certain existing links
@@ -179,7 +183,7 @@ public class UlnDatastoreApi {
             /*
              * Write to DS
              */
-            WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+            WriteTransaction t = dataBroker.newWriteOnlyTransaction();
             t.put(logicalDatastoreType, UlnIidFactory.subnetIid(updatedSubnet.getTenantId(), updatedSubnet.getUuid()),
                     updatedSubnet, true);
             if (submitToDs(t)) {
@@ -189,13 +193,13 @@ public class UlnDatastoreApi {
                  */
                 if (updatedSubnet.getPort() != null && updateAndMergeRefs) {
                     for (Uuid portId : updatedSubnet.getPort()) {
-                        Port port = UlnDatastoreApi.readPortFromDs(updatedSubnet.getTenantId(), portId);
-                        if ((port != null)
+                        Port port = readPortFromDs(updatedSubnet.getTenantId(), portId);
+                        if (port != null
                                 && (!updatedSubnet.getUuid().equals(port.getLocationId()) || port.getLocationType() != LocationType.SubnetType)) {
                             PortBuilder builder = new PortBuilder(port);
                             builder.setLocationId(updatedSubnet.getUuid());
                             builder.setLocationType(LocationType.SubnetType);
-                            UlnDatastoreApi.submitPortToDs(builder.build(), false);
+                            submitPortToDs(builder.build(), false);
                         }
                     }
                 }
@@ -205,11 +209,11 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void submitLogicalRouterToDs(LogicalRouter router) {
+    public void submitLogicalRouterToDs(LogicalRouter router) {
         submitLogicalRouterToDs(router, true);
     }
 
-    public static void submitLogicalRouterToDs(LogicalRouter newRouter, boolean updateAndMergeRefs) {
+    public void submitLogicalRouterToDs(LogicalRouter newRouter, boolean updateAndMergeRefs) {
         /*
          * Make sure we don't overwrite certain existing links
          */
@@ -225,7 +229,7 @@ public class UlnDatastoreApi {
         /*
          * Write to DS
          */
-        WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        WriteTransaction t = dataBroker.newWriteOnlyTransaction();
         t.put(logicalDatastoreType,
                 UlnIidFactory.logicalRouterIid(updatedRouter.getTenantId(), updatedRouter.getUuid()), updatedRouter,
                 true);
@@ -236,13 +240,13 @@ public class UlnDatastoreApi {
              */
             if (updatedRouter.getPort() != null && updateAndMergeRefs) {
                 for (Uuid portId : updatedRouter.getPort()) {
-                    Port port = UlnDatastoreApi.readPortFromDs(updatedRouter.getTenantId(), portId);
-                    if ((port != null)
+                    Port port = readPortFromDs(updatedRouter.getTenantId(), portId);
+                    if (port != null
                             && (!updatedRouter.getUuid().equals(port.getLocationId()) || port.getLocationType() != LocationType.RouterType)) {
                         PortBuilder builder = new PortBuilder(port);
                         builder.setLocationId(updatedRouter.getUuid());
                         builder.setLocationType(LocationType.RouterType);
-                        UlnDatastoreApi.submitPortToDs(builder.build(), false);
+                        submitPortToDs(builder.build(), false);
                     }
                 }
             }
@@ -251,11 +255,11 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void submitLogicalSwitchToDs(LogicalSwitch newSwitch) {
+    public void submitLogicalSwitchToDs(LogicalSwitch newSwitch) {
         submitLogicalSwitchToDs(newSwitch, true);
     }
 
-    private static void submitLogicalSwitchToDs(LogicalSwitch newSwitch, boolean updateAndMergeRefs) {
+    private void submitLogicalSwitchToDs(LogicalSwitch newSwitch, boolean updateAndMergeRefs) {
         /*
          * Make sure we don't overwrite certain existing links
          */
@@ -271,7 +275,7 @@ public class UlnDatastoreApi {
         /*
          * Write to DS
          */
-        WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        WriteTransaction t = dataBroker.newWriteOnlyTransaction();
         t.put(logicalDatastoreType,
                 UlnIidFactory.logicalSwitchIid(updatedSwitch.getTenantId(), updatedSwitch.getUuid()), updatedSwitch,
                 true);
@@ -282,13 +286,13 @@ public class UlnDatastoreApi {
              */
             if (updatedSwitch.getPort() != null && updateAndMergeRefs) {
                 for (Uuid portId : updatedSwitch.getPort()) {
-                    Port port = UlnDatastoreApi.readPortFromDs(updatedSwitch.getTenantId(), portId);
-                    if ((port != null)
+                    Port port = readPortFromDs(updatedSwitch.getTenantId(), portId);
+                    if (port != null
                             && (!updatedSwitch.getUuid().equals(port.getLocationId()) || port.getLocationType() != LocationType.SwitchType)) {
                         PortBuilder builder = new PortBuilder(port);
                         builder.setLocationId(updatedSwitch.getUuid());
                         builder.setLocationType(LocationType.SwitchType);
-                        UlnDatastoreApi.submitPortToDs(builder.build(), false);
+                        submitPortToDs(builder.build(), false);
                     }
                 }
             }
@@ -297,11 +301,11 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void submitSecurityGroupsToDs(SecurityRuleGroups newSecurityGroups) {
+    public void submitSecurityGroupsToDs(SecurityRuleGroups newSecurityGroups) {
         submitSecurityGroupsToDs(newSecurityGroups, true);
     }
 
-    private static void submitSecurityGroupsToDs(SecurityRuleGroups newSecurityGroups, boolean updateAndMergeRefs) {
+    private void submitSecurityGroupsToDs(SecurityRuleGroups newSecurityGroups, boolean updateAndMergeRefs) {
         synchronized (UlnDatastoreApi.class) {
             /*
              * Make sure we don't overwrite certain existing links
@@ -320,7 +324,7 @@ public class UlnDatastoreApi {
             /*
              * Submit rules to datastore
              */
-            WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+            WriteTransaction t = dataBroker.newWriteOnlyTransaction();
             t.put(logicalDatastoreType,
                     UlnIidFactory.securityGroupsIid(updatedSecurityGroups.getTenantId(),
                             updatedSecurityGroups.getUuid()), updatedSecurityGroups, true);
@@ -331,7 +335,7 @@ public class UlnDatastoreApi {
                  */
                 if (updatedSecurityGroups.getPorts() != null && updateAndMergeRefs) {
                     for (Uuid portId : updatedSecurityGroups.getPorts()) {
-                        Port port = UlnDatastoreApi.readPortFromDs(updatedSecurityGroups.getTenantId(), portId);
+                        Port port = readPortFromDs(updatedSecurityGroups.getTenantId(), portId);
                         if (port != null) {
                             Set<Uuid> set = new HashSet<>();
                             if (port.getSecurityRulesGroups() != null) {
@@ -341,7 +345,7 @@ public class UlnDatastoreApi {
                                 set.add(updatedSecurityGroups.getUuid());
                                 PortBuilder builder = new PortBuilder(port);
                                 builder.setSecurityRulesGroups(new ArrayList<>(set));
-                                UlnDatastoreApi.submitPortToDs(builder.build(), false);
+                                submitPortToDs(builder.build(), false);
                             }
                         }
                     }
@@ -353,11 +357,11 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void submitPortToDs(Port port) {
+    public void submitPortToDs(Port port) {
         submitPortToDs(port, true);
     }
 
-    private static void submitPortToDs(Port newPort, boolean updateAndMergeRefs) {
+    private void submitPortToDs(Port newPort, boolean updateAndMergeRefs) {
         if (newPort.getLocationId() == null || newPort.getLocationType() == null) {
             LOG.error("Trying to submit Port {} without associating it with a logical node -- Ignored Request",
                     newPort.getUuid().getValue());
@@ -380,7 +384,7 @@ public class UlnDatastoreApi {
             /*
              * Write to data store
              */
-            WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+            WriteTransaction t = dataBroker.newWriteOnlyTransaction();
             t.put(logicalDatastoreType, UlnIidFactory.portIid(newPort.getTenantId(), newPort.getUuid()), newPort, true);
             if (submitToDs(t)) {
                 LOG.debug("Wrote logical port {} to datastore.", newPort.getUuid().getValue());
@@ -391,7 +395,7 @@ public class UlnDatastoreApi {
                     // update security rules
                     if (updatedPort.getSecurityRulesGroups() != null) {
                         for (Uuid secGrpId : updatedPort.getSecurityRulesGroups()) {
-                            SecurityRuleGroups secGrp = UlnDatastoreApi.readSecurityGroupsFromDs(
+                            SecurityRuleGroups secGrp = readSecurityGroupsFromDs(
                                     updatedPort.getTenantId(), secGrpId);
                             if (secGrp != null) {
                                 Set<Uuid> set = new HashSet<>();
@@ -402,7 +406,7 @@ public class UlnDatastoreApi {
                                     set.add(updatedPort.getUuid());
                                     SecurityRuleGroupsBuilder builder = new SecurityRuleGroupsBuilder(secGrp);
                                     builder.setPorts(new ArrayList<>(set));
-                                    UlnDatastoreApi.submitSecurityGroupsToDs(builder.build(), false);
+                                    submitSecurityGroupsToDs(builder.build(), false);
                                 }
                             }
                         }
@@ -410,7 +414,7 @@ public class UlnDatastoreApi {
 
                     // update edge
                     if (updatedPort.getEdgeId() != null) {
-                        Edge edge = UlnDatastoreApi.readEdgeFromDs(updatedPort.getTenantId(), updatedPort.getEdgeId());
+                        Edge edge = readEdgeFromDs(updatedPort.getTenantId(), updatedPort.getEdgeId());
                         if (edge != null) {
                             if (!updatedPort.getEdgeId().equals(edge.getLeftPortId())
                                     && !updatedPort.getEdgeId().equals(edge.getRightPortId())) {
@@ -430,26 +434,26 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void submitEdgeToDs(Edge edge) {
+    public void submitEdgeToDs(Edge edge) {
         if (edge.getLeftPortId() == null || edge.getRightPortId() == null) {
             LOG.error("Trying to Subnit an edge Edge with less than two ports -- Ignored Request");
             return;
         }
-        Port lport = UlnDatastoreApi.readPortFromDs(edge.getTenantId(), edge.getLeftPortId());
+        Port lport = readPortFromDs(edge.getTenantId(), edge.getLeftPortId());
         if (lport != null && lport.getEdgeId() != null && !edge.getUuid().equals(lport.getEdgeId())) {
             LOG.error(
                     "Trying to Submit Edge {} that references Port {}, but that Port already references Edge {}. Ignored Request.",
                     edge.getUuid().getValue(), lport.getUuid().getValue(), lport.getEdgeId().getValue());
             return;
         }
-        Port rport = UlnDatastoreApi.readPortFromDs(edge.getTenantId(), edge.getRightPortId());
+        Port rport = readPortFromDs(edge.getTenantId(), edge.getRightPortId());
         if (rport != null && rport.getEdgeId() != null && !edge.getUuid().equals(rport.getEdgeId())) {
             LOG.error(
                     "Trying to Submit Edge {} that references Port {}, but that Port already references Edge {}. Ignored Request.",
                     edge.getUuid().getValue(), rport.getUuid().getValue(), rport.getEdgeId().getValue());
             return;
         }
-        WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        WriteTransaction t = dataBroker.newWriteOnlyTransaction();
         t.put(logicalDatastoreType, UlnIidFactory.edgeIid(edge.getTenantId(), edge.getUuid()), edge, true);
         if (submitToDs(t)) {
             LOG.debug("Wrote logical edge {} to datastore.", edge.getUuid().getValue());
@@ -458,11 +462,11 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void submitEndpointLocationToDs(EndpointLocation endpointLocation) {
+    public void submitEndpointLocationToDs(EndpointLocation endpointLocation) {
         submitEndpointLocationToDs(endpointLocation, true);
     }
 
-    private static void submitEndpointLocationToDs(EndpointLocation newEndpointLocation, boolean updateAndMergeRefs) {
+    private void submitEndpointLocationToDs(EndpointLocation newEndpointLocation, boolean updateAndMergeRefs) {
         /*
          * Make sure we don't overwrite certain existing links
          */
@@ -483,7 +487,7 @@ public class UlnDatastoreApi {
         /*
          * Write to DS
          */
-        WriteTransaction t = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        WriteTransaction t = dataBroker.newWriteOnlyTransaction();
         t.put(logicalDatastoreType,
                 UlnIidFactory.endpointLocationIid(updatedEndpointLocation.getTenantId(),
                         updatedEndpointLocation.getUuid()), updatedEndpointLocation, true);
@@ -493,14 +497,14 @@ public class UlnDatastoreApi {
              * Make sure other logical network nodes links are updated as well
              */
             if (updatedEndpointLocation.getPort() != null && updateAndMergeRefs) {
-                Port port = UlnDatastoreApi.readPortFromDs(updatedEndpointLocation.getTenantId(),
+                Port port = readPortFromDs(updatedEndpointLocation.getTenantId(),
                         updatedEndpointLocation.getPort());
-                if ((port != null)
+                if (port != null
                         && (!updatedEndpointLocation.getUuid().equals(port.getLocationId()) || port.getLocationType() != LocationType.EndpointType)) {
                     PortBuilder builder = new PortBuilder(port);
                     builder.setLocationId(updatedEndpointLocation.getUuid());
                     builder.setLocationType(LocationType.EndpointType);
-                    UlnDatastoreApi.submitPortToDs(builder.build(), false);
+                    submitPortToDs(builder.build(), false);
                 }
 
             }
@@ -513,7 +517,7 @@ public class UlnDatastoreApi {
     /*
      * Logical Network and individual elements Remove Methods
      */
-    public static void removeTenantFromDsIfExists(Uuid tenantId) {
+    public void removeTenantFromDsIfExists(Uuid tenantId) {
         Optional<TenantLogicalNetwork> tenantULnOp = removeIfExists(UlnIidFactory.tenantLogicalNetworkIid(tenantId));
         if (tenantULnOp.isPresent()) {
             LOG.info("Removed Tenant {}", tenantId.getValue());
@@ -522,7 +526,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removeSubnetFromDsIfExists(Uuid tenantId, Uuid subnetId) {
+    public void removeSubnetFromDsIfExists(Uuid tenantId, Uuid subnetId) {
         Optional<Subnet> oldOptional = removeIfExists(UlnIidFactory.subnetIid(tenantId, subnetId));
         /*
          * Make sure other logical network nodes links are updated as well
@@ -537,7 +541,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removeLogicalRouterFromDsIfExists(Uuid tenantId, Uuid routerId) {
+    public void removeLogicalRouterFromDsIfExists(Uuid tenantId, Uuid routerId) {
         Optional<LogicalRouter> oldOptional = removeIfExists(UlnIidFactory.logicalRouterIid(tenantId, routerId));
         /*
          * Make sure other logical network nodes links are updated as well
@@ -552,7 +556,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removeLogicalSwitchFromDsIfExists(Uuid tenantId, Uuid switchId) {
+    public void removeLogicalSwitchFromDsIfExists(Uuid tenantId, Uuid switchId) {
         Optional<LogicalSwitch> oldOptional = removeIfExists(UlnIidFactory.logicalSwitchIid(tenantId, switchId));
         /*
          * Make sure other logical network nodes links are updated as well
@@ -567,11 +571,11 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removeSecurityGroupsFromDsIfExists(Uuid tenantId, Uuid securityGroupId) {
+    public void removeSecurityGroupsFromDsIfExists(Uuid tenantId, Uuid securityGroupId) {
         removeSecurityGroupsFromDsIfExists(tenantId, securityGroupId, true);
     }
 
-    private static void removeSecurityGroupsFromDsIfExists(Uuid tenantId, Uuid securityGroupId,
+    private void removeSecurityGroupsFromDsIfExists(Uuid tenantId, Uuid securityGroupId,
             boolean updateExistingRefs) {
         Optional<SecurityRuleGroups> oldOption = removeIfExists(UlnIidFactory.securityGroupsIid(tenantId,
                 securityGroupId));
@@ -582,13 +586,13 @@ public class UlnDatastoreApi {
             SecurityRuleGroups securityRuleGroups = oldOption.get();
             if (securityRuleGroups.getPorts() != null) {
                 for (Uuid portId : securityRuleGroups.getPorts()) {
-                    Port port = UlnDatastoreApi.readPortFromDs(securityRuleGroups.getTenantId(), portId);
+                    Port port = readPortFromDs(securityRuleGroups.getTenantId(), portId);
                     if (port != null && port.getSecurityRulesGroups() != null) {
                         Set<Uuid> set = new HashSet<>(port.getSecurityRulesGroups());
                         if (set.remove(securityRuleGroups.getUuid())) {
                             PortBuilder builder = new PortBuilder(port);
                             builder.setSecurityRulesGroups(new ArrayList<>(set));
-                            UlnDatastoreApi.submitPortToDs(builder.build(), false);
+                            submitPortToDs(builder.build(), false);
                         }
                     }
                 }
@@ -596,7 +600,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removePortFromDsIfExists(Uuid tenantId, Uuid portId) {
+    public void removePortFromDsIfExists(Uuid tenantId, Uuid portId) {
         synchronized (UlnDatastoreApi.class) {
             Optional<Port> oldOption = removeIfExists(UlnIidFactory.portIid(tenantId, portId));
             /*
@@ -607,19 +611,19 @@ public class UlnDatastoreApi {
                 // update security groups
                 if (port.getSecurityRulesGroups() != null) {
                     for (Uuid sId : port.getSecurityRulesGroups()) {
-                        SecurityRuleGroups secGrps = UlnDatastoreApi.readSecurityGroupsFromDs(tenantId, sId);
+                        SecurityRuleGroups secGrps = readSecurityGroupsFromDs(tenantId, sId);
                         if (secGrps != null && secGrps.getPorts() != null) {
                             Set<Uuid> set = new HashSet<>(secGrps.getPorts());
                             if (set.remove(port.getUuid())) {
                                 SecurityRuleGroupsBuilder builder = new SecurityRuleGroupsBuilder(secGrps);
                                 builder.setPorts(new ArrayList<>(set));
-                                UlnDatastoreApi.submitSecurityGroupsToDs(builder.build(), false);
+                                submitSecurityGroupsToDs(builder.build(), false);
                             }
                         }
                     }
                 }
                 // remove edge
-                UlnDatastoreApi.removeEdgeFromDsIfExists(tenantId, port.getEdgeId());
+                removeEdgeFromDsIfExists(tenantId, port.getEdgeId());
 
                 // update node
                 if (port.getLocationId() != null) {
@@ -631,7 +635,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removeEdgeFromDsIfExists(Uuid tenantId, Uuid edgeId) {
+    public void removeEdgeFromDsIfExists(Uuid tenantId, Uuid edgeId) {
         Optional<Edge> oldOptional = removeIfExists(UlnIidFactory.edgeIid(tenantId, edgeId));
         /*
          * Make sure other logical network nodes links are updated as well
@@ -647,7 +651,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static void removeEndpointLocationFromDsIfExists(Uuid tenantId, Uuid endpointLocationId) {
+    public void removeEndpointLocationFromDsIfExists(Uuid tenantId, Uuid endpointLocationId) {
         /*
          * Make sure other logical network nodes links are updated as well
          */
@@ -665,7 +669,7 @@ public class UlnDatastoreApi {
      * Methods to join logical network elements together
      */
 
-    public static boolean attachEndpointToSubnet(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
+    public boolean attachEndpointToSubnet(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
             MacAddress macAddress, List<PrivateIps> privateIpAddresses, List<IpAddress> publicIpAddresses) {
         if (epLocBuilder.getFaasPortRefId() == null) {
             LOG.error("Missing Required Info in EndpointLocationBuilder: {}", epLocBuilder.build());
@@ -693,7 +697,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static boolean attachEndpointToSubnet(RegisterEndpointLocationInput input) {
+    public boolean attachEndpointToSubnet(RegisterEndpointLocationInput input) {
         if (input.getFaasPortRefId() == null) {
             LOG.error("Missing Required Info in RegisterEndpointLocationInput: {}", input);
             return false;
@@ -724,7 +728,7 @@ public class UlnDatastoreApi {
 
     }
 
-    private static boolean attachEndpointToSubnetAndSubmitToDs(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
+    private boolean attachEndpointToSubnetAndSubmitToDs(EndpointLocationBuilder epLocBuilder, Uuid faasSubnetId,
             MacAddress macAddress, List<PrivateIps> privateIpAddresses, List<IpAddress> publicIpAddresses) {
 
         if (epLocBuilder.getNodeConnectorId() == null || epLocBuilder.getNodeId() == null) {
@@ -767,7 +771,7 @@ public class UlnDatastoreApi {
         List<Pair<Port, Port>> portLinks = new ArrayList<>();
         portLinks.add(new Pair<>(epLocPortbuilder.build(), subnetPortbuilder.build()));
 
-        WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+        WriteTransaction wTx = dataBroker.newWriteOnlyTransaction();
         wTx.put(logicalDatastoreType, UlnIidFactory.subnetIid(subnetBuilder.getTenantId(), subnetBuilder.getUuid()),
                 subnetBuilder.build(), true);
         wTx.put(logicalDatastoreType,
@@ -779,12 +783,12 @@ public class UlnDatastoreApi {
         return submitToDs(wTx);
     }
 
-    public static boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
+    public boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
             Pair<LocationType, LocationType> nodeTypes) {
         return attachAndSubmitToDs(firstId, secondId, tenantId, nodeTypes, null, null);
     }
 
-    public static boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
+    public boolean attachAndSubmitToDs(Uuid firstId, Uuid secondId, Uuid tenantId,
             Pair<LocationType, LocationType> nodeTypes, Pair<Uuid, Uuid> privateSecGroupRules,
             Pair<Uuid, Uuid> publicSecGroupRules) {
         if (firstId == null || secondId == null || nodeTypes == null || tenantId == null
@@ -813,22 +817,22 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static boolean attachAndSubmitToDs(Object first, Object second) {
+    public boolean attachAndSubmitToDs(Object first, Object second) {
         return attachAndSubmitToDs(first, second, null, null);
     }
 
-    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> privateSecGroupRules) {
+    public boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> privateSecGroupRules) {
         return attachAndSubmitToDs(first, second, privateSecGroupRules, null);
     }
 
-    public static boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> privateSecGroupRules,
+    public boolean attachAndSubmitToDs(Object first, Object second, Pair<Uuid, Uuid> privateSecGroupRules,
             Pair<Uuid, Uuid> pubSecGroupRules) {
-        Pair<SubnetBuilder, SubnetBuilder> lSubnetPair = new Pair<SubnetBuilder, SubnetBuilder>(null, null);
-        Pair<LogicalSwitchBuilder, LogicalSwitchBuilder> lSwitchPair = new Pair<LogicalSwitchBuilder, LogicalSwitchBuilder>(
+        Pair<SubnetBuilder, SubnetBuilder> lSubnetPair = new Pair<>(null, null);
+        Pair<LogicalSwitchBuilder, LogicalSwitchBuilder> lSwitchPair = new Pair<>(
                 null, null);
-        Pair<LogicalRouterBuilder, LogicalRouterBuilder> lRouterPair = new Pair<LogicalRouterBuilder, LogicalRouterBuilder>(
+        Pair<LogicalRouterBuilder, LogicalRouterBuilder> lRouterPair = new Pair<>(
                 null, null);
-        Pair<SecurityRuleGroupsBuilder, SecurityRuleGroupsBuilder> secGroupsPair = new Pair<SecurityRuleGroupsBuilder, SecurityRuleGroupsBuilder>(
+        Pair<SecurityRuleGroupsBuilder, SecurityRuleGroupsBuilder> secGroupsPair = new Pair<>(
                 null, null);
 
         if (first == null || second == null) {
@@ -919,7 +923,7 @@ public class UlnDatastoreApi {
                 secGroupsPair.setSecond(secondSecRulesGrpbuilder);
             }
 
-            WriteTransaction wTx = UlnMapperDatastoreDependency.getDataProvider().newWriteOnlyTransaction();
+            WriteTransaction wTx = dataBroker.newWriteOnlyTransaction();
             if (lRouterPair.getFirst() != null) {
                 if (needToAddPublicPort(lRouterPair.getFirst())) {
                     PortBuilder lportb;
@@ -985,7 +989,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    private static boolean needToAddPublicPort(LogicalRouterBuilder logicalRouter) {
+    private boolean needToAddPublicPort(LogicalRouterBuilder logicalRouter) {
         if (logicalRouter.isPublic() != null && logicalRouter.isPublic().booleanValue()) {
             if (logicalRouter.getPort() == null) {
                 return true;
@@ -1001,7 +1005,7 @@ public class UlnDatastoreApi {
         return false;
     }
 
-    private static PortBuilder buildPort(SubnetBuilder subnetBuilder, Uuid securityGroupId,
+    private PortBuilder buildPort(SubnetBuilder subnetBuilder, Uuid securityGroupId,
             LogicalSwitchBuilder lSwitchBuilder, LogicalRouterBuilder lRouterBuilder) {
         PortBuilder portbuilder = new PortBuilder();
         portbuilder.setUuid(new Uuid(UUID.randomUUID().toString()));
@@ -1039,7 +1043,7 @@ public class UlnDatastoreApi {
         return portbuilder;
     }
 
-    private static void attachPorts(List<Pair<Port, Port>> portLinks, WriteTransaction t) {
+    private void attachPorts(List<Pair<Port, Port>> portLinks, WriteTransaction t) {
         for (Pair<Port, Port> portLink : portLinks) {
             EdgeBuilder edgeb = new EdgeBuilder();
             Uuid edgeId = new Uuid(UUID.randomUUID().toString());
@@ -1065,7 +1069,7 @@ public class UlnDatastoreApi {
     /*
      * General & Common helper methods
      */
-    public static <T extends DataObject> Optional<T> readFromDs(InstanceIdentifier<T> path, ReadTransaction rTx) {
+    public <T extends DataObject> Optional<T> readFromDs(InstanceIdentifier<T> path, ReadTransaction rTx) {
         CheckedFuture<Optional<T>, ReadFailedException> resultFuture = rTx.read(logicalDatastoreType, path);
         try {
             return resultFuture.checkedGet();
@@ -1075,7 +1079,7 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static boolean submitToDs(WriteTransaction wTx) {
+    public boolean submitToDs(WriteTransaction wTx) {
         CheckedFuture<Void, TransactionCommitFailedException> submitFuture = wTx.submit();
         try {
             submitFuture.checkedGet();
@@ -1086,8 +1090,8 @@ public class UlnDatastoreApi {
         }
     }
 
-    public static <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path) {
-        ReadWriteTransaction rwTx = UlnMapperDatastoreDependency.getDataProvider().newReadWriteTransaction();
+    public <T extends DataObject> Optional<T> removeIfExists(InstanceIdentifier<T> path) {
+        ReadWriteTransaction rwTx = dataBroker.newReadWriteTransaction();
         Optional<T> potentialResult = readFromDs(path, rwTx);
         if (potentialResult.isPresent()) {
             rwTx.delete(logicalDatastoreType, path);
@@ -1099,7 +1103,7 @@ public class UlnDatastoreApi {
         return potentialResult;
     }
 
-    private static List<Uuid> merge(List<Uuid> list1, List<Uuid> list2) {
+    private List<Uuid> merge(List<Uuid> list1, List<Uuid> list2) {
         if (list1 == null && list2 == null) {
             return null;
         }

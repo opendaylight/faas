@@ -8,13 +8,13 @@
 
 package org.opendaylight.faas.fabricmgr;
 
+import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vcontainer.common.rev151010.VfabricId;
@@ -42,34 +42,26 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.Futures;
-
 /**
  * VContainerMgr - create, delete and modify Virtual Container objects.
  *
  */
-public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
+public class VContainerMgr implements VcontainerTopologyService {
 
     private static final Logger LOG = LoggerFactory.getLogger(VContainerMgr.class);
     private static final LogicalDatastoreType OPERATIONAL = LogicalDatastoreType.OPERATIONAL;
 
-    private RpcRegistration<VcontainerTopologyService> rpcRegistration;
-    private final ExecutorService threadPool;
+    // tenantId-Vcontainer lookup map
+    private final Map<Uuid, VContainerConfigMgr> vcConfigDataMgrList = new ConcurrentHashMap<>();
 
-    public VContainerMgr(ExecutorService executor) {
-        this.threadPool = executor;
+    private final FabMgrDatastoreUtil fabMgrDatastoreUtil;
+
+    public VContainerMgr(final FabMgrDatastoreUtil fabMgrDatastoreUtil) {
+        this.fabMgrDatastoreUtil = fabMgrDatastoreUtil;
     }
 
-    public void initialize() {
-        this.rpcRegistration =
-                FabMgrDatastoreDependency.getRpcRegistry().addRpcImplementation(VcontainerTopologyService.class, this);
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (this.rpcRegistration != null) {
-            this.rpcRegistration.close();
-        }
+    public VContainerConfigMgr getVcConfigDataMgr(Uuid tenantId) {
+        return this.vcConfigDataMgrList.get(tenantId);
     }
 
     @Override
@@ -84,7 +76,9 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
         outputBuilder.setVcTopologyId(vcTopologyId);
 
         // TODO: This should be implemented as datastore listener event.
-        FabricMgrProvider.getInstance().OnVcCreated(new Uuid(tenantId.getValue()));
+        VContainerConfigMgr vc = new VContainerConfigMgr(tenantId);
+        this.vcConfigDataMgrList.put(new Uuid(tenantId.getValue()), vc);
+        LOG.debug("FABMGR: createVcontainer: add tenantId: {}", tenantId.getValue());
 
         List<Vfabric> vfabricList = vcConfig.getVfabric();
         List<NodeId> vfabricIdList = new ArrayList<>();
@@ -95,13 +89,7 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
             }
         }
 
-        VContainerConfigMgr vc =
-                FabricMgrProvider.getInstance().getVcConfigDataMgr(new Uuid(tenantId.getValue()));
-        if (vc == null) {
-            LOG.error("FABMGR: ERROR: createVcontainer: vc is null");
-        } else {
-            vc.getLdNodeConfigDataMgr().addVFabrics(tenantId, vfabricIdList);
-        }
+        vc.getLdNodeConfigDataMgr().addVFabrics(tenantId, vfabricIdList);
 
         return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
     }
@@ -131,9 +119,9 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
         InstanceIdentifier<Link> linkPath = FabMgrYangDataUtil.vcLinkPath(topoPath);
         Link link = FabMgrYangDataUtil.createBasicVcLink(ldNode, netNode);
 
-        FabMgrDatastoreUtil.putData(OPERATIONAL, ldNodePath, ldNode);
-        FabMgrDatastoreUtil.putData(OPERATIONAL, netNodePath, netNode);
-        FabMgrDatastoreUtil.putData(OPERATIONAL, linkPath, link);
+        fabMgrDatastoreUtil.putData(OPERATIONAL, ldNodePath, ldNode);
+        fabMgrDatastoreUtil.putData(OPERATIONAL, netNodePath, netNode);
+        fabMgrDatastoreUtil.putData(OPERATIONAL, linkPath, link);
     }
 
     private InstanceIdentifier<Topology> createVcTopologyInstance(String topoIdStr) {
@@ -146,14 +134,14 @@ public class VContainerMgr implements AutoCloseable, VcontainerTopologyService {
         topoBuilder.setTopologyId(topoId);
 
         Topology topo = topoBuilder.build();
-        FabMgrDatastoreUtil.putData(OPERATIONAL, topoPath, topo);
+        fabMgrDatastoreUtil.putData(OPERATIONAL, topoPath, topo);
 
         InstanceIdentifier<TopologyTypes1> topoTypePath =
                 topoPath.child(TopologyTypes.class).augmentation(TopologyTypes1.class);
 
         VcontainerTopology vcTopoType = new VcontainerTopologyBuilder().build();
         TopologyTypes1 topologyTypeAugment = new TopologyTypes1Builder().setVcontainerTopology(vcTopoType).build();
-        FabMgrDatastoreUtil.putData(OPERATIONAL, topoTypePath, topologyTypeAugment);
+        fabMgrDatastoreUtil.putData(OPERATIONAL, topoTypePath, topologyTypeAugment);
 
         return topoPath;
     }

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:odl="http://opendaylight.org/xmlns/blueprint/v1.0.0">
+
+  <reference id="dataBroker" interface="org.opendaylight.controller.md.sal.binding.api.DataBroker"/>
+  <reference id="userLogicalNetworkCacheStore" interface="org.opendaylight.faas.fabricmgr.UserLogicalNetworkCacheStore"/>
+  <reference id="fabricMgrService" interface="org.opendaylight.faas.fabricmgr.FabricMgrService"/>
+
+  <bean id="ulnMappingEngine" class="org.opendaylight.faas.uln.manager.UlnMappingEngine"
+      init-method = "initialize">
+    <argument ref="userLogicalNetworkCacheStore"/>
+    <argument ref="fabricMgrService"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="userNetworkManager" class="org.opendaylight.faas.uln.manager.UserLogicalNetworkManager"
+      destroy-method="close"/>
+
+  <bean id="executorService" factory-ref="userNetworkManager" factory-method="getExecutor"/>
+
+  <bean id="routerListener" class="org.opendaylight.faas.uln.listeners.RouterListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="edgeListener" class="org.opendaylight.faas.uln.listeners.EdgeListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="endpointLocationListener" class="org.opendaylight.faas.uln.listeners.EndpointLocationListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="portListener" class="org.opendaylight.faas.uln.listeners.PortListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="securityRuleGroupsListener" class="org.opendaylight.faas.uln.listeners.SecurityRuleGroupsListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="subnetListener" class="org.opendaylight.faas.uln.listeners.SubnetListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="switchListener" class="org.opendaylight.faas.uln.listeners.SwitchListener"
+      init-method = "init" destroy-method="close">
+    <argument ref="executorService"/>
+    <argument ref="ulnMappingEngine"/>
+    <argument ref="dataBroker"/>
+  </bean>
+
+  <bean id="faasService" class="org.opendaylight.faas.uln.manager.FaasServiceImpl">
+    <argument ref="dataBroker"/>
+  </bean>
+  <odl:rpc-implementation ref="faasService"/>
+
+</blueprint>
