@@ -11,19 +11,14 @@ package org.opendaylight.faas.fabric.general;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.FabricEndpointService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.endpoint.rev150930.LocateEndpointInput;
@@ -41,20 +36,13 @@ import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 
 
-public class EndPointRegister implements FabricEndpointService, AutoCloseable {
+public class EndPointRegister implements FabricEndpointService {
 
     private final DataBroker dataBroker;
-    private final RpcProviderRegistry rpcRegistry;
-
-    private RpcRegistration<FabricEndpointService> rpcRegistration;
-
     private final ExecutorService executor;
 
-    public EndPointRegister(final DataBroker dataBroker,
-            final RpcProviderRegistry rpcRegistry, ExecutorService executor) {
+    public EndPointRegister(final DataBroker dataBroker, final ExecutorService executor) {
         this.dataBroker = dataBroker;
-        this.rpcRegistry = rpcRegistry;
-
         this.executor = executor;
     }
 
@@ -122,13 +110,9 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
 
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
-        return Futures.transformAsync(future, new AsyncFunction<Void, RpcResult<RegisterEndpointOutput>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<RegisterEndpointOutput>> apply(Void input) throws Exception {
-                outputBuilder.setEndpointId(newepId);
-                return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
-            }
+        return Futures.transformAsync(future, input1 -> {
+            outputBuilder.setEndpointId(newepId);
+            return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
         }, executor);
     }
 
@@ -165,16 +149,5 @@ public class EndPointRegister implements FabricEndpointService, AutoCloseable {
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
         return Futures.transformAsync(future, (AsyncFunction<Void, RpcResult<Void>>) input1 -> Futures.immediateFuture(result), executor);
-    }
-
-    public void start() {
-        rpcRegistration = rpcRegistry.addRpcImplementation(FabricEndpointService.class, this);
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (rpcRegistration != null) {
-            rpcRegistration.close();
-        }
     }
 }

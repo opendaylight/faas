@@ -10,14 +10,13 @@ package org.opendaylight.faas.uln.listeners;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
-import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
-import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
+import org.opendaylight.faas.uln.manager.UlnMappingEngine;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -29,25 +28,28 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
 
     private static final Logger LOG = LoggerFactory.getLogger(EndpointLocationListener.class);
 
-    private final ListenerRegistration<DataChangeListener> registerListener;
+    private ListenerRegistration<DataChangeListener> registerListener;
 
     private final ScheduledExecutorService executor;
+    private final UlnMappingEngine ulnMappingEngine;
+    private final DataBroker dataBroker;
 
-    public EndpointLocationListener(ScheduledExecutorService executor) {
+    public EndpointLocationListener(ScheduledExecutorService executor, UlnMappingEngine ulnMappingEngine,
+            DataBroker dataBroker) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+        this.ulnMappingEngine = ulnMappingEngine;
+        this.dataBroker = dataBroker;
+    }
+
+    public void init() {
+        registerListener = dataBroker.registerDataChangeListener(
                 LogicalDatastoreType.OPERATIONAL, UlnIidFactory.endpointLocationIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        executor.execute(new Runnable() {
-
-            public void run() {
-                executeEvent(change);
-            }
-        });
+        executor.execute(() -> executeEvent(change));
     }
 
     public void executeEvent(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
@@ -55,7 +57,7 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof EndpointLocation) {
                 LOG.debug("FABMGR: Create EndpointLocation event: {}", ((EndpointLocation) dao).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleEndpointLocationCreateEvent((EndpointLocation) dao);
+                ulnMappingEngine.handleEndpointLocationCreateEvent((EndpointLocation) dao);
             }
         }
         // Update
@@ -64,7 +66,7 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
             if (entry.getValue() instanceof EndpointLocation) {
                 LOG.debug("FABMGR: Update EndpointLocation event: {}",
                         ((EndpointLocation) entry.getValue()).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper()
+                ulnMappingEngine
                     .handleEndpointLocationUpdateEvent((EndpointLocation) entry.getValue());
             }
         }
@@ -76,14 +78,15 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
             }
             if (old instanceof EndpointLocation) {
                 LOG.debug("FABMGR: Remove EndpointLocation event: {}", ((EndpointLocation) old).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleEndpointLocationRemoveEvent((EndpointLocation) old);
+                ulnMappingEngine.handleEndpointLocationRemoveEvent((EndpointLocation) old);
             }
         }
     }
 
     @Override
-    public void close() throws Exception {
-        if (registerListener != null)
+    public void close() {
+        if (registerListener != null) {
             registerListener.close();
+        }
     }
 }

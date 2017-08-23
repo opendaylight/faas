@@ -15,15 +15,14 @@ import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
@@ -31,8 +30,6 @@ import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.general.spi.FabricRenderer;
 import org.opendaylight.faas.fabric.general.spi.FabricRendererFactory;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
@@ -86,40 +83,22 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FabricManagementAPIProvider implements AutoCloseable, FabricService {
+public class FabricManagementAPIProvider implements FabricService {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricManagementAPIProvider.class);
 
     private final DataBroker dataBroker;
-    private final RpcProviderRegistry rpcRegistry;
-
-    private RpcRegistration<FabricService> rpcRegistration;
 
     private final FabricRendererRegistry rendererMgr;
 
     private final ExecutorService executor;
 
-    public FabricManagementAPIProvider(final DataBroker dataBroker,
-            final RpcProviderRegistry rpcRegistry, ExecutorService executor, FabricRendererRegistry rendererMgr) {
-
+    public FabricManagementAPIProvider(final DataBroker dataBroker, final ExecutorService executor,
+            final FabricRendererRegistry rendererMgr) {
         this.dataBroker = dataBroker;
-        this.rpcRegistry = rpcRegistry;
-
         this.executor = executor;
-
         this.rendererMgr = rendererMgr;
 
-    }
-
-    public void start() {
-        rpcRegistration = rpcRegistry.addRpcImplementation(FabricService.class, this);
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (rpcRegistration != null) {
-            rpcRegistration.close();
-        }
     }
 
     @Override
@@ -253,7 +232,7 @@ public class FabricManagementAPIProvider implements AutoCloseable, FabricService
 
             FabricInstanceCache.INSTANCE.retrieveFabric(fabricId).notifyFabricCreated(fabricNode);
             return resultBuilder.withResult(outputBuilder.build()).build();
-        });
+        }, MoreExecutors.directExecutor());
     }
 
     private String checkFabricOptions(final ComposeFabricInputBuilder input) {
