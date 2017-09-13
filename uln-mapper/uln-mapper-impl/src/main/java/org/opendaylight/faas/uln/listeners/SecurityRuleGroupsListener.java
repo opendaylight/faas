@@ -10,14 +10,13 @@ package org.opendaylight.faas.uln.listeners;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
-import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
-import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
+import org.opendaylight.faas.uln.manager.UlnMappingEngine;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.security.rules.rev151013.security.rule.groups.attributes.security.rule.groups.container.SecurityRuleGroups;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -29,26 +28,28 @@ public class SecurityRuleGroupsListener implements DataChangeListener, AutoClose
 
     private static final Logger LOG = LoggerFactory.getLogger(SecurityRuleGroupsListener.class);
 
-    private final ListenerRegistration<DataChangeListener> registerListener;
+    private ListenerRegistration<DataChangeListener> registerListener;
 
     private final ScheduledExecutorService executor;
+    private final UlnMappingEngine ulnMappingEngine;
+    private final DataBroker dataBroker;
 
-    public SecurityRuleGroupsListener(ScheduledExecutorService executor) {
+    public SecurityRuleGroupsListener(ScheduledExecutorService executor, UlnMappingEngine ulnMappingEngine,
+            DataBroker dataBroker) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+        this.ulnMappingEngine = ulnMappingEngine;
+        this.dataBroker = dataBroker;
+    }
+
+    public void init() {
+        registerListener = dataBroker.registerDataChangeListener(
                 LogicalDatastoreType.OPERATIONAL, UlnIidFactory.securityGroupsIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        executor.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                executeEvent(change);
-            }
-        });
+        executor.execute(() -> executeEvent(change));
     }
 
     public void executeEvent(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
@@ -57,7 +58,7 @@ public class SecurityRuleGroupsListener implements DataChangeListener, AutoClose
             if (dao instanceof SecurityRuleGroups) {
                 LOG.debug("FABMGR: Create SecurityRuleGroups event: {}",
                         ((SecurityRuleGroups) dao).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleSecurityRuleGroupsCreateEvent((SecurityRuleGroups) dao);
+                ulnMappingEngine.handleSecurityRuleGroupsCreateEvent((SecurityRuleGroups) dao);
             }
         }
         // Update
@@ -78,19 +79,20 @@ public class SecurityRuleGroupsListener implements DataChangeListener, AutoClose
             if (old instanceof SecurityRuleGroups) {
                 LOG.debug("FABMGR: RemovedSecurityRuleGroups event: {}",
                         ((SecurityRuleGroups) old).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleSecurityRuleGroupsRemoveEvent((SecurityRuleGroups) old);
+                ulnMappingEngine.handleSecurityRuleGroupsRemoveEvent((SecurityRuleGroups) old);
             }
         }
     }
 
     private void updateRules(SecurityRuleGroups newData, SecurityRuleGroups oldData) {
         LOG.debug("FABMGR: Update SecurityRuleGroups event: {}", newData.getUuid().getValue());
-        UserLogicalNetworkManager.getUlnMapper().handleSecurityRuleGroupsUpdateEvent(newData);
+        ulnMappingEngine.handleSecurityRuleGroupsUpdateEvent(newData);
     }
 
     @Override
-    public void close() throws Exception {
-        if (registerListener != null)
+    public void close() {
+        if (registerListener != null) {
             registerListener.close();
+        }
     }
 }

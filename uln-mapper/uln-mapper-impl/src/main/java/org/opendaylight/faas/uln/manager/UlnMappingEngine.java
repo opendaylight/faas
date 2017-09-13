@@ -19,11 +19,13 @@ import java.util.Random;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabricmgr.FabMgrDatastoreUtil;
 import org.opendaylight.faas.fabricmgr.FabMgrYangDataUtil;
-import org.opendaylight.faas.fabricmgr.FabricMgrProvider;
+import org.opendaylight.faas.fabricmgr.FabricMgrService;
+import org.opendaylight.faas.fabricmgr.UserLogicalNetworkCacheStore;
 import org.opendaylight.faas.fabricmgr.api.EndpointAttachInfo;
 import org.opendaylight.faas.uln.cache.EdgeMappingInfo;
 import org.opendaylight.faas.uln.cache.EndpointLocationMappingInfo;
@@ -36,7 +38,7 @@ import org.opendaylight.faas.uln.cache.RenderedSwitch;
 import org.opendaylight.faas.uln.cache.SecurityRuleGroupsMappingInfo;
 import org.opendaylight.faas.uln.cache.SubnetMappingInfo;
 import org.opendaylight.faas.uln.cache.UserLogicalNetworkCache;
-import org.opendaylight.faas.uln.datastore.api.UlnDatastoreApi;
+import org.opendaylight.faas.uln.datastore.api.UlnDatastoreUtil;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.listeners.UlnUtil;
 import org.opendaylight.sfc.provider.api.SfcDataStoreAPI;
@@ -127,25 +129,32 @@ public class UlnMappingEngine {
     private final int EXT_ACCESS_TAG_START = 100;
     private final int EXT_ACCESS_TAG_RANGE = 100;
 
-    private Map<Uuid, UserLogicalNetworkCache> ulnStore = null;
+    private final UserLogicalNetworkCacheStore ulnStore;
+    private final FabMgrDatastoreUtil fabMgrDatastoreUtil;
+    private final UlnDatastoreUtil ulnDatastoreApi;
+    private final FabricMgrService fmgr;
     private final Executor exec;
     private final Semaphore workerThreadLock;
-    private boolean applyAclToBothEpgs = true; // see Bug 5191
-    private FabricMgrProvider fmgr = null;
+    private final boolean applyAclToBothEpgs = true; // see Bug 5191
 
     /**
      * constructor - initialize the data members.
      * Initialize the worker thread and the cache object.
      */
-    public UlnMappingEngine() {
-
-        fmgr = FabricMgrProvider.getInstance();
+    public UlnMappingEngine(final UserLogicalNetworkCacheStore ulnStore, final FabricMgrService fmgr,
+            final DataBroker dataBroker) {
+        assert ulnStore != null;
+        assert dataBroker != null;
         assert fmgr != null;
 
-        this.ulnStore = fmgr.getCacheStore();
-        assert ulnStore != null;
+        this.ulnStore = ulnStore;
+        this.fmgr = fmgr;
+
+        fabMgrDatastoreUtil = new FabMgrDatastoreUtil(dataBroker);
+        ulnDatastoreApi = new UlnDatastoreUtil(dataBroker);
 
         this.exec = Executors.newSingleThreadExecutor();
+
         /*
          * Releases must occur before any acquires will be
          * granted. The worker thread is blocked initially.
@@ -301,7 +310,7 @@ public class UlnMappingEngine {
     public NodeId getFabricIdFromLocation(
             org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId nid,
             org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId cid) {
-        Optional<TerminationPoint> opt = FabMgrDatastoreUtil.readData(LogicalDatastoreType.OPERATIONAL,
+        Optional<TerminationPoint> opt = fabMgrDatastoreUtil.readData(LogicalDatastoreType.OPERATIONAL,
                 FabMgrYangDataUtil.createTpPath(nid.getValue(), cid.getValue()));
         if (opt.isPresent()) {
             TerminationPoint tp = opt.get();
@@ -531,7 +540,9 @@ public class UlnMappingEngine {
         LogicalRouterMappingInfo leftLr = uln.findLrFromItsPort(leftPort.getPort());
         LogicalRouterMappingInfo rightLr = uln.findLrFromItsPort(rightPort.getPort());
 
-        if (leftLr == null || rightLr == null) return;
+        if (leftLr == null || rightLr == null) {
+            return;
+        }
         //set up connection
         Map<String,RenderedRouter> combinedMap = new HashMap<>();
         combinedMap.putAll(leftLr.getRenderedRouters());
@@ -614,7 +625,9 @@ public class UlnMappingEngine {
     {
         PortMappingInfo leftPort = uln.findLeftPortOnEdge(edge);
         PortMappingInfo rightPort = uln.findRightPortOnEdge(edge);
-        if (leftPort == null || rightPort == null) return;
+        if (leftPort == null || rightPort == null) {
+            return;
+        }
         uln.addLrLswEdgeToPort(leftPort.getPort(), edge);
         uln.addLrLswEdgeToPort(rightPort.getPort(), edge);
     }
@@ -1104,7 +1117,7 @@ public class UlnMappingEngine {
         }
         // Find existing RSP based on following naming convention, else create it.
         RspName rspName = new RspName(sfcPath.getName() + "-gbp-rsp");
-        ReadOnlyTransaction rTx = UlnMapperDatastoreDependency.getDataProvider().newReadOnlyTransaction();
+        ReadOnlyTransaction rTx = fabMgrDatastoreUtil.getDataBroker().newReadOnlyTransaction();
         RenderedServicePath renderedServicePath;
         RenderedServicePath rsp = getRspByName(rspName, rTx);
         if (rsp == null) {
@@ -1204,15 +1217,11 @@ public class UlnMappingEngine {
     }
 
     private RenderedServicePath getRspByName(RspName rspName, ReadOnlyTransaction rTx) {
-        Optional<RenderedServicePath> optRsp = UlnDatastoreApi.readFromDs(UlnIidFactory.rspIid(rspName), rTx);
+        Optional<RenderedServicePath> optRsp = ulnDatastoreApi.readFromDs(UlnIidFactory.rspIid(rspName), rTx);
         if (optRsp.isPresent()) {
             return optRsp.get();
         }
         return null;
-    }
-
-    public Map<Uuid, UserLogicalNetworkCache> getUlnStore() {
-        return ulnStore;
     }
 
     /*
@@ -2275,9 +2284,7 @@ public class UlnMappingEngine {
     }
 
     private synchronized void createUlnCacheIfNotExist(Uuid tenantId) {
-        if (this.ulnStore.get(tenantId) == null) {
-            this.ulnStore.put(tenantId, new UserLogicalNetworkCache(tenantId));
-        }
+        this.ulnStore.putIfAbsent(tenantId, new UserLogicalNetworkCache(tenantId));
     }
 
     public void initialize() {

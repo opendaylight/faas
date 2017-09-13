@@ -10,14 +10,13 @@ package org.opendaylight.faas.uln.listeners;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
-import org.opendaylight.faas.uln.manager.UlnMapperDatastoreDependency;
-import org.opendaylight.faas.uln.manager.UserLogicalNetworkManager;
+import org.opendaylight.faas.uln.manager.UlnMappingEngine;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.subnets.rev151013.subnets.container.subnets.Subnet;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -29,25 +28,27 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubnetListener.class);
 
-    private final ListenerRegistration<DataChangeListener> registerListener;
+    private ListenerRegistration<DataChangeListener> registerListener;
 
     private final ScheduledExecutorService executor;
+    private final UlnMappingEngine ulnMappingEngine;
+    private final DataBroker dataBroker;
 
-    public SubnetListener(ScheduledExecutorService executor) {
+    public SubnetListener(ScheduledExecutorService executor, UlnMappingEngine ulnMappingEngine, DataBroker dataBroker) {
         this.executor = executor;
-        this.registerListener = UlnMapperDatastoreDependency.getDataProvider().registerDataChangeListener(
+        this.ulnMappingEngine = ulnMappingEngine;
+        this.dataBroker = dataBroker;
+    }
+
+    public void init() {
+        registerListener = dataBroker.registerDataChangeListener(
                 LogicalDatastoreType.OPERATIONAL, UlnIidFactory.subnetIid(), this,
                 AsyncDataBroker.DataChangeScope.SUBTREE);
     }
 
     @Override
     public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        executor.execute(new Runnable() {
-
-            public void run() {
-                executeEvent(change);
-            }
-        });
+        executor.execute(() -> executeEvent(change));
     }
 
     public void executeEvent(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
@@ -55,7 +56,7 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
         for (DataObject dao : change.getCreatedData().values()) {
             if (dao instanceof Subnet) {
                 LOG.debug("FABMGR: Create Subnet event: {}", ((Subnet) dao).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleSubnetCreateEvent((Subnet) dao);
+                ulnMappingEngine.handleSubnetCreateEvent((Subnet) dao);
             }
         }
         // Update
@@ -63,7 +64,7 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
         for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
             if (entry.getValue() instanceof Subnet) {
                 LOG.debug("FABMGR: Update Subnet event: {}", ((Subnet) entry.getValue()).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleSubnetUpdateEvent((Subnet) entry.getValue());
+                ulnMappingEngine.handleSubnetUpdateEvent((Subnet) entry.getValue());
             }
         }
         // Remove
@@ -74,14 +75,15 @@ public class SubnetListener implements DataChangeListener, AutoCloseable {
             }
             if (old instanceof Subnet) {
                 LOG.debug("FABMGR: Remove Subnet event: {}", ((Subnet) old).getUuid().getValue());
-                UserLogicalNetworkManager.getUlnMapper().handleSubnetRemoveEvent((Subnet) old);
+                ulnMappingEngine.handleSubnetRemoveEvent((Subnet) old);
             }
         }
     }
 
     @Override
-    public void close() throws Exception {
-        if (registerListener != null)
+    public void close() {
+        if (registerListener != null) {
             registerListener.close();
+        }
     }
 }

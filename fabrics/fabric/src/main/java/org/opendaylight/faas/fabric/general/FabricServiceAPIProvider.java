@@ -9,25 +9,19 @@ package org.opendaylight.faas.fabric.general;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.ReadWriteTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
-import org.opendaylight.controller.sal.binding.api.BindingAwareBroker.RpcRegistration;
-import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.faas.fabric.utils.InterfaceManager;
 import org.opendaylight.faas.fabric.utils.IpAddressUtils;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
@@ -114,34 +108,16 @@ import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceService {
+public class FabricServiceAPIProvider implements FabricServiceService {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricServiceAPIProvider.class);
 
     private final DataBroker dataBroker;
-    private final RpcProviderRegistry rpcRegistry;
-
-    private RpcRegistration<FabricServiceService> rpcRegistration;
-
     private final ExecutorService executor;
 
-    public FabricServiceAPIProvider(final DataBroker dataBroker,
-            final RpcProviderRegistry rpcRegistry, ExecutorService executor) {
+    public FabricServiceAPIProvider(final DataBroker dataBroker, final ExecutorService executor) {
         this.dataBroker = dataBroker;
-        this.rpcRegistry = rpcRegistry;
-
         this.executor = executor;
-    }
-
-    public void start() {
-        rpcRegistration = rpcRegistry.addRpcImplementation(FabricServiceService.class, this);
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (rpcRegistration != null) {
-            rpcRegistration.close();
-        }
     }
 
     @Override
@@ -178,14 +154,10 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         trans.delete(LogicalDatastoreType.OPERATIONAL, MdSalUtils.createLogicPortIId(fabricId, routerId, tpOnRouter));
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyGatewayRemoved(flswid, routerId);
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyGatewayRemoved(flswid, routerId);
-
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -229,22 +201,18 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         CheckedFuture<Optional<Node>,ReadFailedException> readFuture = trans.read(LogicalDatastoreType.OPERATIONAL,
                 lswIId);
 
-        return Futures.transformAsync(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>() {
+        return Futures.transformAsync(readFuture, optional -> {
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
+            if (optional.isPresent()) {
+                Node lsw = optional.get();
+                fabricObj.notifyLogicSwitchRemoved(lsw);
 
-                if (optional.isPresent()) {
-                    Node lsw = optional.get();
-                    fabricObj.notifyLogicSwitchRemoved(lsw);
-
-                    WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-                    wt.delete(LogicalDatastoreType.OPERATIONAL, lswIId);
-                    MdSalUtils.wrapperSubmit(wt, executor);
-                }
-
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+                wt.delete(LogicalDatastoreType.OPERATIONAL, lswIId);
+                MdSalUtils.wrapperSubmit(wt, executor);
             }
+
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -276,13 +244,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         LinkId linkId = createGatewayLink(routerId, tpid1);
         createLogicLink(fabricId, routerId, swId, trans, tpid1, tpid2, linkId);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<CreateGatewayOutput>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<CreateGatewayOutput>> apply(Void submitResult) throws Exception {
-                resultBuilder.withResult(outputBuilder);
-                return Futures.immediateFuture(resultBuilder.build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            resultBuilder.withResult(outputBuilder);
+            return Futures.immediateFuture(resultBuilder.build());
         }, executor);
     }
 
@@ -411,17 +375,13 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lsw);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicalSwitchOutput>>() {
+        return Futures.transformAsync(trans.submit(), submitResult -> {
 
-            @Override
-            public ListenableFuture<RpcResult<CreateLogicalSwitchOutput>> apply(Void submitResult) throws Exception {
-
-                outputBuilder.setLswUuid(new Uuid(uuid));
-                outputBuilder.setName(input.getName());
-                outputBuilder.setNodeId(newNodeId);
-                fabricObj.notifyLogicSwitchCreated(newNodeId, lsw);
-                return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
-            }
+            outputBuilder.setLswUuid(new Uuid(uuid));
+            outputBuilder.setName(input.getName());
+            outputBuilder.setNodeId(newNodeId);
+            fabricObj.notifyLogicSwitchCreated(newNodeId, lsw);
+            return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
         }, executor);
     }
 
@@ -443,22 +403,18 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         CheckedFuture<Optional<Node>,ReadFailedException> readFuture = trans.read(LogicalDatastoreType.OPERATIONAL,
                 routerIId);
 
-        return Futures.transformAsync(readFuture, new AsyncFunction<Optional<Node>, RpcResult<Void>>() {
+        return Futures.transformAsync(readFuture, optional -> {
 
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Optional<Node> optional) throws Exception {
+            if (optional.isPresent()) {
+                Node lr = optional.get();
+                fabricObj.notifyLogicRouterRemoved(lr);
 
-                if (optional.isPresent()) {
-                    Node lr = optional.get();
-                    fabricObj.notifyLogicRouterRemoved(lr);
-
-                    WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
-                    wt.delete(LogicalDatastoreType.OPERATIONAL, routerIId);
-                    MdSalUtils.wrapperSubmit(wt, executor);
-                }
-
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
+                WriteTransaction wt = dataBroker.newWriteOnlyTransaction();
+                wt.delete(LogicalDatastoreType.OPERATIONAL, routerIId);
+                MdSalUtils.wrapperSubmit(wt, executor);
             }
+
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -474,14 +430,7 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
 
         trans.delete(LogicalDatastoreType.OPERATIONAL, tpIId);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
-        }, executor);
+        return Futures.transformAsync(trans.submit(), submitResult -> Futures.immediateFuture(RpcResultBuilder.<Void>success().build()), executor);
     }
 
     @Override
@@ -525,17 +474,13 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.put(LogicalDatastoreType.OPERATIONAL,newRouterIId, lr, true);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicalRouterOutput>>() {
+        return Futures.transformAsync(trans.submit(), submitResult -> {
 
-            @Override
-            public ListenableFuture<RpcResult<CreateLogicalRouterOutput>> apply(Void submitResult) throws Exception {
-
-                outputBuilder.setLrUuid(new Uuid(uuid));
-                outputBuilder.setName(input.getName());
-                outputBuilder.setNodeId(newNodeId);
-                fabricObj.notifyLogicRouterCreated(newNodeId, lr);
-                return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
-            }
+            outputBuilder.setLrUuid(new Uuid(uuid));
+            outputBuilder.setName(input.getName());
+            outputBuilder.setNodeId(newNodeId);
+            fabricObj.notifyLogicRouterCreated(newNodeId, lr);
+            return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
         }, executor);
 
     }
@@ -582,14 +527,10 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.put(LogicalDatastoreType.OPERATIONAL,tpIId, tpBuilder.build());
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<CreateLogicalPortOutput>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<CreateLogicalPortOutput>> apply(Void submitResult) throws Exception {
-                outputBuilder.setTpId(tpid);
-                outputBuilder.setName(name);
-                return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            outputBuilder.setTpId(tpid);
+            outputBuilder.setName(name);
+            return Futures.immediateFuture(resultBuilder.withResult(outputBuilder.build()).build());
         }, executor);
 
     }
@@ -621,13 +562,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.merge(LogicalDatastoreType.OPERATIONAL,aclIId, aclBuilder.build(), false);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyAclUpdated(aclIId, false);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyAclUpdated(aclIId, false);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -662,13 +599,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.delete(LogicalDatastoreType.OPERATIONAL,aclIId);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyAclUpdated(tgtAclIId, true);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyAclUpdated(tgtAclIId, true);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -693,13 +626,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.merge(LogicalDatastoreType.OPERATIONAL,fncIId, function, false);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyPortFuncUpdated(fncIId, function, false);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyPortFuncUpdated(fncIId, function, false);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -739,13 +668,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.merge(LogicalDatastoreType.OPERATIONAL, routesIId, builder.build(), true);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyRouteUpdated(routesIId.firstIdentifierOf(Node.class), routes, false);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyRouteUpdated(routesIId.firstIdentifierOf(Node.class), routes, false);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -775,13 +700,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.merge(LogicalDatastoreType.OPERATIONAL,attrIId, builder.build(), false);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyLogicalPortLocated(attrIId.firstIdentifierOf(TerminationPoint.class), portId);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyLogicalPortLocated(attrIId.firstIdentifierOf(TerminationPoint.class), portId);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -830,13 +751,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         WriteTransaction trans = dataBroker.newWriteOnlyTransaction();
         trans.merge(LogicalDatastoreType.OPERATIONAL,attrIId, builder.build(), false);
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyLogicalPortLocated(attrIId.firstIdentifierOf(TerminationPoint.class), portId);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyLogicalPortLocated(attrIId.firstIdentifierOf(TerminationPoint.class), portId);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 
@@ -860,13 +777,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
         if (MdSalUtils.syncReadOper(trans, routesIId).isPresent()) {
             trans.delete(LogicalDatastoreType.OPERATIONAL,routesIId);
 
-            return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-                @Override
-                public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                    fabricObj.notifyRouteCleared(routesIId.firstIdentifierOf(Node.class));
-                    return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-                }
+            return Futures.transformAsync(trans.submit(), submitResult -> {
+                fabricObj.notifyRouteCleared(routesIId.firstIdentifierOf(Node.class));
+                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
             }, executor);
         } else {
             return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
@@ -900,13 +813,9 @@ public class FabricServiceAPIProvider implements AutoCloseable, FabricServiceSer
             trans.delete(LogicalDatastoreType.OPERATIONAL,routesIId.child(Route.class, route.getKey()));
         }
 
-        return Futures.transformAsync(trans.submit(), new AsyncFunction<Void, RpcResult<Void>>() {
-
-            @Override
-            public ListenableFuture<RpcResult<Void>> apply(Void submitResult) throws Exception {
-                fabricObj.notifyRouteUpdated(routesIId.firstIdentifierOf(Node.class), routes, true);
-                return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
-            }
+        return Futures.transformAsync(trans.submit(), submitResult -> {
+            fabricObj.notifyRouteUpdated(routesIId.firstIdentifierOf(Node.class), routes, true);
+            return Futures.immediateFuture(RpcResultBuilder.<Void>success().build());
         }, executor);
     }
 }
