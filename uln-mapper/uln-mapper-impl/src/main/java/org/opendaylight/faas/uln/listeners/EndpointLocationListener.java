@@ -8,27 +8,26 @@
 
 package org.opendaylight.faas.uln.listeners;
 
-import java.util.Map;
+import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
+import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMappingEngine;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.endpoints.locations.rev151013.endpoints.locations.container.endpoints.locations.EndpointLocation;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
-import org.opendaylight.yangtools.yang.binding.DataObject;
-import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EndpointLocationListener implements DataChangeListener, AutoCloseable {
+public class EndpointLocationListener implements DataTreeChangeListener<EndpointLocation>, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(EndpointLocationListener.class);
 
-    private ListenerRegistration<DataChangeListener> registerListener;
+    private ListenerRegistration<?> registerListener;
 
     private final ScheduledExecutorService executor;
     private final UlnMappingEngine ulnMappingEngine;
@@ -42,43 +41,37 @@ public class EndpointLocationListener implements DataChangeListener, AutoCloseab
     }
 
     public void init() {
-        registerListener = dataBroker.registerDataChangeListener(
-                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.endpointLocationIid(), this,
-                AsyncDataBroker.DataChangeScope.SUBTREE);
+        registerListener = dataBroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.endpointLocationIid()), this);
     }
 
     @Override
-    public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        executor.execute(() -> executeEvent(change));
+    public void onDataTreeChanged(Collection<DataTreeModification<EndpointLocation>> changes) {
+        executor.execute(() -> executeEvent(changes));
     }
 
-    public void executeEvent(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        // Create
-        for (DataObject dao : change.getCreatedData().values()) {
-            if (dao instanceof EndpointLocation) {
-                LOG.debug("FABMGR: Create EndpointLocation event: {}", ((EndpointLocation) dao).getUuid().getValue());
-                ulnMappingEngine.handleEndpointLocationCreateEvent((EndpointLocation) dao);
-            }
-        }
-        // Update
-        Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
-        for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
-            if (entry.getValue() instanceof EndpointLocation) {
-                LOG.debug("FABMGR: Update EndpointLocation event: {}",
-                        ((EndpointLocation) entry.getValue()).getUuid().getValue());
-                ulnMappingEngine
-                    .handleEndpointLocationUpdateEvent((EndpointLocation) entry.getValue());
-            }
-        }
-        // Remove
-        for (InstanceIdentifier<?> iid : change.getRemovedPaths()) {
-            DataObject old = change.getOriginalData().get(iid);
-            if (old == null) {
-                continue;
-            }
-            if (old instanceof EndpointLocation) {
-                LOG.debug("FABMGR: Remove EndpointLocation event: {}", ((EndpointLocation) old).getUuid().getValue());
-                ulnMappingEngine.handleEndpointLocationRemoveEvent((EndpointLocation) old);
+    public void executeEvent(Collection<DataTreeModification<EndpointLocation>> changes) {
+        for (DataTreeModification<EndpointLocation> change: changes) {
+            DataObjectModification<EndpointLocation> rootNode = change.getRootNode();
+            final EndpointLocation originalEPL = rootNode.getDataBefore();
+            switch (rootNode.getModificationType()) {
+                case WRITE:
+                case SUBTREE_MODIFIED:
+                    final EndpointLocation updatedEPL = rootNode.getDataAfter();
+                    if (originalEPL == null) {
+                        LOG.debug("FABMGR: Create EndpointLocation event: {}", updatedEPL.getUuid().getValue());
+                        ulnMappingEngine.handleEndpointLocationCreateEvent(updatedEPL);
+                    } else {
+                        LOG.debug("FABMGR: Update EndpointLocation event: {}", updatedEPL.getUuid().getValue());
+                        ulnMappingEngine.handleEndpointLocationUpdateEvent(updatedEPL);
+                    }
+                    break;
+                case DELETE:
+                    LOG.debug("FABMGR: Remove EndpointLocation event: {}", originalEPL.getUuid().getValue());
+                    ulnMappingEngine.handleEndpointLocationRemoveEvent(originalEPL);
+                    break;
+                default:
+                    break;
             }
         }
     }

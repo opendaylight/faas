@@ -13,21 +13,18 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-
+import java.util.function.BiConsumer;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
+import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker.DataChangeScope;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.fabric.utils.MdSalUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.AdapterBdIf;
@@ -49,7 +46,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.ServiceCapabilities;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.acl.list.FabricAcl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.PortFunction;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.IpMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.port.functions.port.function.function.type.ip.mapping.IpMappingEntry;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.route.next.hop.options.SimpleNextHop;
@@ -70,28 +66,20 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeviceRenderer implements DataChangeListener, AutoCloseable {
+public class DeviceRenderer implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeviceRenderer.class);
 
-    private DeviceContext ctx;
+    private final DeviceContext ctx;
 
-    private Openflow13Provider openflow13Provider;
+    private final Openflow13Provider openflow13Provider;
 
-    private FabricId fabricId;
+    private final FabricId fabricId;
 
-    private ExecutorService executor;
+    private final ExecutorService executor;
     private final DataBroker databroker;
 
-    private ListenerRegistration<DataChangeListener> hostRouteListener = null;
-    private ListenerRegistration<DataChangeListener> bridgeDomainListener = null;
-    private ListenerRegistration<DataChangeListener> bdifListener = null;
-    private ListenerRegistration<DataChangeListener> vtepMembersListener = null;
-    private ListenerRegistration<DataChangeListener> bridgeDomainAclListener = null;
-    private ListenerRegistration<DataChangeListener> bridgePortAclListener = null;
-    private ListenerRegistration<DataChangeListener> bdPortListener = null;
-    private ListenerRegistration<DataChangeListener> ribRouteListener = null;
-    private ListenerRegistration<DataChangeListener> ipMappingListener = null;
+    private final Collection<ListenerRegistration<?>> listenerRegs = new ArrayList<>();
 
     public DeviceRenderer(ExecutorService exector, DataBroker databroker, InstanceIdentifier<Node> iid, Node node,
             FabricId fabricId) {
@@ -111,50 +99,68 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         InstanceIdentifier<HostRoute> hostRouteIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(HostRoute.class);
-        hostRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, hostRouteIId, this,
-                DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, hostRouteIId), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onHostRouteCreate(created)),
+                    (id, removed) -> executor.execute(() -> onHostRouteDelete(removed)))));
 
         InstanceIdentifier<BridgeDomain> bridgeDomainIId = iid.augmentation(FabricCapableDevice.class)
                 .child(Config.class).child(BridgeDomain.class);
-        bridgeDomainListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bridgeDomainIId,
-                this, DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, bridgeDomainIId), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onBridgeDomainCreate(created)),
+                    (id, removed) -> executor.execute(() -> onBridgeDomainDelete(removed)))));
 
         InstanceIdentifier<Bdif> bdifIId = iid.augmentation(FabricCapableDevice.class).child(Config.class)
                 .child(Bdif.class);
-        bdifListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdifIId, this,
-                DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, bdifIId), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onBDIFCreate(created)),
+                    (id, removed) -> executor.execute(() -> onBDIFDelete(removed)))));
 
         InstanceIdentifier<Members> vtepMembersIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(VniMembers.class).child(Members.class);
-        vtepMembersListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, vtepMembersIId,
-                this, DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, vtepMembersIId), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onVtepMembersCreate(id, created)),
+                    (id, removed) -> executor.execute(() -> onVtepMembersDelete(id, removed)))));
 
         // Acl function in the scope of Bridge Domain
         InstanceIdentifier<FabricAcl> bridgeDomainAclIId = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(Acls.class).child(FabricAcl.class);
-        bridgeDomainAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL,
-                bridgeDomainAclIId, this, DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, bridgeDomainAclIId), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onFabricAclCreate(id, created)),
+                    (id, removed) -> executor.execute(() -> onFabricAclDelete(id, removed)))));
 
         // Acl function in the scope of Bridge Port
         InstanceIdentifier<FabricAcl> bdPortAclIId = iid.augmentation(FabricCapableDevice.class).child(Config.class)
                 .child(BdPort.class).child(FabricAcl.class);
-        bridgePortAclListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdPortAclIId,
-                this, DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, bdPortAclIId), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onFabricAclCreate(id, created)),
+                    (id, removed) -> executor.execute(() -> onFabricAclDelete(id, removed)))));
 
         InstanceIdentifier<BdPort> bdPortIID = iid.augmentation(FabricCapableDevice.class).child(Config.class)
                 .child(BdPort.class);
-        bdPortListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, bdPortIID, this,
-                DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, bdPortIID), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onBdPortCreate(id, created)),
+                    (id, removed) -> executor.execute(() -> onBdPortDelete(id, removed)))));
 
         InstanceIdentifier<Route> routeIID = InstanceIdentifier.create(FabricRenderedMapping.class)
                 .child(Fabric.class, new FabricKey(fabricId)).child(Rib.class).child(Route.class);
-        ribRouteListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, routeIID, this,
-                DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, routeIID), changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onRouteCreate(id, created)),
+                    (id, removed) -> executor.execute(() -> onRouteDelete(id, removed)))));
 
         InstanceIdentifier<IpMappingEntry> ipMappingIID = iid.augmentation(FabricCapableDevice.class)
                 .child(Config.class).child(Bdif.class).child(PortFunction.class).child(IpMappingEntry.class);
-        ipMappingListener = databroker.registerDataChangeListener(LogicalDatastoreType.OPERATIONAL, ipMappingIID, this,
-                DataChangeScope.BASE);
+        listenerRegs.add(databroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, ipMappingIID),changes -> onDataTreeChanged(changes,
+                    (id, created) -> executor.execute(() -> onIpMappingCreate(id, created)),
+                    (id, removed) -> executor.execute(() -> onIpMappingDelete(id, removed)))));
 
         readFabricOptions(node);
     }
@@ -201,258 +207,33 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
     @Override
     public void close() {
-        if (hostRouteListener != null) {
-            hostRouteListener.close();
+        for (ListenerRegistration<?> reg: listenerRegs) {
+            reg.close();
         }
-        if (bridgeDomainListener != null) {
-            bridgeDomainListener.close();
-        }
-        if (bdifListener != null) {
-            bdifListener.close();
-        }
-        if (vtepMembersListener != null) {
-            vtepMembersListener.close();
-        }
-        if (bridgeDomainAclListener != null) {
-            bridgeDomainAclListener.close();
-        }
-        if (bridgePortAclListener != null) {
-            bridgePortAclListener.close();
-        }
-        if (bdPortListener != null) {
-            bdPortListener.close();
-        }
-        if (ribRouteListener != null) {
-            ribRouteListener.close();
-        }
-        if (ipMappingListener != null) {
-            ipMappingListener.close();
-        }
+
         executor.shutdownNow();
     }
 
-    @Override
-    public void onDataChanged(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-
-        Map<InstanceIdentifier<?>, DataObject> createdData = change.getCreatedData();
-        for (Entry<InstanceIdentifier<?>, DataObject> entry : createdData.entrySet()) {
-            onDataCreated(entry);
+    private <T extends DataObject> void onDataTreeChanged(Collection<DataTreeModification<T>> changes,
+            BiConsumer<InstanceIdentifier<T>, T> onCreated, BiConsumer<InstanceIdentifier<T>, T> onRemoved) {
+        for (DataTreeModification<T> change: changes) {
+            DataObjectModification<T> rootNode = change.getRootNode();
+            final InstanceIdentifier<T> identifier = change.getRootPath().getRootIdentifier();
+            switch (rootNode.getModificationType()) {
+                case WRITE:
+                    if (rootNode.getDataBefore() == null) {
+                        onCreated.accept(identifier, rootNode.getDataAfter());
+                    } else {
+                        LOG.error("No need to support modify!!!");
+                    }
+                    break;
+                case DELETE:
+                    onRemoved.accept(identifier, rootNode.getDataBefore());
+                    break;
+                default:
+                    break;
+            }
         }
-
-        Map<InstanceIdentifier<?>, DataObject> updatedData = change.getUpdatedData();
-        for (Entry<InstanceIdentifier<?>, DataObject> entry : updatedData.entrySet()) {
-            onDataUpdated(entry);
-        }
-
-        for (InstanceIdentifier<?> iid : change.getRemovedPaths()) {
-            DataObject oldData = change.getOriginalData().get(iid);
-            onDataRemoved(iid, oldData);
-        }
-
-    }
-
-    private void onDataCreated(Entry<InstanceIdentifier<?>, DataObject> entry) {
-        if (entry.getValue() instanceof HostRoute) {
-            final HostRoute newRec = (HostRoute) entry.getValue();
-
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onHostRouteCreate(newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof BridgeDomain) {
-            final BridgeDomain newRec = (BridgeDomain) entry.getValue();
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onBridgeDomainCreate(newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof Bdif) {
-            final Bdif newRec = (Bdif) entry.getValue();
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onBDIFCreate(newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof Members) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<Members> vtepMembersIid = (InstanceIdentifier<Members>) entry.getKey();
-            final Members newRec = (Members) entry.getValue();
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onVtepMembersCreate(vtepMembersIid, newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof FabricAcl) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<FabricAcl> fabricAclIid = (InstanceIdentifier<FabricAcl>) entry.getKey();
-            final FabricAcl newRec = (FabricAcl) entry.getValue();
-
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onFabricAclCreate(fabricAclIid, newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof BdPort) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<BdPort> bdPortIid = (InstanceIdentifier<BdPort>) entry.getKey();
-            final BdPort newRec = (BdPort) entry.getValue();
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onBdPortCreate(bdPortIid, newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof Route) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<Route> routeIid = (InstanceIdentifier<Route>) entry.getKey();
-            final Route newRec = (Route) entry.getValue();
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onRouteCreate(routeIid, newRec);
-                    return null;
-                }
-            });
-        } else if (entry.getValue() instanceof IpMappingEntry) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<IpMappingEntry> ipMappingIid = (InstanceIdentifier<IpMappingEntry>) entry.getKey();
-            final IpMappingEntry newRec = (IpMappingEntry) entry.getValue();
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onIpMappingCreate(ipMappingIid, newRec);
-                    return null;
-                }
-            });
-        }
-
-    }
-
-    private void onDataUpdated(Entry<InstanceIdentifier<?>, DataObject> entry) {
-        LOG.error("No need to support modify!!!");
-    }
-
-    private void onDataRemoved(InstanceIdentifier<?> iid, DataObject entry) {
-
-        if (entry instanceof HostRoute) {
-            final HostRoute newRec = (HostRoute) entry;
-
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onHostRouteDelete(newRec);
-                    return null;
-                }
-            });
-        } else if (entry instanceof BridgeDomain) {
-            final BridgeDomain newRec = (BridgeDomain) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onBridgeDomainDelete(newRec);
-                    return null;
-                }
-            });
-        } else if (entry instanceof Bdif) {
-            final Bdif newRec = (Bdif) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onBDIFDelete(newRec);
-                    return null;
-                }
-            });
-        } else if (entry instanceof Members) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<Members> vtepMembersIid = (InstanceIdentifier<Members>) iid;
-            final Members newRec = (Members) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onVtepMembersDelete(vtepMembersIid, newRec);
-                    return null;
-                }
-            });
-        } else if (entry instanceof FabricAcl) {
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<FabricAcl> fabricAclIid = (InstanceIdentifier<FabricAcl>) iid;
-            final FabricAcl newRec = (FabricAcl) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onFabricAclDelete(fabricAclIid, newRec);
-                    return null;
-                }
-            });
-        } else if (entry instanceof BdPort) {
-
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<BdPort> bdPortIid = (InstanceIdentifier<BdPort>) iid;
-            final BdPort newRec = (BdPort) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onBdPortDelete(bdPortIid, newRec);
-                    return null;
-                }
-            });
-
-        } else if (entry instanceof Route) {
-
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<Route> routeIid = (InstanceIdentifier<Route>) iid;
-            final Route newRec = (Route) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onRouteDelete(routeIid, newRec);
-                    return null;
-                }
-            });
-
-        } else if (entry instanceof IpMappingEntry) {
-
-            @SuppressWarnings("unchecked")
-            final InstanceIdentifier<IpMappingEntry> ipMappingIid = (InstanceIdentifier<IpMappingEntry>) iid;
-            final IpMappingEntry newRec = (IpMappingEntry) entry;
-            executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    onIpMappingDelete(ipMappingIid, newRec);
-                    return null;
-                }
-            });
-
-        }
-
     }
 
     private void onHostRouteCreate(HostRoute newRec) {
@@ -519,8 +300,9 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             Long tunnelOfPort = ctx.getVtep_ofPort();
             if (tunnelOfPort == null) {
                 tunnelOfPort = OvsSouthboundUtils.getVxlanTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(), databroker);
-                if (tunnelOfPort != null)
+                if (tunnelOfPort != null) {
                     ctx.setVtep_ofPort(tunnelOfPort);
+                }
             }
 
             if (tunnelOfPort != null) {
@@ -537,7 +319,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         AdapterBdIf newAdapterBdIf = new AdapterBdIf(newRec, vni);
 
-        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+        List<AdapterBdIf> bdIfs = new ArrayList<>(ctx.getBdifCache().values());
 
         openflow13Provider.updateBdifInDevice(dpid, bdIfs, newAdapterBdIf, true);
 
@@ -551,7 +333,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
 
         AdapterBdIf newAdapterBdIf = new AdapterBdIf(newRec, vni);
 
-        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+        List<AdapterBdIf> bdIfs = new ArrayList<>(ctx.getBdifCache().values());
 
         openflow13Provider.updateBdifInDevice(dpid, bdIfs, newAdapterBdIf, false);
 
@@ -728,7 +510,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private void onRouteCreate(InstanceIdentifier<Route> iid, Route newRec) {
         Long dpid = ctx.getDpid();
 
-        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+        List<AdapterBdIf> bdIfs = new ArrayList<>(ctx.getBdifCache().values());
 
         if (newRec.getNextHopOptions() instanceof SimpleNextHop) {
             SimpleNextHop simpleNextHop = (SimpleNextHop) newRec.getNextHopOptions();
@@ -774,7 +556,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
     private void onRouteDelete(InstanceIdentifier<Route> iid, Route newRec) {
         Long dpid = ctx.getDpid();
 
-        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+        List<AdapterBdIf> bdIfs = new ArrayList<>(ctx.getBdifCache().values());
 
         if (newRec.getNextHopOptions() instanceof SimpleNextHop) {
             SimpleNextHop simpleNextHop = (SimpleNextHop) newRec.getNextHopOptions();
@@ -826,7 +608,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdifIid, databroker);
         }
 
-        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+        List<AdapterBdIf> bdIfs = new ArrayList<>(ctx.getBdifCache().values());
 
         for (AdapterBdIf bdIf : bdIfs) {
             String bdifMac = bdIf.getMacAddress().getValue();
@@ -844,7 +626,7 @@ public class DeviceRenderer implements DataChangeListener, AutoCloseable {
             segmentationId = OvsSouthboundUtils.getBridgeDomainVni(ctx.getMyIId(), bdifIid, databroker);
         }
 
-        List<AdapterBdIf> bdIfs = new ArrayList<AdapterBdIf>(ctx.getBdifCache().values());
+        List<AdapterBdIf> bdIfs = new ArrayList<>(ctx.getBdifCache().values());
 
         for (AdapterBdIf bdIf : bdIfs) {
             String bdifMac = bdIf.getMacAddress().getValue();
