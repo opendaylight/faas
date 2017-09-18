@@ -11,7 +11,6 @@ package org.opendaylight.faas.uln.manager;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.faas.uln.datastore.api.UlnDatastoreApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,8 +25,6 @@ public final class UserLogicalNetworkManager implements AutoCloseable {
     private final ScheduledExecutorService executor;
 
     public UserLogicalNetworkManager(DataBroker dataBroker) {
-        UlnDatastoreApi.setDataBroker(dataBroker);
-
         int numCPU = Runtime.getRuntime().availableProcessors();
         executor = Executors.newScheduledThreadPool(numCPU * 2);
 
