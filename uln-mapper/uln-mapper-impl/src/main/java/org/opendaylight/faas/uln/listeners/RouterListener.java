@@ -8,27 +8,26 @@
 
 package org.opendaylight.faas.uln.listeners;
 
-import java.util.Map;
+import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
-import org.opendaylight.controller.md.sal.binding.api.DataChangeListener;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataBroker;
-import org.opendaylight.controller.md.sal.common.api.data.AsyncDataChangeEvent;
+import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
+import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.faas.uln.datastore.api.UlnIidFactory;
 import org.opendaylight.faas.uln.manager.UlnMappingEngine;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.logical.faas.logical.routers.rev151013.logical.routers.container.logical.routers.LogicalRouter;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
-import org.opendaylight.yangtools.yang.binding.DataObject;
-import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RouterListener implements DataChangeListener, AutoCloseable {
+public class RouterListener implements DataTreeChangeListener<LogicalRouter>, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(RouterListener.class);
 
-    private ListenerRegistration<DataChangeListener> registerListener;
+    private ListenerRegistration<?> registerListener;
 
     private final ScheduledExecutorService executor;
     private final UlnMappingEngine ulnMappingEngine;
@@ -41,42 +40,37 @@ public class RouterListener implements DataChangeListener, AutoCloseable {
     }
 
     public void init() {
-        registerListener = dataBroker.registerDataChangeListener(
-                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.logicalRouterIid(), this,
-                AsyncDataBroker.DataChangeScope.SUBTREE);
+        registerListener = dataBroker.registerDataTreeChangeListener(new DataTreeIdentifier<>(
+                LogicalDatastoreType.OPERATIONAL, UlnIidFactory.logicalRouterIid()), this);
     }
 
     @Override
-    public void onDataChanged(final AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        executor.execute(() -> executeEvent(change));
+    public void onDataTreeChanged(Collection<DataTreeModification<LogicalRouter>> changes) {
+        executor.execute(() -> executeEvent(changes));
     }
 
-    public void executeEvent(AsyncDataChangeEvent<InstanceIdentifier<?>, DataObject> change) {
-        // Create
-        for (DataObject dao : change.getCreatedData().values()) {
-            if (dao instanceof LogicalRouter) {
-                LOG.debug("FABMGR: Create Logical Router event: {}", ((LogicalRouter) dao).getUuid().getValue());
-                ulnMappingEngine.handleLrCreateEvent((LogicalRouter) dao);
-            }
-        }
-        // Update
-        Map<InstanceIdentifier<?>, DataObject> dao = change.getUpdatedData();
-        for (Map.Entry<InstanceIdentifier<?>, DataObject> entry : dao.entrySet()) {
-            if (entry.getValue() instanceof LogicalRouter) {
-                LOG.debug("FABMGR: Update Logical Router event: {}",
-                        ((LogicalRouter) entry.getValue()).getUuid().getValue());
-                ulnMappingEngine.handleLrUpdateEvent((LogicalRouter) entry.getValue());
-            }
-        }
-        // Remove
-        for (InstanceIdentifier<?> iid : change.getRemovedPaths()) {
-            DataObject old = change.getOriginalData().get(iid);
-            if (old == null) {
-                continue;
-            }
-            if (old instanceof LogicalRouter) {
-                LOG.debug("FABMGR: Remove Logical Router event: {}", ((LogicalRouter) old).getUuid().getValue());
-                ulnMappingEngine.handleLrRemoveEvent((LogicalRouter) old);
+    public void executeEvent(Collection<DataTreeModification<LogicalRouter>> changes) {
+        for (DataTreeModification<LogicalRouter> change: changes) {
+            DataObjectModification<LogicalRouter> rootNode = change.getRootNode();
+            final LogicalRouter originalRouter = rootNode.getDataBefore();
+            switch (rootNode.getModificationType()) {
+                case WRITE:
+                case SUBTREE_MODIFIED:
+                    final LogicalRouter updatedRouter = rootNode.getDataAfter();
+                    if (originalRouter == null) {
+                        LOG.debug("FABMGR: Create Logical Router event: {}", updatedRouter.getUuid().getValue());
+                        ulnMappingEngine.handleLrCreateEvent(updatedRouter);
+                    } else {
+                        LOG.debug("FABMGR: Logical Router Switch event: {}", updatedRouter.getUuid().getValue());
+                        ulnMappingEngine.handleLrUpdateEvent(updatedRouter);
+                    }
+                    break;
+                case DELETE:
+                    LOG.debug("FABMGR: Remove Logical Router event: {}", originalRouter.getUuid().getValue());
+                    ulnMappingEngine.handleLrRemoveEvent(originalRouter);
+                    break;
+                default:
+                    break;
             }
         }
     }
