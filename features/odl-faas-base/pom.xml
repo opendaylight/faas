@@ -13,7 +13,7 @@
 
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>odl-faas-base</artifactId>
-    <version>1.3.0-SNAPSHOT</version>
+    <version>1.3.1-SNAPSHOT</version>
     <packaging>feature</packaging>
 
     <name>OpenDaylight :: faaS :: base</name>
@@ -22,7 +22,7 @@
     <dependency>
         <groupId>org.opendaylight.faas</groupId>
         <artifactId>base</artifactId>
-        <version>1.3.0-SNAPSHOT</version>
+        <version>1.3.1-SNAPSHOT</version>
      </dependency>
     </dependencies>
 
