@@ -17,13 +17,35 @@
     <packaging>feature</packaging>
 
     <name>OpenDaylight :: faaS :: base</name>
-    
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Controller infrastructure -->
+            <dependency>
+                <groupId>org.opendaylight.controller</groupId>
+                <artifactId>mdsal-artifacts</artifactId>
+                <version>1.6.1-SNAPSHOT</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
     <dependencies>
-    <dependency>
-        <groupId>org.opendaylight.faas</groupId>
-        <artifactId>base</artifactId>
-        <version>1.3.1-SNAPSHOT</version>
-     </dependency>
+        <!-- feature dependencies -->
+        <dependency>
+            <groupId>org.opendaylight.controller</groupId>
+            <artifactId>odl-mdsal-broker</artifactId>
+            <classifier>features</classifier>
+            <type>xml</type>
+        </dependency>
+
+        <dependency>
+            <groupId>org.opendaylight.faas</groupId>
+            <artifactId>base</artifactId>
+            <version>1.3.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
 </project>
