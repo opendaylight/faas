@@ -86,6 +86,10 @@ public class Openflow13Provider {
         outboundNat = new PipelineOutboundNat(databroker);
         outboundNat.programDefaultPipelineRule(node);
 
+        //stripVlan = new PipelineL2StripVlan(databroker);
+        //stripVlan.programDefaultPipelineRule(node);
+
+
         l2Forwarding = new PipelineL2Forwarding(databroker);
         l2Forwarding.programDefaultPipelineRule(node);
 

@@ -10,6 +10,7 @@ package org.opendaylight.faas.fabric.vxlan;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -50,7 +51,7 @@ public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
     private final FabricRendererRegistry rendererRegistry;
-    private final List<GatewayMac> availableMacs;
+    private final List<GatewayMac> availableMacs ;
 
     private final ListeningExecutorService executor = MoreExecutors.listeningDecorator(
             Executors.newSingleThreadExecutor());
@@ -60,7 +61,9 @@ public class VxlanFabricProvider implements AutoCloseable, FabricRendererFactory
     public VxlanFabricProvider(final DataBroker dataProvider,
                              final RpcProviderRegistry rpcRegistry,
                              final FabricRendererRegistry rendererRegistry,
-                             final List<GatewayMac> availableMacs) {
+
+                             final List<GatewayMac> availableMacs
+                             ) {
         this.dataBroker = dataProvider;
         this.rpcRegistry = rpcRegistry;
         this.rendererRegistry = rendererRegistry;

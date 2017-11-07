@@ -11,8 +11,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
 import java.util.Collection;
-import java.util.concurrent.Callable;
-
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
@@ -77,8 +75,10 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         this.rpcRegistry = rpcRegistry;
         this.fabricCtx = fabricCtx;
 
-        DataTreeIdentifier<Endpoint> dtid = new DataTreeIdentifier<Endpoint>(LogicalDatastoreType.OPERATIONAL,
+        DataTreeIdentifier<Endpoint> dtid = new DataTreeIdentifier<>(LogicalDatastoreType.OPERATIONAL,
                 Constants.DOM_ENDPOINTS_PATH.child(Endpoint.class));
+
+        System.out.println("Register EndPoint Manager !");
         epListener = databroker.registerDataTreeChangeListener(dtid, this);
     }
 
@@ -99,12 +99,14 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
 
     private void rendererEndpoint(Endpoint ep) throws Exception {
 
+        System.out.println("RendererEndpoint " + ep.getIpAddress());
         // 1, create bridge domain port
         // VNI
         NodeId logicNode = ep.getLogicalLocation().getNodeId();
 
         LogicSwitchContext switchCtx = fabricCtx.getLogicSwitchCtx(logicNode);
         if (switchCtx == null) {
+            System.out.println("SwitchContext is null, logical switch " + logicNode.getValue());
             LOG.warn("There are no such switch's context.({})", logicNode.getValue());
             return;
         }
@@ -113,6 +115,14 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
         TpId destTpPort = ep.getLocation().getTpRef().getValue().firstKeyOf(TerminationPoint.class).getTpId();
         InstanceIdentifier<Node> devIid = (InstanceIdentifier<Node>) ep.getLocation().getNodeRef().getValue();
         DeviceContext devCtx = fabricCtx.getDeviceCtx(DeviceKey.newInstance(devIid));
+        if (devCtx == null) {
+            System.out.println("can not find devCtx " + devIid);
+            return;
+        }
+
+        System.out.println("vni:" + vni + " destTpPort:" + destTpPort + ep.getLocation().getAccessType());
+        System.out.println("accessSegment : "  + ep.getLocation().getAccessSegment());
+
         String bdPortId = devCtx.createBdPort(vni,
                 destTpPort, ep.getLocation().getAccessType(), ep.getLocation().getAccessSegment());
 
@@ -130,11 +140,14 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
 
         HostRouteBuilder hrBuilder = new HostRouteBuilder();
         if (!buildHostRoute(hrBuilder, ep, destTpPort)) {
+            System.out.println("buildHostRoute null!");
             return;
         }
         trans.merge(LogicalDatastoreType.OPERATIONAL, hostRouteIId, hrBuilder.build(), true);
 
         MdSalUtils.wrapperSubmit(trans);
+
+        System.out.println("submit transaction for host route");
     }
 
     private boolean buildHostRoute(HostRouteBuilder builder, Endpoint ep, TpId bridgeDomainPort) {
@@ -189,19 +202,17 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
     @Override
     public void onDataTreeChanged(Collection<DataTreeModification<Endpoint>> changes) {
 
+        System.out.println("onDataTreeChanged in EndPointManager!");
         for (DataTreeModification<Endpoint> change : changes) {
+            System.out.println("Change type is " + change.getRootNode().getModificationType());
             switch (change.getRootNode().getModificationType()) {
                 case DELETE: {
                     final Endpoint ep = change.getRootNode().getDataBefore();
                     final InstanceIdentifier<Endpoint> iid = change.getRootPath().getRootIdentifier();
                     if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
-                        Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
-
-                            @Override
-                            public Void call() throws Exception {
-                                removeEndPointIId(iid, ep);
-                                return null;
-                            }
+                        Futures.addCallback(fabricCtx.executor.submit(() -> {
+                            removeEndPointIId(iid, ep);
+                            return null;
                         }), simpleFutureMonitor, fabricCtx.executor);
                     }
                     break;
@@ -210,13 +221,9 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
                     final Endpoint ep = change.getRootNode().getDataAfter();
                     if (ep != null) {
                         if (ep.getLocation() != null && fabricCtx.getFabricId().equals(ep.getOwnFabric())) {
-                            Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
-
-                                @Override
-                                public Void call() throws Exception {
-                                    rendererEndpoint(ep);
-                                    return null;
-                                }
+                            Futures.addCallback(fabricCtx.executor.submit(() -> {
+                                rendererEndpoint(ep);
+                                return null;
                             }), simpleFutureMonitor, fabricCtx.executor);
                         }
                     }
@@ -227,13 +234,9 @@ public class EndPointManager implements AutoCloseable, DataTreeChangeListener<En
                     final Endpoint newEp = change.getRootNode().getDataAfter();
                     if (newEp.getLocation() != null
                             && fabricCtx.getFabricId().equals(newEp.getOwnFabric())) {
-                        Futures.addCallback(fabricCtx.executor.submit(new Callable<Void>() {
-
-                            @Override
-                            public Void call() throws Exception {
-                                rendererEndpoint(newEp);
-                                return null;
-                            }
+                        Futures.addCallback(fabricCtx.executor.submit(() -> {
+                            rendererEndpoint(newEp);
+                            return null;
                         }), simpleFutureMonitor, fabricCtx.executor);
                     }
                     break;

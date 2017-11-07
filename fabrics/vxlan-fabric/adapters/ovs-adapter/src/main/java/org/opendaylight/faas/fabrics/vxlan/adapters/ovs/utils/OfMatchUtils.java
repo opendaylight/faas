@@ -25,6 +25,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.flow.M
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.EtherType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.VlanId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.VlanPcp;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.arp.match.fields.ArpSourceHardwareAddressBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.arp.match.fields.ArpTargetHardwareAddressBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.ethernet.match.fields.EthernetDestinationBuilder;
@@ -46,6 +47,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._4.match.TcpMatchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._4.match.UdpMatchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.vlan.match.fields.VlanIdBuilder;
+
+
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg0;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.openflowjava.nx.match.rev140421.NxmNxReg1;
@@ -213,6 +216,18 @@ public class OfMatchUtils {
         return matchBuilder;
     }
 
+    public static MatchBuilder createEthTypeMatch(MatchBuilder matchBuilder, String sMacAddr) {
+
+        EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
+        EthernetTypeBuilder ethTypeBuilder = new EthernetTypeBuilder();
+        ethTypeBuilder.setType(new EtherType(new Long(0x8100)));
+        ethernetMatch.setEthernetType(ethTypeBuilder.build());
+        matchBuilder.setEthernetMatch(ethernetMatch.build());
+
+        return matchBuilder;
+    }
+
+
     public static MatchBuilder createEthSrcMatch(MatchBuilder matchBuilder, String sMacAddr) {
 
         EthernetMatchBuilder ethernetMatch = new EthernetMatchBuilder();
@@ -223,6 +238,8 @@ public class OfMatchUtils {
 
         return matchBuilder;
     }
+
+
 
     /**
      * Create Ethernet Destination Match
@@ -236,9 +253,14 @@ public class OfMatchUtils {
     public static MatchBuilder createVlanIdMatch(MatchBuilder matchBuilder, VlanId vlanId, boolean present) {
         VlanMatchBuilder vlanMatchBuilder = new VlanMatchBuilder();
         VlanIdBuilder vlanIdBuilder = new VlanIdBuilder();
-        vlanIdBuilder.setVlanId(new VlanId(vlanId));
+        if (vlanId.getValue() != 0) vlanIdBuilder.setVlanId(new VlanId(vlanId));
         vlanIdBuilder.setVlanIdPresent(present);
         vlanMatchBuilder.setVlanId(vlanIdBuilder.build());
+
+
+        //VlanPcp vp = new VlanPcp((short)3);
+        //vlanMatchBuilder.setVlanPcp(vp);
+
         matchBuilder.setVlanMatch(vlanMatchBuilder.build());
 
         return matchBuilder;

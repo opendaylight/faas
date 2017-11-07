@@ -1,0 +1,56 @@
+# Config for switches, tunnelIP is the local IP address.
+switches = [
+            {'name': 'ce6801',
+             'type': 'ce'},
+            {'name': 'ce6802',
+             'type': 'ce'},
+            {'name': 'ce78-1',
+             'type': 'ce'},
+            {'name': 'ce7802',
+             'type': 'ce'}
+	    ]
+
+
+#Note that tenant name and endpointGroup name come from policy_config.py
+
+hosts = [{'name': 'h35-2',
+          'mac': '00:00:00:00:35:02',
+          'ip': '10.0.35.2/24',
+          'switch': 'sw1'},
+         {'name': 'h35-3',
+          'ip': '10.0.35.3/24',
+          'mac': '00:00:00:00:35:03',
+          'switch': 'sw1'},
+         {'name': 'h35-4',
+          'ip': '10.0.35.4/24',
+          'mac': '00:00:00:00:35:04',
+          'switch': 'sw6'},
+         {'name': 'h35-5',
+          'ip': '10.0.35.5/24',
+          'mac': '00:00:00:00:35:05',
+          'switch': 'sw6'},
+         {'name': 'h36-2',
+          'ip': '10.0.36.2/24',
+          'mac': '00:00:00:00:36:02',
+          'switch': 'sw1'},
+         {'name': 'h36-3',
+          'ip': '10.0.36.3/24',
+          'mac': '00:00:00:00:36:03',
+          'switch': 'sw1'},
+         {'name': 'h36-4',
+          'ip': '10.0.36.4/24',
+          'mac': '00:00:00:00:36:04',
+          'switch': 'sw6'},
+         {'name': 'h36-5',
+          'ip': '10.0.36.5/24',
+          'mac': '00:00:00:00:36:05',
+          'switch': 'sw6'},
+	 {'name':'h37-2',
+	  'ip': '10.0.37.2/24',
+	  'mac': '00:00:00:00:37:02',
+	  'switch': 'sw7'},
+	 {'name':'h37-3',
+	  'ip': '10.0.37.3/24',
+	  'mac': '00:00:00:00:37:03',
+	  'switch': 'sw7'}
+          ]

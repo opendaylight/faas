@@ -51,7 +51,7 @@ public abstract class AbstractServiceInstance {
     //private volatile PipelineOrchestrator orchestrator;
     //private OvsSouthboundUtils ovsSouthboundUtils;
 
-    private Service service;
+    protected Service service;
 
     public AbstractServiceInstance(Service service, DataBroker dataBroker) {
         this.service = service;
@@ -78,6 +78,10 @@ public abstract class AbstractServiceInstance {
 
     public short getTable() {
         return service.getTable();
+    }
+
+    protected final InstructionBuilder getStripVlanInstrctionBuilder() {
+        return OfInstructionUtils.createPopVlanInstructions(new InstructionBuilder());
     }
 
     protected final InstructionBuilder getMutablePipelineInstructionBuilder() {
@@ -154,7 +158,7 @@ public abstract class AbstractServiceInstance {
         return null;
     }
 
-    private Long getDpid(Node node) {
+    public Long getDpid(Node node) {
         Long dpid = OvsSouthboundUtils.getDataPathId(node);
         if (dpid == null) {
             LOG.warn("getDpid: dpid not found: {}", node);

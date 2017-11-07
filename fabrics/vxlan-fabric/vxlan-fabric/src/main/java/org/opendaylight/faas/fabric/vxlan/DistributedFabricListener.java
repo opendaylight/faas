@@ -82,8 +82,8 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
 
-    private ListeningExecutorService executor;
-    private EndPointManager epMgr;
+    private final ListeningExecutorService executor;
+    private final EndPointManager epMgr;
     private final FabricContext fabricCtx;
 
     public DistributedFabricListener(InstanceIdentifier<FabricNode> fabricIId,
@@ -156,6 +156,7 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
                 }
 
                 // if the logical switch has already exists, add this device to members.
+                System.out.println("deviceSwitch added :" + deviceIId + "vtep ip:" + vtep);
                 DeviceContext devCtx = fabricCtx.addDeviceSwitch(deviceIId, vtep);
                 Collection<LogicSwitchContext> lswCtxs = fabricCtx.getLogicSwitchCtxs();
                 for (LogicSwitchContext lswCtx : lswCtxs) {

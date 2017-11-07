@@ -1,0 +1,9 @@
+1. Follow the guide in : https://github.com/opendaylight/groupbasedpolicy/tree/master/demos/gbpsfc-env , to setup gbpsfc VMs. 
+2. Copy the demo-faas directory to the gbpsfc enviroment directory: ~/groupbasedpolicy/demos/gbpsfc-env/
+3. start odl features: odl-restconf odl-sfcofl2 odl-sfc-ui odl-faas-vxlan-fabric odl-faas-vxlan-ovs-adapter
+4. In the gbpsfc-env directory, : #./startdemo.sh demo-faas
+5. python demo-faas/composeFabric.py [normal]
+5. python demo-faas/fabircUT.py		,    to create logic switch  / logic router / register endpoint
+6. python demo-faas/runSfcUT.py	NSI NSP	 ,to add chain acl
+
+

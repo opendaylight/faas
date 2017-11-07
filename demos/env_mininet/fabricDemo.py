@@ -6,7 +6,7 @@ from subprocess import call
 import time
 import sys
 import os
-from faas_mininet_config import *
+from vas_config import *
 
 
 DEFAULT_PORT='8181'

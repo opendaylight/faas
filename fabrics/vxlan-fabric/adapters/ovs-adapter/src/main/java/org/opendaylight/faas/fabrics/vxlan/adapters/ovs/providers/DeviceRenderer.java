@@ -239,6 +239,8 @@ public class DeviceRenderer implements AutoCloseable {
     private void onHostRouteCreate(HostRoute newRec) {
         Long dpid = ctx.getDpid();
 
+        System.out.println("onHostRoute" + dpid);
+
         Long gpeTunnelOfPort = ctx.getGpe_vtep_ofPort();
         if (gpeTunnelOfPort == null) {
             gpeTunnelOfPort = OvsSouthboundUtils.getVxlanGpeTunnelOFPort(ctx.getMyIId(), ctx.getBridgeName(),

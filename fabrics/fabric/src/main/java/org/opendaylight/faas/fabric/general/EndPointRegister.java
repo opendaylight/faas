@@ -75,6 +75,7 @@ public class EndPointRegister implements FabricEndpointService {
     @Override
     public Future<RpcResult<RegisterEndpointOutput>> registerEndpoint(RegisterEndpointInput input) {
 
+        System.out.println("Entering registerEndpoint!");
         final RpcResultBuilder<RegisterEndpointOutput> resultBuilder =
                 RpcResultBuilder.<RegisterEndpointOutput>success();
         final RegisterEndpointOutputBuilder outputBuilder = new RegisterEndpointOutputBuilder();
@@ -108,6 +109,7 @@ public class EndPointRegister implements FabricEndpointService {
         ReadWriteTransaction trans = dataBroker.newReadWriteTransaction();
         trans.put(LogicalDatastoreType.OPERATIONAL, eppath, epBuilder.build(), true);
 
+        System.out.println("Register endpoint submitted!");
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
         return Futures.transformAsync(future, input1 -> {
@@ -119,6 +121,7 @@ public class EndPointRegister implements FabricEndpointService {
     @Override
     public Future<RpcResult<Void>> locateEndpoint(LocateEndpointInput input) {
 
+        System.out.println("locateEndpoint is invoked!!!");
         final RpcResult<Void> result = RpcResultBuilder.<Void>success().build();
 
         if ( input == null) {
@@ -146,6 +149,7 @@ public class EndPointRegister implements FabricEndpointService {
                 .child(Endpoint.class, new EndpointKey(epId));
         trans.merge(LogicalDatastoreType.OPERATIONAL, eppath, epBuilder.build());
 
+        System.out.println("endpoint merge is submitted!");
         CheckedFuture<Void,TransactionCommitFailedException> future = trans.submit();
 
         return Futures.transformAsync(future, (AsyncFunction<Void, RpcResult<Void>>) input1 -> Futures.immediateFuture(result), executor);

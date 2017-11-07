@@ -28,16 +28,21 @@ import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfActionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfInstructionUtils;
 import org.opendaylight.faas.fabrics.vxlan.adapters.ovs.utils.OfMatchUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.VlanCfi;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.GroupActionCase;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.GroupActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCase;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.PopVlanActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.PushVlanActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.SetVlanIdActionCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.StripVlanActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.group.action._case.GroupActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.output.action._case.OutputActionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.pop.vlan.action._case.PopVlanActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.push.vlan.action._case.PushVlanActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.set.vlan.id.action._case.SetVlanIdActionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.strip.vlan.action._case.StripVlanActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
@@ -89,6 +94,106 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
      */
     public void programLocalUcastOut(Long dpid, Long segmentationId, Long vlanId, Long localPort, String attachedMac,
             boolean isWriteFlow) {
+        programLocalUcastOutForUntagged(dpid,  segmentationId,  vlanId,  localPort,  attachedMac,
+                 isWriteFlow) ;
+        programLocalUcastOutForTagged( dpid,  segmentationId,  vlanId,  localPort,  attachedMac,
+                     isWriteFlow);
+        }
+
+    private void programLocalUcastOutForTagged(Long dpid, Long segmentationId, Long vlanId, Long localPort, String attachedMac,
+                boolean isWriteFlow) {
+
+        String nodeName = OPENFLOW + dpid;
+
+        MatchBuilder matchBuilder = new MatchBuilder();
+        NodeBuilder nodeBuilder = createNodeBuilder(nodeName);
+        FlowBuilder flowBuilder = new FlowBuilder();
+
+
+        // Create the OF Match using MatchBuilder
+        flowBuilder.setMatch(
+                OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
+        flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, attachedMac, "").build());
+
+        //Matching all Tagged VLANs
+        OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(0), true);
+        flowBuilder.setMatch(matchBuilder.build());
+
+
+        String flowId;
+        if (vlanId != null) {
+            flowId = "UcastOutForTagged_" + segmentationId + "_" + localPort + "_" + attachedMac + "_" + vlanId;
+        } else {
+            flowId = "UcastOutForTagged_" + segmentationId + "_" + localPort + "_" + attachedMac;
+        }
+        // Add Flow Attributes
+        flowBuilder.setId(new FlowId(flowId));
+        FlowKey key = new FlowKey(new FlowId(flowId));
+        flowBuilder.setStrict(true);
+        flowBuilder.setBarrier(false);
+        flowBuilder.setTableId(getTable());
+        flowBuilder.setKey(key);
+        flowBuilder.setFlowName(flowId);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setIdleTimeout(0);
+        flowBuilder.setPriority(1024);
+
+        if (isWriteFlow) {
+            InstructionBuilder ib = new InstructionBuilder();
+            InstructionsBuilder isb = new InstructionsBuilder();
+            List<Action> actionList = new ArrayList<>();
+            List<Instruction> instructions = Lists.newArrayList();
+            ActionBuilder popVlanActionBuilder = new ActionBuilder();
+            ActionBuilder setVlanActionBuilder = new ActionBuilder();
+
+            if (vlanId != null) {
+                SetVlanIdActionBuilder vl = new SetVlanIdActionBuilder();
+                vl.setVlanId(new VlanId(vlanId.intValue()));
+                setVlanActionBuilder.setAction(new SetVlanIdActionCaseBuilder().setSetVlanIdAction(vl.build()).build());
+                setVlanActionBuilder.setOrder(actionList.size());
+                setVlanActionBuilder.setKey(new ActionKey(actionList.size()));
+                actionList.add(setVlanActionBuilder.build());
+            } else {
+                PopVlanActionBuilder popVlan = new PopVlanActionBuilder();
+                popVlanActionBuilder.setAction(new PopVlanActionCaseBuilder().setPopVlanAction(popVlan.build()).build());
+                popVlanActionBuilder.setOrder(actionList.size());
+                popVlanActionBuilder.setKey(new ActionKey(actionList.size()));
+                actionList.add(popVlanActionBuilder.build());
+            }
+
+
+            /* Set output port */
+            ActionBuilder outPortActionBuilder = new ActionBuilder();
+
+            OutputActionBuilder oab = new OutputActionBuilder();
+            NodeConnectorId ncid = new NodeConnectorId("openflow:" + dpid + ":" + localPort);
+            oab.setOutputNodeConnector(ncid);
+            outPortActionBuilder.setAction(new OutputActionCaseBuilder().setOutputAction(oab.build()).build());
+
+            outPortActionBuilder.setOrder(actionList.size());
+            outPortActionBuilder.setKey(new ActionKey(actionList.size()));
+            actionList.add(outPortActionBuilder.build());
+
+            ApplyActionsBuilder aab = new ApplyActionsBuilder();
+            aab.setAction(actionList);
+
+            ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+            ib.setOrder(instructions.size());
+            ib.setKey(new InstructionKey(instructions.size()));
+
+            instructions.add(ib.build());
+            isb.setInstruction(instructions);
+
+            // Add InstructionsBuilder to FlowBuilder
+            flowBuilder.setInstructions(isb.build());
+            writeFlow(flowBuilder, nodeBuilder);
+        } else {
+            removeFlow(flowBuilder, nodeBuilder);
+        }
+    }
+
+    private void programLocalUcastOutForUntagged(Long dpid, Long segmentationId, Long vlanId, Long localPort, String attachedMac,
+            boolean isWriteFlow) {
 
         String nodeName = OPENFLOW + dpid;
 
@@ -101,15 +206,15 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
                 OfMatchUtils.createTunnelIDMatch(matchBuilder, BigInteger.valueOf(segmentationId.longValue())).build());
         flowBuilder.setMatch(OfMatchUtils.createDestEthMatch(matchBuilder, attachedMac, "").build());
 
-        // openflowplugin requires a vlan match to add a vlan
+        // Match no VLANs
         OfMatchUtils.createVlanIdMatch(matchBuilder, new VlanId(0), false);
         flowBuilder.setMatch(matchBuilder.build());
 
         String flowId;
         if (vlanId != null) {
-            flowId = "UcastOut_" + segmentationId + "_" + localPort + "_" + attachedMac + "_" + vlanId;
+            flowId = "UcastOutForUntagged_" + segmentationId + "_" + localPort + "_" + attachedMac + "_" + vlanId;
         } else {
-            flowId = "UcastOut_" + segmentationId + "_" + localPort + "_" + attachedMac;
+            flowId = "UcastOutForUntagged_" + segmentationId + "_" + localPort + "_" + attachedMac;
         }
         // Add Flow Attributes
         flowBuilder.setId(new FlowId(flowId));
@@ -121,6 +226,7 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
         flowBuilder.setFlowName(flowId);
         flowBuilder.setHardTimeout(0);
         flowBuilder.setIdleTimeout(0);
+        flowBuilder.setPriority(1023); //lower than L3
 
         if (isWriteFlow) {
             // Instantiate the Builders for the OF Actions and Instructions
@@ -131,20 +237,24 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             ActionBuilder pushVlanActionBuilder = new ActionBuilder();
             ActionBuilder setVlanActionBuilder = new ActionBuilder();
 
-            if (vlanId != null) {
-                PushVlanActionBuilder vlan = new PushVlanActionBuilder();
-                vlan.setEthernetType(0x8100);
+
+           if (vlanId != null) {
+                PushVlanActionBuilder pvl = new PushVlanActionBuilder();
+                pvl.setEthernetType(0x8100);
+
+                //Why this one doesn't work? we have to use a set VLAN action explicitly?
+                pvl.setVlanId(new VlanId(vlanId.intValue()));
                 pushVlanActionBuilder
-                        .setAction(new PushVlanActionCaseBuilder().setPushVlanAction(vlan.build()).build());
+                        .setAction(new PushVlanActionCaseBuilder().setPushVlanAction(pvl.build()).build());
 
                 pushVlanActionBuilder.setOrder(actionList.size());
                 pushVlanActionBuilder.setKey(new ActionKey(actionList.size()));
                 actionList.add(pushVlanActionBuilder.build());
 
-                /* Then we set vlan id value as vlanId */
-                SetVlanIdActionBuilder vl = new SetVlanIdActionBuilder();
-                vl.setVlanId(new VlanId(vlanId.intValue()));
-                setVlanActionBuilder.setAction(new SetVlanIdActionCaseBuilder().setSetVlanIdAction(vl.build()).build());
+                //Set vlan id value as vlanId
+                SetVlanIdActionBuilder svl = new SetVlanIdActionBuilder();
+                svl.setVlanId(new VlanId(vlanId.intValue()));
+                setVlanActionBuilder.setAction(new SetVlanIdActionCaseBuilder().setSetVlanIdAction(svl.build()).build());
 
                 setVlanActionBuilder.setOrder(actionList.size());
                 setVlanActionBuilder.setKey(new ActionKey(actionList.size()));
@@ -179,6 +289,8 @@ public class PipelineL2Forwarding extends AbstractServiceInstance {
             removeFlow(flowBuilder, nodeBuilder);
         }
     }
+
+
 
     /*
      * Local Table Miss Match: Any Remaining Flows w/a TunID Action: Drop w/ a
