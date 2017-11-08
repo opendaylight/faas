@@ -16,7 +16,6 @@ import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Address;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
 //import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.BridgeDomainPort;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.FabricCapableDevice;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.rev150930.fabric.capable.device.config.Bdif;
@@ -26,7 +25,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.capable.device.
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.BridgeDomain1;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.device.adapter.vxlan.rev150930.VtepAttribute;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.rev150930.FabricId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.fabric.type.rev150930.route.group.Route;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.FabricRenderedMapping;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.Fabric;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.faas.vxlan.rendered.mapping.rev150930.fabric.rendered.mapping.FabricKey;
@@ -44,7 +42,6 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointBuilder;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.node.TerminationPointKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-import org.opendaylight.yangtools.yang.binding.KeyedInstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +99,7 @@ public class OvsSouthboundUtils {
     }
 
     private static List<OvsdbTerminationPointAugmentation> extractTerminationPointAugmentations(Node node) {
-        List<OvsdbTerminationPointAugmentation> tpAugmentations = new ArrayList<OvsdbTerminationPointAugmentation>();
+        List<OvsdbTerminationPointAugmentation> tpAugmentations = new ArrayList<>();
         List<TerminationPoint> terminationPoints = node.getTerminationPoint();
         if (terminationPoints != null && !terminationPoints.isEmpty()) {
             for (TerminationPoint tp : terminationPoints) {
@@ -152,7 +149,7 @@ public class OvsSouthboundUtils {
             tpAugmentationBuilder.setInterfaceType(MdsalUtils.OVSDB_INTERFACE_TYPE_MAP.get(type));
         }
 
-        List<Options> optionsList = new ArrayList<Options>();
+        List<Options> optionsList = new ArrayList<>();
         for (Map.Entry<String, String> entry : options.entrySet()) {
             OptionsBuilder optionsBuilder = new OptionsBuilder();
             optionsBuilder.setKey(new OptionsKey(entry.getKey()));
@@ -265,7 +262,7 @@ public class OvsSouthboundUtils {
     }
 
     private static List<TerminationPoint> extractTerminationPoints(Node node) {
-        List<TerminationPoint> terminationPoints = new ArrayList<TerminationPoint>();
+        List<TerminationPoint> terminationPoints = new ArrayList<>();
         OvsdbBridgeAugmentation ovsdbBridgeAugmentation = node.getAugmentation(OvsdbBridgeAugmentation.class);
         if (ovsdbBridgeAugmentation != null) {
             terminationPoints.addAll(node.getTerminationPoint());

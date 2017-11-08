@@ -82,8 +82,8 @@ public class DistributedFabricListener implements AutoCloseable, FabricListener 
     private final DataBroker dataBroker;
     private final RpcProviderRegistry rpcRegistry;
 
-    private ListeningExecutorService executor;
-    private EndPointManager epMgr;
+    private final ListeningExecutorService executor;
+    private final EndPointManager epMgr;
     private final FabricContext fabricCtx;
 
     public DistributedFabricListener(InstanceIdentifier<FabricNode> fabricIId,

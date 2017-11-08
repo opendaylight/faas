@@ -29,6 +29,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.acti
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.SetNwDstActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.SetNwSrcActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.SetVlanIdActionCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.StripVlanActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.dec.nw.ttl._case.DecNwTtl;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.dec.nw.ttl._case.DecNwTtlBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.drop.action._case.DropAction;
@@ -42,6 +43,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.acti
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.set.nw.dst.action._case.SetNwDstActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.set.nw.src.action._case.SetNwSrcActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.set.vlan.id.action._case.SetVlanIdActionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.strip.vlan.action._case.StripVlanActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
@@ -1022,6 +1024,38 @@ public class OfInstructionUtils {
 
         return ib;
     }
+    public static InstructionBuilder createDlDstAndStripVlanInstructions(InstructionBuilder ib, String macAddress) {
+
+        List<Action> actionList = new ArrayList<>();
+        ActionBuilder ab = new ActionBuilder();
+
+        SetDlDstActionBuilder dlDstActionBuilder= new SetDlDstActionBuilder();
+
+        dlDstActionBuilder.setAddress(new MacAddress(macAddress));
+
+        ab.setAction(new SetDlDstActionCaseBuilder().setSetDlDstAction(dlDstActionBuilder.build()).build());
+        ab.setOrder(0);
+        ab.setKey(new ActionKey(0));
+        actionList.add(ab.build());
+
+        StripVlanActionBuilder stripVlanActionBuilder= new StripVlanActionBuilder();
+
+
+        ab.setAction(new StripVlanActionCaseBuilder().setStripVlanAction(stripVlanActionBuilder.build()).build());
+        ab.setOrder(1);
+        ab.setKey(new ActionKey(1));
+        actionList.add(ab.build());
+
+
+        // Create an Apply Action
+        ApplyActionsBuilder aab = new ApplyActionsBuilder();
+        aab.setAction(actionList);
+
+        // Wrap our Apply Action in an Instruction
+        ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+
+        return ib;
+    }
 
     public static InstructionBuilder createDlSrcInstructions(InstructionBuilder ib, String macAddress) {
 
@@ -1048,6 +1082,8 @@ public class OfInstructionUtils {
         return ib;
     }
 
+
+
     public static InstructionBuilder createDlDstInstructions(InstructionBuilder ib, MacAddress macAddress) {
 
         List<Action> actionList = new ArrayList<>();
@@ -1072,6 +1108,8 @@ public class OfInstructionUtils {
         return ib;
     }
 
+
+
     public static InstructionBuilder createDlDstInstructions(InstructionBuilder ib, String macAddress) {
 
         List<Action> actionList = new ArrayList<>();
@@ -1086,6 +1124,10 @@ public class OfInstructionUtils {
         ab.setKey(new ActionKey(0));
         actionList.add(ab.build());
 
+        StripVlanActionBuilder stripVlanActionBuilder= new StripVlanActionBuilder();
+
+
+
         // Create an Apply Action
         ApplyActionsBuilder aab = new ApplyActionsBuilder();
         aab.setAction(actionList);
@@ -1095,6 +1137,32 @@ public class OfInstructionUtils {
 
         return ib;
     }
+
+
+
+    public static InstructionBuilder createStripVlanInstructions(InstructionBuilder ib, Integer order) {
+
+        List<Action> actionList = new ArrayList<>();
+        ActionBuilder ab = new ActionBuilder();
+
+        StripVlanActionBuilder stripVlanActionBuilder= new StripVlanActionBuilder();
+
+
+        ab.setAction(new StripVlanActionCaseBuilder().setStripVlanAction(stripVlanActionBuilder.build()).build());
+        ab.setOrder(order);
+        ab.setKey(new ActionKey(order));
+        actionList.add(ab.build());
+
+        // Create an Apply Action
+        ApplyActionsBuilder aab = new ApplyActionsBuilder();
+        aab.setAction(actionList);
+
+        // Wrap our Apply Action in an Instruction
+        ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
+
+        return ib;
+    }
+
 
     public static List<Action>
                   actionList(org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.Action... actions) {
