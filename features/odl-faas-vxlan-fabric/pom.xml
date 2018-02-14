@@ -13,7 +13,7 @@
 
     <groupId>org.opendaylight.faas</groupId>
     <artifactId>odl-faas-vxlan-fabric</artifactId>
-    <version>1.3.2-SNAPSHOT</version>
+    <version>1.3.2</version>
     <packaging>feature</packaging>
 
     <name>OpenDaylight :: faaS :: vxlan fabric</name>
@@ -22,7 +22,7 @@
        <dependency>
            <groupId>org.opendaylight.mdsal</groupId>
            <artifactId>odl-mdsal-binding-runtime</artifactId>
-           <version>2.3.2-SNAPSHOT</version>
+           <version>2.3.2</version>
            <type>xml</type>
            <classifier>features</classifier>
        </dependency> 

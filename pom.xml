@@ -15,7 +15,7 @@
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
-  <version>1.3.2-SNAPSHOT</version>
+  <version>1.3.2</version>
   <artifactId>faas.project</artifactId>
   <packaging>pom</packaging>
   <name>faas</name> <!-- Used by Sonar to set project name -->
