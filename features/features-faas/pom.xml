@@ -11,27 +11,27 @@
   <parent>
     <groupId>org.opendaylight.odlparent</groupId>
     <artifactId>features-parent</artifactId>
-    <version>1.8.4-SNAPSHOT</version>
+    <version>1.8.4-Carbon</version>
     <relativePath />
   </parent>
 
   <groupId>org.opendaylight.faas</groupId>
   <artifactId>features-faas</artifactId>
-  <version>1.2.4-SNAPSHOT</version>
+  <version>1.2.4-Carbon</version>
   <packaging>jar</packaging>
 
   <properties>
-    <odl.version>1.8.4-SNAPSHOT</odl.version>
-    <mdsal.version>2.2.4-SNAPSHOT</mdsal.version>
-    <mdsal.model.version>0.10.4-SNAPSHOT</mdsal.model.version>
-    <controller.mdsal.version>1.5.4-SNAPSHOT</controller.mdsal.version>
+    <odl.version>1.8.4-Carbon</odl.version>
+    <mdsal.version>2.2.4-Carbon</mdsal.version>
+    <mdsal.model.version>0.10.4-Carbon</mdsal.model.version>
+    <controller.mdsal.version>1.5.4-Carbon</controller.mdsal.version>
     <features.file>features.xml</features.file>
-    <branding.version>1.2.4-SNAPSHOT</branding.version>
-    <restconf.version>1.5.4-SNAPSHOT</restconf.version>
-    <openflowplugin.version>0.4.4-SNAPSHOT</openflowplugin.version>
-    <ovsdb.southbound.version>1.4.4-SNAPSHOT</ovsdb.southbound.version>
-    <sfc.version>0.5.4-SNAPSHOT</sfc.version>
-    <inventory.model.version>1.5.4-SNAPSHOT</inventory.model.version>
+    <branding.version>1.2.4-Carbon</branding.version>
+    <restconf.version>1.5.4-Carbon</restconf.version>
+    <openflowplugin.version>0.4.4-Carbon</openflowplugin.version>
+    <ovsdb.southbound.version>1.4.4-Carbon</ovsdb.southbound.version>
+    <sfc.version>0.5.4-Carbon</sfc.version>
+    <inventory.model.version>1.5.4-Carbon</inventory.model.version>
     <karaf.empty.version>${odl.version}</karaf.empty.version>
     <config.configfile.directory>etc/opendaylight/karaf</config.configfile.directory>
   </properties>
